@@ -1,26 +1,256 @@
+/* app/globals.css */
+/* Tailwind v4 */
 @import "tailwindcss";
+@plugin "@tailwindcss/postcss";
 
+/* ---------- Color Themes (unchanged) ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --secondary: #02c39a;
+  --tertiary: #028090;
+  --on-secondary: #ffffff;
+  --on-tertiary: #ffffff;
+
+  /* neutrals & text */
+  --surface: #ffffff;
+  --text: #111827;        /* gray-900 */
+  --muted: #6b7280;       /* gray-500 */
+  --border: #e5e7eb;      /* gray-200 */
+  --surface-2: #f9fafb;   /* gray-50 */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Theme 1 — Teal/Aqua */
+[data-theme="t1"] {
+  --secondary: #02c39a;
+  --tertiary:  #028090;
+  --on-secondary: #ffffff;
+  --on-tertiary:  #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Theme 2 — Blue/Navy */
+[data-theme="t2"] {
+  --secondary: #0189bb;
+  --tertiary:  #014576;
+  --on-secondary: #ffffff;
+  --on-tertiary:  #ffffff;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Theme 3 — Lavender/Plum */
+[data-theme="t3"] {
+  --secondary: #caabd5;
+  --tertiary:  #83749f;
+  --on-secondary: #1f2937; /* slate-800 for contrast */
+  --on-tertiary:  #ffffff;
 }
+
+/* Theme 4 — Violet/Cyan */
+[data-theme="t4"] {
+  --secondary: #7c3aed;
+  --tertiary:  #0ea5e9;
+  --on-secondary: #ffffff;
+  --on-tertiary:  #0b1220;
+}
+
+/* ---------- UI Style Tokens ---------- */
+/* Controlled via [data-ui] = material | skeuo | neumorph | paper */
+:root {
+  /* defaults (material-like) */
+  --radius: 12px;
+  --radius-chip: 9999px;
+
+  --shadow-s: 0 1px 2px rgba(0,0,0,.06);
+  --shadow-m: 0 4px 10px rgba(0,0,0,.08);
+  --shadow-l: 0 10px 24px rgba(0,0,0,.12);
+
+  /* skeuo base */
+  --skeuo-bg: #eef2f7;
+  --skeuo-dark: #cfd6e1;
+  --skeuo-light: #ffffff;
+  --skeuo-shadow-out: 8px 8px 16px var(--skeuo-dark), -8px -8px 16px var(--skeuo-light);
+  --skeuo-shadow-in: inset 6px 6px 12px var(--skeuo-dark), inset -6px -6px 12px var(--skeuo-light);
+
+  /* neumorph (subtle) */
+  --neumorph-bg: #f3f5f9;
+  --neumorph-dark: #d7dde6;
+  --neumorph-light: #ffffff;
+  --neumorph-shadow-out: 4px 4px 10px var(--neumorph-dark), -4px -4px 10px var(--neumorph-light);
+  --neumorph-shadow-in: inset 3px 3px 6px var(--neumorph-dark), inset -3px -3px 6px var(--neumorph-light);
+
+  /* paper */
+  --paper-surface: #fffdf7;   /* warm white */
+  --paper-surface-2: #fffaf0; /* subtle sheet contrast */
+  --paper-border: #e7e1d5;    /* paper edge */
+  --paper-shadow: 0 1px 0 rgba(0,0,0,.04), 0 6px 14px rgba(0,0,0,.08);
+}
+
+/* Material */
+[data-ui="material"] {
+  --radius: 12px;
+  --radius-chip: 9999px;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --border: #e5e7eb;
+}
+
+/* Skeuomorphism (pronounced) */
+[data-ui="skeuo"] {
+  --radius: 20px;
+  --radius-chip: 9999px;
+  --surface: var(--skeuo-bg);
+  --surface-2: var(--skeuo-bg);
+  --border: transparent;
+}
+
+/* Neumorphism (subtle depth) */
+[data-ui="neumorph"] {
+  --radius: 16px;
+  --radius-chip: 9999px;
+  --surface: var(--neumorph-bg);
+  --surface-2: var(--neumorph-bg);
+  --border: transparent;
+}
+
+/* Paper (layered sheets) */
+[data-ui="paper"] {
+  --radius: 10px;
+  --radius-chip: 9999px;
+  --surface: var(--paper-surface);
+  --surface-2: var(--paper-surface-2);
+  --border: var(--paper-border);
+}
+
+/* ---------- Helpers ---------- */
+.theme-chip {
+  border-radius: 9999px;
+  width: 1rem;
+  height: 1rem;
+  display: inline-block;
+}
+
+/* ---------- UI Primitives (shared classes) ---------- */
+.ui-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  transition: box-shadow .2s ease, transform .05s ease, background-color .2s ease, border-color .2s ease;
+}
+
+/* Cards */
+[data-ui="material"] .ui-card { border: 1px solid var(--border); box-shadow: var(--shadow-s); }
+[data-ui="material"] .ui-card:hover { box-shadow: var(--shadow-m); }
+
+[data-ui="skeuo"] .ui-card { border: none; box-shadow: var(--skeuo-shadow-out); }
+[data-ui="skeuo"] .ui-card:active { box-shadow: var(--skeuo-shadow-in); }
+
+[data-ui="neumorph"] .ui-card { border: none; box-shadow: var(--neumorph-shadow-out); }
+[data-ui="neumorph"] .ui-card:active { box-shadow: var(--neumorph-shadow-in); }
+
+[data-ui="paper"] .ui-card {
+  border: 1px solid var(--paper-border);
+  box-shadow: var(--paper-shadow);
+  background:
+    /* subtle paper fiber speckles */
+    radial-gradient(rgba(0,0,0,.015) 1px, transparent 1px),
+    var(--surface);
+  background-size: 6px 6px, auto;
+}
+/* Buttons: primary — now uses TERTIARY as the brand button color */
+.btn-primary {
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--tertiary);
+  color: var(--on-tertiary);
+  transition: transform .05s ease, box-shadow .15s ease, opacity .15s ease;
+}
+
+/* Material */
+[data-ui="material"] .btn-primary { box-shadow: var(--shadow-s); }
+[data-ui="material"] .btn-primary:hover { opacity: .95; box-shadow: var(--shadow-m); }
+[data-ui="material"] .btn-primary:active { transform: translateY(1px); }
+
+/* Skeuomorphism */
+[data-ui="skeuo"] .btn-primary {
+  background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(0,0,0,.08)), var(--tertiary);
+  box-shadow: var(--skeuo-shadow-out);
+}
+[data-ui="skeuo"] .btn-primary:active { box-shadow: var(--skeuo-shadow-in); }
+
+/* Neumorphism */
+[data-ui="neumorph"] .btn-primary {
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.05)), var(--tertiary);
+  box-shadow: var(--neumorph-shadow-out);
+}
+[data-ui="neumorph"] .btn-primary:active { box-shadow: var(--neumorph-shadow-in); }
+
+/* Paper */
+[data-ui="paper"] .btn-primary {
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 8px 18px rgba(0,0,0,.10);
+  border: 1px solid color-mix(in oklab, var(--tertiary) 30%, #0000);
+}
+[data-ui="paper"] .btn-primary:hover { opacity: .96; }
+
+/* Buttons: outline/neutral */
+.btn-outline {
+  border-radius: calc(var(--radius) - 6px);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  transition: background .15s ease, box-shadow .15s ease;
+}
+[data-ui="material"] .btn-outline:hover { background: #f3f4f6; box-shadow: var(--shadow-s); }
+[data-ui="skeuo"] .btn-outline { background: var(--surface); border: none; box-shadow: var(--skeuo-shadow-out); }
+[data-ui="skeuo"] .btn-outline:active { box-shadow: var(--skeuo-shadow-in); }
+[data-ui="neumorph"] .btn-outline { background: var(--surface); border: none; box-shadow: var(--neumorph-shadow-out); }
+[data-ui="neumorph"] .btn-outline:active { box-shadow: var(--neumorph-shadow-in); }
+[data-ui="paper"] .btn-outline { background: var(--surface-2); border: 1px solid var(--paper-border); box-shadow: var(--paper-shadow); }
+
+/* Inputs */
+.ui-input {
+  width: 100%;
+  border-radius: calc(var(--radius) - 6px);
+  background: #ffffff;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease, background .2s ease;
+}
+[data-ui="material"] .ui-input { border: 1px solid var(--border); }
+[data-ui="material"] .ui-input:focus { border-color: var(--secondary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--secondary) 25%, transparent); }
+
+[data-ui="skeuo"] .ui-input { border: none; background: var(--surface); box-shadow: var(--skeuo-shadow-in); }
+[data-ui="skeuo"] .ui-input:focus { box-shadow: var(--skeuo-shadow-in), 0 0 0 3px color-mix(in oklab, var(--secondary) 20%, transparent); }
+
+[data-ui="neumorph"] .ui-input { border: none; background: var(--surface); box-shadow: var(--neumorph-shadow-in); }
+[data-ui="neumorph"] .ui-input:focus { box-shadow: var(--neumorph-shadow-in), 0 0 0 3px color-mix(in oklab, var(--secondary) 18%, transparent); }
+
+[data-ui="paper"] .ui-input {
+  border: 1px solid var(--paper-border);
+  background:
+    radial-gradient(rgba(0,0,0,.012) 1px, transparent 1px),
+    #ffffff;
+  background-size: 6px 6px, auto;
+}
+[data-ui="paper"] .ui-input:focus {
+  border-color: color-mix(in oklab, var(--secondary) 35%, var(--paper-border));
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--secondary) 22%, transparent);
+}
+
+/* Chips */
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border-radius: var(--radius-chip);
+  padding: .35rem .6rem;
+  font-size: .75rem;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+[data-ui="skeuo"] .ui-chip { border: none; background: var(--surface); box-shadow: var(--skeuo-shadow-out); }
+[data-ui="neumorph"] .ui-chip { border: none; background: var(--surface); box-shadow: var(--neumorph-shadow-out); }
+[data-ui="paper"] .ui-chip { background: var(--surface-2); border: 1px solid var(--paper-border); box-shadow: var(--paper-shadow); }
+
+.sidebar-nav svg { color: var(--secondary); }

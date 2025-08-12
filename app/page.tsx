@@ -1,103 +1,181 @@
-import Image from "next/image";
+// app/page.tsx
+"use client";
 
-export default function Home() {
+import React, { useMemo, useState } from "react";
+import AppShell from "../components/app-shell";
+
+/** Fake data for now */
+const BRANCHES = [
+  { id: "main", name: "Main Clinic", address: "12 MG Road", city: "Bengaluru", doctors: 12, depts: 6 },
+  { id: "city", name: "City Center", address: "44 Residency Rd", city: "Bengaluru", doctors: 8, depts: 4 },
+  { id: "east", name: "East Wing", address: "88 Indiranagar", city: "Bengaluru", doctors: 5, depts: 3 },
+];
+
+const DEPT_AVAIL = [
+  { dept: "General Medicine", available: 3, total: 4 },
+  { dept: "Pediatrics",       available: 2, total: 3 },
+  { dept: "Dermatology",      available: 1, total: 2 },
+  { dept: "Orthopedics",      available: 2, total: 2 },
+];
+
+export default function Page() {
+  const [branch, setBranch] = useState(BRANCHES[0].id);
+
+  // Today’s appointments (stub)
+  const todays = { totalSlots: 40, booked: 26 };
+  const freeSlots = useMemo(() => todays.totalSlots - todays.booked, [todays]);
+
+  // OPD queue (stub)
+  const queue = { waiting: 12, inConsult: 5, completed: 20 };
+
+  const currentBranch = useMemo(() => BRANCHES.find(b => b.id === branch)!, [branch]);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <AppShell>
+      {/* Row 1 — Today’s Appointments + Doctors by Dept */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {/* Today’s Appointments */}
+        <div className="ui-card p-4 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Today’s Appointments</h2>
+            <button className="btn-outline text-xs">Manage</button>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Booked</div>
+              <div className="text-2xl font-semibold">{todays.booked}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Free Slots</div>
+              <div className="text-2xl font-semibold">{freeSlots}</div>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <span>Utilization</span>
+              <span>{Math.round((todays.booked / todays.totalSlots) * 100)}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className="h-full bg-[--tertiary]"
+                style={{ width: `${(todays.booked / todays.totalSlots) * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {/* Doctors Available by Department */}
+        <div className="ui-card p-4 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Doctors Available • Departments</h2>
+            <button className="btn-outline text-xs">View schedules</button>
+          </div>
+
+          <ul className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {DEPT_AVAIL.map((d) => (
+              <li key={d.dept} className="rounded-lg p-3 bg-[--surface-2]">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">{d.dept}</div>
+                  <div className="text-sm">
+                    <span className="font-semibold">{d.available}</span>
+                    <span className="text-gray-600"> / {d.total}</span>
+                  </div>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-[--secondary]"
+                    style={{ width: `${(d.available / d.total) * 100}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Row 2 — OPD Queue + Branch details */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* OPD Queue */}
+        <div className="ui-card p-4 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">OPD Queue</h2>
+            <button className="btn-outline text-xs">Open queue</button>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
+              <div className="text-xs text-gray-600">Waiting</div>
+              <div className="text-xl font-semibold">{queue.waiting}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
+              <div className="text-xs text-gray-600">In Consult</div>
+              <div className="text-xl font-semibold">{queue.inConsult}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
+              <div className="text-xs text-gray-600">Completed</div>
+              <div className="text-xl font-semibold">{queue.completed}</div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="text-xs text-gray-600">Queue Position (example)</div>
+            <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
+              <div className="h-full bg-[--tertiary]" style={{ width: `${(queue.waiting / (queue.waiting + queue.inConsult + queue.completed)) * 100}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Branch details & switcher */}
+        <div className="ui-card p-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">Branch Details</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600">Switch branch</label>
+              <select
+                className="ui-input py-1"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              >
+                {BRANCHES.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Name</div>
+              <div className="text-sm font-medium">{currentBranch.name}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Address</div>
+              <div className="text-sm font-medium">{currentBranch.address}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">City</div>
+              <div className="text-sm font-medium">{currentBranch.city}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Doctors</div>
+              <div className="text-sm font-medium">{currentBranch.doctors}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Departments</div>
+              <div className="text-sm font-medium">{currentBranch.depts}</div>
+            </div>
+            <div className="rounded-lg p-3 bg-[--surface-2]">
+              <div className="text-xs text-gray-600">Actions</div>
+              <div className="mt-1 flex items-center gap-2">
+                <button className="btn-primary text-xs">Open Branch</button>
+                <button className="btn-outline text-xs">Edit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </AppShell>
   );
 }
