@@ -1,60 +1,83 @@
+// app/doctor/layout.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import DoctorSidebar from "../../components/doctor/DoctorSidebar";
-import AppearancePanel from "../../components/appearance-panel";
+import DoctorSidebar from "@/components/doctor/DoctorSidebar";
 
-const ROLE_STORAGE_KEY = "aran.role";
-
+/**
+ * Hydration-safe collapsible layout:
+ * - Aside is always in the DOM (no conditional render) to avoid SSR/CSR structure drift.
+ * - We collapse it with CSS width = 0, not by removing it.
+ * - Floating "Show menu" button appears when collapsed.
+ * - Listens to "aran:sidebar" + storage to sync with pages.
+ */
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    const role = typeof window !== "undefined" ? localStorage.getItem(ROLE_STORAGE_KEY) : null;
-    if (role !== "doctor") {
-      router.replace("/login");
-      return;
-    }
-    setReady(true);
-  }, [router]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
-        Checking access…
-      </div>
-    );
-  }
+    const apply = () => {
+      try {
+        setCollapsed(localStorage.getItem("aran:sidebarCollapsed") === "1");
+      } catch {
+        setCollapsed(false);
+      }
+    };
+    apply();
+    const onStorage = () => apply();
+    const onCustom = () => apply();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("aran:sidebar", onCustom as EventListener);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("aran:sidebar", onCustom as EventListener);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(120deg,#f0f2f5_0%,#ffffff_100%)]">
-      {/* Top bar (same style language as clinic admin) */}
-      <header className="sticky top-0 z-40 backdrop-blur bg-white/70 border-b">
-        <div className="mx-auto max-w-7xl px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-2xl" style={{ background: "var(--secondary)" }} />
-            <div>
-              <div className="text-sm font-semibold leading-4">ARAN HMIS</div>
-              <div className="text-[11px] text-gray-500 leading-4">Doctor Workspace</div>
-            </div>
-          </div>
-          <AppearancePanel />
-        </div>
-      </header>
+    <div
+      className="min-h-screen grid"
+      style={{
+        // Keep structure stable; just change column widths
+        gridTemplateColumns: `${collapsed ? "0px" : "280px"} minmax(0,1fr)`,
+      }}
+    >
+      <aside
+        className={[
+          "border-r bg-white overflow-hidden transition-all duration-200",
+          collapsed ? "w-0 p-0 border-0 pointer-events-none" : "w-[280px]",
+        ].join(" ")}
+        aria-hidden={collapsed}
+      >
+        <DoctorSidebar />
+      </aside>
 
-      {/* Shell */}
-      <div className="mx-auto max-w-7xl px-4 py-4 flex gap-4">
-        <aside className="hidden md:block w-64 shrink-0">
-          {/* Sidebar lives in its own component, styled to match */}
-          <DoctorSidebar />
-        </aside>
+      <main className="min-w-0">{children}</main>
 
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
+      {/* Expand Sidebar button (visible only when collapsed) */}
+      {/* {collapsed && (
+        <button
+          onClick={() => {
+            localStorage.setItem("aran:sidebarCollapsed", "0");
+            window.dispatchEvent(new Event("aran:sidebar"));
+          }}
+          className="fixed left-3 top-20 z-50 inline-flex items-center gap-2 rounded-full border bg-white/90 backdrop-blur px-3 py-1.5 text-sm shadow hover:bg-white"
+          title="Show sidebar"
+          aria-label="Show sidebar"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            aria-hidden
+            style={{ color: "var(--secondary)" }}
+          >
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+          <span>Show menu</span>
+        </button>
+      )} */}
     </div>
   );
 }
