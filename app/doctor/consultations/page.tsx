@@ -18,14 +18,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 // ----------------------------- Types & Constants -----------------------------
 
 type TopTabKey =
-  | "default"
+  | "consultation"
   | "labRequest"
   | "immunizationCard"
   | "dischargeSummary"
   | "document"
   | "consentRequest";
 
-const TOP_TABS: { key: Exclude<TopTabKey, "default">; label: string }[] = [
+const TOP_TABS: { key: TopTabKey; label: string }[] = [
+  { key: "consultation", label: "Consultation" },
   { key: "labRequest", label: "Lab Request Form" },
   { key: "immunizationCard", label: "Immunization Card" },
   { key: "dischargeSummary", label: "Discharge Summary" },
@@ -77,7 +78,14 @@ export default function DoctorConsultationsPage() {
   const [apptTime] = useState<string>(nowTime());
 
   // Active top tab: start with "default"
-  const [active, setActive] = useState<TopTabKey>("default");
+  const [active, setActive] = useState<TopTabKey>("consultation");
+
+  // ---- Consultation state ----
+  const [opChiefComplaints, setOpChiefComplaints] = useState("");
+  const [opExamination, setOpExamination] = useState("");
+  const [opDiagnosis, setOpDiagnosis] = useState("");
+  const [opPlan, setOpPlan] = useState("");
+  const [opAdvice, setOpAdvice] = useState("");
 
   // Immunization state
   const [immVaccine, setImmVaccine] = useState("");
@@ -408,9 +416,54 @@ export default function DoctorConsultationsPage() {
       <section className="space-y-4">
         {/* Default view (shown until a tab is selected) */}
         {/* Default view (shown until a tab is selected) */}
-        {active === "default" && (
+        {active === "consultation" && (
           <div className="ui-card p-4">
-            <div className="text-sm font-medium">Default view</div>
+            {/* Consultation (DEFAULT) */}
+            {active === "consultation" && (
+              <div className="ui-card p-4">
+                <HeaderRow
+                  title="Consultation"
+                  subtitle="Findings, Diagnoses and Plan"
+                />
+                <div className="grid md:grid-cols-2 gap-3">
+                  <Field label="Chief Complaints*">
+                    <Textarea
+                      value={opChiefComplaints}
+                      onChange={(e) => setOpChiefComplaints(e.target.value)}
+                      placeholder="e.g., Fever, cough for 3 days"
+                    />
+                  </Field>
+                  <Field label="Examination">
+                    <Textarea
+                      value={opExamination}
+                      onChange={(e) => setOpExamination(e.target.value)}
+                      placeholder="Vitals, systemic exams"
+                    />
+                  </Field>
+                  <Field label="Diagnosis">
+                    <Textarea
+                      value={opDiagnosis}
+                      onChange={(e) => setOpDiagnosis(e.target.value)}
+                      placeholder="Primary/secondary Dx"
+                    />
+                  </Field>
+                  <Field label="Plan">
+                    <Textarea
+                      value={opPlan}
+                      onChange={(e) => setOpPlan(e.target.value)}
+                      placeholder="Investigations, follow-up, lifestyle"
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Advice / Notes">
+                    <Textarea
+                      value={opAdvice}
+                      onChange={(e) => setOpAdvice(e.target.value)}
+                      placeholder="Any additional instructions"
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
 
             {/* Collapsible Previous Health Records */}
             <div className="mt-3 rounded-lg border border-gray-200">
@@ -930,8 +983,8 @@ export default function DoctorConsultationsPage() {
 // Label mapper for sticky bar
 function labelFor(key: TopTabKey) {
   switch (key) {
-    case "default":
-      return "Default view";
+    case "consultation":
+      return "Consultation";
     case "labRequest":
       return "Lab Request Form";
     case "immunizationCard":
