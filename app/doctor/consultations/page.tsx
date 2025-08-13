@@ -2,24 +2,11 @@
 
 // ARAN • Doctor → Consultations Page (Modern, Intuitive, One-Page Builder)
 // ----------------------------------------------------------------------------
-// Purpose
-//  - Doctor's primary workspace to create ABDM health records:
-//    WellnessRecord, OPConsultRecord, PrescriptionRecord, ImmunizationRecord, LabRecord
-//  - Reuses Clinic-Admin UI tokens: ui-card, ui-input, btn-primary, btn-outline, CSS vars
-//  - All components are defined inline to avoid external imports and ease copy-paste
-//
-// Top Bar (per your request)
-//  - Removed search and ABHA linking inputs
-//  - Shows Patient details: Name, Age, Gender, Contact, ABHA address, ABHA number
-//  - Profile icon in secondary color
-//  - Left corner: “Generate Summary” action
-//  - Center: Last consultation date or “New Patient”
-//
-// UX Notes
-//  - Left: sticky tab bar for record types
-//  - Right: active record editor in a card
-//  - Bottom: sticky action bar (Save Draft, Validate, Submit & Share)
-//  - Keyboard shortcuts: Ctrl+S (Save Draft), Ctrl+Enter (Submit)
+// - Patient Context Bar is FROZEN per your snippet (do not change unless asked)
+// - Context widgets REMOVED
+// - Appointment Date & Time moved to right corner under Generate Summary
+// - Editors: OPConsult, Prescription, Immunization, Lab, Wellness
+// - Sticky action bar + keyboard shortcuts (Ctrl+S, Ctrl+Enter)
 // ----------------------------------------------------------------------------
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -43,54 +30,57 @@ const RECORD_TABS: { key: RecordKey; label: string; hint: string }[] = [
 
 type PatientInfo = {
   name: string;
-  age: string; // years
+  age: string;
   gender: "Male" | "Female" | "Other" | "";
-  contact: string; // phone
-  abhaAddress: string; // PHR address
-  abhaNumber: string; // 14-digit ABHA number
+  contact: string;
+  abhaAddress: string;
+  abhaNumber: string;
 };
 
 type Med = {
   id: string;
   name: string;
   route: "PO" | "IV" | "IM" | "Topical" | "Inhale" | "SC";
-  dose: string; // e.g., 500 mg
-  frequency: string; // e.g., 1-0-1
-  duration: string; // e.g., 5 days
+  dose: string;
+  frequency: string;
+  duration: string;
   instructions: string;
 };
 
 // ----------------------------- Page Component -------------------------------
 
 export default function DoctorConsultationsPage() {
-  // ---- Patient context (DISPLAY-ONLY here; wire from your selector or route) ----
+  // Under-the-hood patient state (kept aligned with the frozen header values)
   const [patient, setPatient] = useState<PatientInfo>({
-    name: "",
-    age: "",
-    gender: "",
-    contact: "",
-    abhaAddress: "",
-    abhaNumber: "",
+    name: "Ms Shampa Goswami",
+    age: "52 yrs",
+    gender: "Female",
+    contact: "", // hidden in UI per request
+    abhaAddress: "shampa.go@sbx",
+    abhaNumber: "91-5510-2061-4469",
   });
 
-  // null => first-time patient (show "New Patient"). Otherwise store ISO date
+  // Last consultation (null => New Patient)
   const [lastConsultDate, setLastConsultDate] = useState<string | null>(null);
-
   const lastConsultText = lastConsultDate
     ? formatDate(lastConsultDate)
     : "New Patient";
 
-  // ---- Active tab ----
+  // Appointment date/time (now by default) — shown in header right column
+  const [apptDate, setApptDate] = useState<string>(today());
+  const [apptTime, setApptTime] = useState<string>(nowTime());
+
+  // Active tab
   const [active, setActive] = useState<RecordKey>("opconsult");
 
-  // ---- OPConsult state (text first; map to FHIR later) ----
+  // OPConsult state
   const [opChiefComplaints, setOpChiefComplaints] = useState("");
   const [opExamination, setOpExamination] = useState("");
   const [opDiagnosis, setOpDiagnosis] = useState("");
   const [opPlan, setOpPlan] = useState("");
   const [opAdvice, setOpAdvice] = useState("");
 
-  // ---- Prescription state (dynamic meds) ----
+  // Prescription state
   const [meds, setMeds] = useState<Med[]>([
     {
       id: uid(),
@@ -103,7 +93,7 @@ export default function DoctorConsultationsPage() {
     },
   ]);
 
-  // ---- Immunization state ----
+  // Immunization state
   const [immVaccine, setImmVaccine] = useState("");
   const [immBatch, setImmBatch] = useState("");
   const [immManufacturer, setImmManufacturer] = useState("");
@@ -113,29 +103,29 @@ export default function DoctorConsultationsPage() {
   const [immSite, setImmSite] = useState("");
   const [immRoute, setImmRoute] = useState("IM");
 
-  // ---- Lab state ----
+  // Lab state
   const [labTestName, setLabTestName] = useState("");
   const [labSampleDate, setLabSampleDate] = useState("");
   const [labResult, setLabResult] = useState("");
 
-  // ---- Wellness state ----
+  // Wellness state
   const [wlBpSys, setWlBpSys] = useState("");
   const [wlBpDia, setWlBpDia] = useState("");
   const [wlPulse, setWlPulse] = useState("");
   const [wlTemp, setWlTemp] = useState("");
   const [wlSpo2, setWlSpo2] = useState("");
-  const [wlHeight, setWlHeight] = useState(""); // cm
-  const [wlWeight, setWlWeight] = useState(""); // kg
+  const [wlHeight, setWlHeight] = useState("");
+  const [wlWeight, setWlWeight] = useState("");
   const [wlLifestyle, setWlLifestyle] = useState("");
   const [wlFollowUp, setWlFollowUp] = useState("");
 
-  // ---- Toast / status ----
+  // Toast
   const [toast, setToast] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
 
-  // ---- Auto BMI ----
+  // Auto BMI
   const bmi = useMemo(() => {
     const h = parseFloat(wlHeight);
     const w = parseFloat(wlWeight);
@@ -145,7 +135,7 @@ export default function DoctorConsultationsPage() {
     return Number.isFinite(v) ? v.toFixed(1) : "";
   }, [wlHeight, wlWeight]);
 
-  // ---- Keyboard shortcuts ----
+  // Shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -161,7 +151,7 @@ export default function DoctorConsultationsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ---- Actions (wire to API later) ----
+  // Actions
   const validate = useCallback(() => {
     if (!patient.name.trim()) {
       setToast({
@@ -170,7 +160,6 @@ export default function DoctorConsultationsPage() {
       });
       return false;
     }
-    // Example minimal validations per tab
     if (active === "opconsult" && !opChiefComplaints.trim()) {
       setToast({
         type: "error",
@@ -219,13 +208,11 @@ export default function DoctorConsultationsPage() {
   ]);
 
   const handleSaveDraft = useCallback(() => {
-    // Business: Save a local draft or send to your backend as DRAFT
     setToast({ type: "info", message: `Draft saved for ${labelFor(active)}.` });
   }, [active]);
 
   const handleValidate = useCallback(() => {
     if (!validate()) return;
-    // Business: transform to FHIR JSON here and run schema checks (server preferred)
     setToast({
       type: "success",
       message: `Validation passed for ${labelFor(active)}.`,
@@ -234,7 +221,6 @@ export default function DoctorConsultationsPage() {
 
   const handleSubmit = useCallback(() => {
     if (!validate()) return;
-    // Business: submit FHIR to your API; on success, optionally share (SMS/ABDM link)
     setToast({
       type: "success",
       message: `${labelFor(active)} submitted successfully.`,
@@ -242,7 +228,6 @@ export default function DoctorConsultationsPage() {
   }, [validate, active]);
 
   const copyOpToPrescription = useCallback(() => {
-    // Business: helpful for doctors — copy OP notes into Rx instructions scaffold
     if (!opPlan && !opAdvice && !opDiagnosis) return;
     setMeds((curr) => {
       const text = [
@@ -263,7 +248,6 @@ export default function DoctorConsultationsPage() {
   }, [opPlan, opAdvice, opDiagnosis]);
 
   const handleGenerateSummary = useCallback(() => {
-    // TODO: hook to your summary/PDF generator
     setToast({ type: "info", message: "Generating consultation summary…" });
   }, []);
 
@@ -271,10 +255,9 @@ export default function DoctorConsultationsPage() {
 
   return (
     <div className="space-y-4">
-     
-      {/* Patient Context Bar (Top) — sleek */}
+      {/* Patient Context Bar (Top) — sleek (FROZEN) */}
       <div className="ui-card p-3">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_170px_160px] items-center gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_170px_200px] items-center gap-3">
           {/* Left: Patient Details */}
           <div className="order-1">
             <div className="flex items-start gap-3">
@@ -305,31 +288,49 @@ export default function DoctorConsultationsPage() {
               <div className="flex-1">
                 {/* Row 1 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Info label="Patient Name" value={patient.name} />
-                  <Info label="Age" value={patient.age} />
-                  <Info label="Gender" value={patient.gender} />
+                  {/* Frozen values per request */}
+                  <Info label="Patient Name" value={"Ms Shampa Goswami"} />
+                  <Info label="Age" value={"52 yrs"} />
+                  <Info label="Gender" value={"Female"} />
                 </div>
                 {/* Row 2 */}
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Info label="ABHA Number" value={patient.abhaNumber} />
-                  <Info label="ABHA Address" value={patient.abhaAddress} />
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Info label="ABHA Number" value={"91-5510-2061-4469"} />
+                  <Info label="ABHA Address" value={"shampa.go@sbx"} />
+                  <Info label="Last Consultation" value={"New Patient"} />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Center: Last Consultation */}
-          <div className="order-2 md:order-2 text-center">
-            <div className="text-[11px] uppercase tracking-wide text-gray-500">
+          <div className="order-2 text-center">
+            {/* <div className="text-[11px] uppercase tracking-wide text-gray-500">
               Last Consultation
             </div>
-            <div className="text-sm font-medium">{lastConsultText}</div>
+            <div className="text-sm font-medium">{lastConsultText}</div> */}
+            <div className="space-y-2 text-left md:text-right">
+              <div>
+                <div className="text-[11px] text-gray-600 mb-1">
+                  Appointment Date
+                </div>
+                <div className="text-sm font-medium">
+                  {apptDate ? formatDate(apptDate) : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-600 mb-1">
+                  Appointment Time
+                </div>
+                <div className="text-sm font-medium">{apptTime || "—"}</div>
+              </div>
+            </div>
           </div>
 
-          {/* Right: Generate Summary (corner button) */}
-          <div className="order-3 md:order-3 text-right">
+          {/* Right: Generate Summary + Appointment Date/Time */}
+          <div className="order-3 text-right">
             <button
-              className="btn-outline text-xs px-3 py-1.5 inline-flex items-center gap-2"
+              className="btn-outline text-xs px-3 py-1.5 inline-flex items-center gap-2 mb-2"
               onClick={handleGenerateSummary}
             >
               <svg
@@ -349,7 +350,7 @@ export default function DoctorConsultationsPage() {
         </div>
       </div>
 
-      {/* Main Shell: Left tabs + Right editor */}
+      {/* Main Shell: Left tabs + Right editor (Context widgets removed) */}
       <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
         {/* Left: Sticky tabs */}
         <aside className="ui-card p-3 h-max sticky top-24">
@@ -378,41 +379,6 @@ export default function DoctorConsultationsPage() {
 
         {/* Right: Active Editor */}
         <section className="space-y-4">
-          {/* Context widgets */}
-          <div className="ui-card p-4">
-            <div className="grid md:grid-cols-4 gap-3 text-sm">
-              <Field label="Visit Type">
-                <select className="ui-input">
-                  <option>OPD</option>
-                  <option>Follow-up</option>
-                  <option>Daycare</option>
-                </select>
-              </Field>
-              <Field label="Consultation Date">
-                <input
-                  type="date"
-                  className="ui-input"
-                  defaultValue={today()}
-                />
-              </Field>
-              <Field label="Time">
-                <input
-                  type="time"
-                  className="ui-input"
-                  defaultValue={nowTime()}
-                />
-              </Field>
-              <Field label="Care Context (auto)">
-                <input
-                  className="ui-input"
-                  placeholder="Generated on Submit"
-                  disabled
-                />
-              </Field>
-            </div>
-          </div>
-
-          {/* Editor card per tab */}
           {active === "opconsult" && (
             <div className="ui-card p-4">
               <HeaderRow
@@ -818,7 +784,7 @@ export default function DoctorConsultationsPage() {
   }
 }
 
-// Label mapper for buttons/toasts
+// Label mapper
 function labelFor(key: RecordKey) {
   switch (key) {
     case "opconsult":
@@ -834,7 +800,7 @@ function labelFor(key: RecordKey) {
   }
 }
 
-// UID helper (no external libs)
+// UID helper
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36).slice(2);
 }
@@ -866,7 +832,7 @@ function formatDate(iso: string) {
   }
 }
 
-// Small read-only info cell
+// Read-only info cell
 function Info({ label, value }: { label: string; value?: string }) {
   return (
     <div>
@@ -878,7 +844,7 @@ function Info({ label, value }: { label: string; value?: string }) {
   );
 }
 
-// Simple label+children wrapper (keeps markup consistent)
+// Field wrapper
 function Field({
   label,
   children,
