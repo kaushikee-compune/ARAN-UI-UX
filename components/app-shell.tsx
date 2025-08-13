@@ -6,6 +6,8 @@ import type { SVGProps, ReactElement } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AppearancePanel from "./appearance-panel";
+import type { PropsWithChildren } from "react";
+
 
 /** Icon type */
 type IconType = (props: SVGProps<SVGSVGElement>) => ReactElement;
@@ -52,44 +54,44 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  {
-    label: "Patient Management",
-    href: "/patients",
-    Icon: HandsHeartPlusIcon, // updated per your request
-    children: [
-      { label: "Patient List / Search & Register", href: "/patients" },
-      { label: "Patient Health Records", href: "/patients/records" },
-    ],
-  },
+  // {
+  //   label: "Patient Management",
+  //   href: "/patients",
+  //   Icon: HandsHeartPlusIcon, // updated per your request
+  //   children: [
+  //     { label: "Patient List / Search & Register", href: "/patients" },
+  //     { label: "Patient Health Records", href: "/patients/records" },
+  //   ],
+  // },
 
-  {
-    label: "Consultations",
-    href: "/consultations",
-    Icon: StethoscopeIcon,
-    children: [
-      { label: "Today’s Completed — View", href: "/consultations/today" },
-      {
-        label: "Upload Reports (Completed)",
-        href: "/consultations/upload-reports",
-      },
-      {
-        label: "Payment Against Consultation",
-        href: "/consultations/payments",
-      },
-    ],
-  },
+  // {
+  //   label: "Consultations",
+  //   href: "/consultations",
+  //   Icon: StethoscopeIcon,
+  //   children: [
+  //     { label: "Today’s Completed — View", href: "/consultations/today" },
+  //     {
+  //       label: "Upload Reports (Completed)",
+  //       href: "/consultations/upload-reports",
+  //     },
+  //     {
+  //       label: "Payment Against Consultation",
+  //       href: "/consultations/payments",
+  //     },
+  //   ],
+  // },
 
-  {
-    label: "ABHA Center",
-    href: "/abha-center",
-    Icon: AbhaCenterIcon, // updated per your request
-    children: [
-      { label: "ABHA Creation", href: "/abha/create" },
-      { label: "ABHA Verification", href: "/abha/verify" },
-      { label: "ABHA SCAN", href: "/abha/scan" },
-      { label: "Consent Management", href: "/abha/consent" },
-    ],
-  },
+  // {
+  //   label: "ABHA Center",
+  //   href: "/abha-center",
+  //   Icon: AbhaCenterIcon, // updated per your request
+  //   children: [
+  //     { label: "ABHA Creation", href: "/abha/create" },
+  //     { label: "ABHA Verification", href: "/abha/verify" },
+  //     { label: "ABHA SCAN", href: "/abha/scan" },
+  //     { label: "Consent Management", href: "/abha/consent" },
+  //   ],
+  // },
 
   {
     label: "Payments & Billing",
@@ -194,8 +196,8 @@ function SubLinkItem({ link, active }: { link: SubLink; active: boolean }) {
     </Link>
   );
 }
-
-export default function AppShell({ children }: { children: React.ReactNode }) {
+type AppShellProps = PropsWithChildren<{}>;
+export default function AppShell({ children }: AppShellProps): ReactElement {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

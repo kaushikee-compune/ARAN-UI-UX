@@ -1,8 +1,11 @@
 // app/page.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
-import AppShell from "../components/app-shell";
+// import React, { useMemo, useState } from "react";
+// import AppShell from "../components/app-shell";
+import Link from "next/link";
+import React, { useState } from "react";
+import Shell from "../components/app-shell"; // alias instead of AppShell
 
 /** Fake data for now */
 const BRANCHES = [
@@ -19,163 +22,144 @@ const DEPT_AVAIL = [
 ];
 
 export default function Page() {
-  const [branch, setBranch] = useState(BRANCHES[0].id);
-
-  // Today’s appointments (stub)
-  const todays = { totalSlots: 40, booked: 26 };
-  const freeSlots = useMemo(() => todays.totalSlots - todays.booked, [todays]);
-
-  // OPD queue (stub)
-  const queue = { waiting: 12, inConsult: 5, completed: 20 };
-
-  const currentBranch = useMemo(() => BRANCHES.find(b => b.id === branch)!, [branch]);
+  // ---- same dashboard content you wanted (three cards) ----
+  const clinic = { name: "ARAN Care Clinic", code: "ARAN-001", branches: 3, departments: 6, doctors: 25, staff: 42 };
+  const people = { doctors: 25, staff: 42, schedulesToday: 18, onboardingPending: 3, roles: 5 };
+  const appt = { totalSlots: 40, booked: 26 };
+  const utilization = Math.round((appt.booked / appt.totalSlots) * 100);
+  const adminStats = [
+    { label: "Appointments Today", value: appt.booked, hint: `${appt.totalSlots - appt.booked} free` },
+    { label: "OPD Queue Waiting", value: 12, hint: "live" },
+    { label: "Pending Invoices", value: 7, hint: "billing" },
+    { label: "ABHA Verifications", value: 4, hint: "pending" },
+    { label: "Consents Pending", value: 2, hint: "ABHA" },
+  ];
+  const [branch, setBranch] = useState("Main Clinic");
+  const branches = ["Main Clinic", "City Center", "East Wing"];
 
   return (
-    <AppShell>
-      {/* Row 1 — Today’s Appointments + Doctors by Dept */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        {/* Today’s Appointments */}
-        <div className="ui-card p-4 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Today’s Appointments</h2>
-            <button className="btn-outline text-xs">Manage</button>
+    <Shell>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        {/* Clinic Details */}
+        <section className="ui-card p-4 xl:col-span-1">
+          <header className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Clinic Details</h2>
+            <Link href="/clinic-setup" className="btn-outline text-xs">Open Setup</Link>
+          </header>
+
+          <div className="mt-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[--on-secondary]" style={{ background: "var(--secondary)" }}>
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.7}>
+                <path d="M4 10l8-6 8 6v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9z" />
+                <path d="M9 21v-6h6v6" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-sm font-medium">{clinic.name}</div>
+              <div className="text-xs text-gray-600">Code: {clinic.code}</div>
+            </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Booked</div>
-              <div className="text-2xl font-semibold">{todays.booked}</div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <MiniStat label="Branches" value={clinic.branches} />
+            <MiniStat label="Departments" value={clinic.departments} />
+            <MiniStat label="Doctors" value={clinic.doctors} />
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <Link href="/clinic-setup/branches/new" className="btn-primary text-xs">Add Branch</Link>
+            <Link href="/clinic-setup/departments" className="btn-outline text-xs">Manage Departments</Link>
+          </div>
+
+          <div className="mt-4">
+            <div className="text-xs text-gray-600 mb-1">Current Branch</div>
+            <select className="ui-input py-1" value={branch} onChange={(e) => setBranch(e.target.value)}>
+              {branches.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+        </section>
+
+        {/* People Management */}
+        <section className="ui-card p-4 xl:col-span-1">
+          <header className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">People Management</h2>
+            <Link href="/people" className="btn-outline text-xs">Open People</Link>
+          </header>
+
+        <div className="mt-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[--on-secondary]" style={{ background: "var(--secondary)" }}>
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.7}>
+                <circle cx="8" cy="8" r="3" /><path d="M2.5 18.5a5.5 5.5 0 0 1 11 0" />
+                <circle cx="17" cy="7" r="2.2" />
+              </svg>
             </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Free Slots</div>
-              <div className="text-2xl font-semibold">{freeSlots}</div>
+            <div>
+              <div className="text-sm font-medium">Teams & Schedules</div>
+              <div className="text-xs text-gray-600">Roles: {people.roles} • Schedules Today: {people.schedulesToday}</div>
             </div>
           </div>
 
-          {/* Progress */}
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            <MiniStat label="Doctors" value={people.doctors} />
+            <MiniStat label="Staff" value={people.staff} />
+            <MiniStat label="Schedules" value={people.schedulesToday} />
+            <MiniStat label="Onboarding" value={people.onboardingPending} />
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <Link href="/people/staff/new" className="btn-primary text-xs">Add Staff</Link>
+            <Link href="/people/roles" className="btn-outline text-xs">Manage Roles</Link>
+          </div>
+        </section>
+
+        {/* Admin Stats */}
+        <section className="ui-card p-4 xl:col-span-1">
+          <header className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Admin Stats</h2>
+            <Link href="/reports-analytics" className="btn-outline text-xs">Reports</Link>
+          </header>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {[
+              { label: "Appointments Today", value: appt.booked, hint: `${appt.totalSlots - appt.booked} free` },
+              { label: "OPD Queue Waiting", value: 12, hint: "live" },
+              { label: "Pending Invoices", value: 7, hint: "billing" },
+              { label: "ABHA Verifications", value: 4, hint: "pending" },
+              { label: "Consents Pending", value: 2, hint: "ABHA" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-lg p-3 bg-[--surface-2]">
+                <div className="text-xs text-gray-600">{s.label}</div>
+                <div className="text-xl font-semibold">{s.value}</div>
+                {s.hint && <div className="text-[11px] text-gray-500 mt-0.5">{s.hint}</div>}
+              </div>
+            ))}
+          </div>
+
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs text-gray-600">
-              <span>Utilization</span>
-              <span>{Math.round((todays.booked / todays.totalSlots) * 100)}%</span>
+              <span>Appointment Utilization</span>
+              <span>{utilization}%</span>
             </div>
             <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
-              <div
-                className="h-full bg-[--tertiary]"
-                style={{ width: `${(todays.booked / todays.totalSlots) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Doctors Available by Department */}
-        <div className="ui-card p-4 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Doctors Available • Departments</h2>
-            <button className="btn-outline text-xs">View schedules</button>
-          </div>
-
-          <ul className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-            {DEPT_AVAIL.map((d) => (
-              <li key={d.dept} className="rounded-lg p-3 bg-[--surface-2]">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">{d.dept}</div>
-                  <div className="text-sm">
-                    <span className="font-semibold">{d.available}</span>
-                    <span className="text-gray-600"> / {d.total}</span>
-                  </div>
-                </div>
-                <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                  <div
-                    className="h-full bg-[--secondary]"
-                    style={{ width: `${(d.available / d.total) * 100}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Row 2 — OPD Queue + Branch details */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* OPD Queue */}
-        <div className="ui-card p-4 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">OPD Queue</h2>
-            <button className="btn-outline text-xs">Open queue</button>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
-              <div className="text-xs text-gray-600">Waiting</div>
-              <div className="text-xl font-semibold">{queue.waiting}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
-              <div className="text-xs text-gray-600">In Consult</div>
-              <div className="text-xl font-semibold">{queue.inConsult}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2] text-center">
-              <div className="text-xs text-gray-600">Completed</div>
-              <div className="text-xl font-semibold">{queue.completed}</div>
+              <div className="h-full bg-[--tertiary]" style={{ width: `${utilization}%` }} />
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="text-xs text-gray-600">Queue Position (example)</div>
-            <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
-              <div className="h-full bg-[--tertiary]" style={{ width: `${(queue.waiting / (queue.waiting + queue.inConsult + queue.completed)) * 100}%` }} />
-            </div>
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <Link href="/billing/invoices" className="btn-primary text-xs">Review Invoices</Link>
+            <Link href="/abha/verify" className="btn-outline text-xs">Verify ABHA</Link>
           </div>
-        </div>
+        </section>
+      </div>
+    </Shell>
+  );
+}
 
-        {/* Branch details & switcher */}
-        <div className="ui-card p-4 lg:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">Branch Details</h2>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-600">Switch branch</label>
-              <select
-                className="ui-input py-1"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-              >
-                {BRANCHES.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Name</div>
-              <div className="text-sm font-medium">{currentBranch.name}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Address</div>
-              <div className="text-sm font-medium">{currentBranch.address}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">City</div>
-              <div className="text-sm font-medium">{currentBranch.city}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Doctors</div>
-              <div className="text-sm font-medium">{currentBranch.doctors}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Departments</div>
-              <div className="text-sm font-medium">{currentBranch.depts}</div>
-            </div>
-            <div className="rounded-lg p-3 bg-[--surface-2]">
-              <div className="text-xs text-gray-600">Actions</div>
-              <div className="mt-1 flex items-center gap-2">
-                <button className="btn-primary text-xs">Open Branch</button>
-                <button className="btn-outline text-xs">Edit</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </AppShell>
+function MiniStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-lg p-3 bg-[--surface-2]">
+      <div className="text-xs text-gray-600">{label}</div>
+      <div className="text-sm font-semibold">{value}</div>
+    </div>
   );
 }

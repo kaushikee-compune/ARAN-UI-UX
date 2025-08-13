@@ -5,11 +5,26 @@ import { useRouter } from "next/navigation";
 
 /**
  * Test credentials
- * - Email:    test@tempr.email
- * - Password: Aran@123
- * - Mobile:   9971234567
- * - OTP:      123456
+ * - Doctor (role=doctor → /doctor):
+ *     Email:    doctor.tempr.email
+ *     Password: Aran@123
+ *
+ * - Admin/Default (→ /):
+ *     Email:    test@tempr.email
+ *     Password: Aran@123
+ *
+ * - OTP (→ /):
+ *     Mobile:   9971234567
+ *     OTP:      123456
  */
+
+// ---- Minimal role flag for client-side guards (doctor area) ----
+const ROLE_STORAGE_KEY = "aran.role";
+function setRole(role: "doctor" | null) {
+  if (typeof window === "undefined") return;
+  if (role) localStorage.setItem(ROLE_STORAGE_KEY, role);
+  else localStorage.removeItem(ROLE_STORAGE_KEY);
+}
 
 type Mode = "password" | "otp";
 
@@ -51,14 +66,23 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 400));
 
     if (isPasswordMode) {
+      // --- Doctor login path → set role=doctor and land on /doctor ---
+      if (email.trim() === "doctor@tempr.email" && password === "Aran@123") {
+        setRole("doctor");
+        router.push("/doctor");
+        return;
+      }
+      // --- Existing admin/default path → clear role and go to / ---
       if (email.trim() === "test@tempr.email" && password === "Aran@123") {
+        setRole(null);
         router.push("/");
         return;
-      } else {
-        setError("Invalid email or password. Please try again.");
       }
+      setError("Invalid email or password. Please try again.");
     } else {
+      // --- OTP flow unchanged → clear role and go to / ---
       if (mobile.trim() === "9971234567" && otp.trim() === "123456") {
+        setRole(null);
         router.push("/");
         return;
       } else {
@@ -93,9 +117,7 @@ export default function LoginPage() {
               }}
               className={[
                 "ui-chip",
-                isPasswordMode
-                  ? "text-[--on-secondary]"
-                  : "text-gray-800",
+                isPasswordMode ? "text-[--on-secondary]" : "text-gray-800",
               ].join(" ")}
               style={{
                 background: isPasswordMode ? "var(--secondary)" : undefined,
@@ -116,9 +138,7 @@ export default function LoginPage() {
               }}
               className={[
                 "ui-chip",
-                !isPasswordMode
-                  ? "text-[--on-tertiary]"
-                  : "text-gray-800",
+                !isPasswordMode ? "text-[--on-tertiary]" : "text-gray-800",
               ].join(" ")}
               style={{
                 background: !isPasswordMode ? "var(--tertiary)" : undefined,
@@ -134,7 +154,10 @@ export default function LoginPage() {
 
           {/* Error banner */}
           {error && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <div
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              role="alert"
+            >
               {error}
             </div>
           )}
@@ -179,10 +202,19 @@ export default function LoginPage() {
                       className="absolute right-2 top-1.5 rounded-md px-1.5 py-1"
                       aria-label={showPw ? "Hide password" : "Show password"}
                     >
-                      {showPw ? <EyeOffIcon className="w-4 h-4 text-gray-600" /> : <EyeIcon className="w-4 h-4 text-gray-500" />}
+                      {showPw ? (
+                        <EyeOffIcon className="w-4 h-4 text-gray-600" />
+                      ) : (
+                        <EyeIcon className="w-4 h-4 text-gray-500" />
+                      )}
                     </button>
                   </div>
                 </label>
+
+                {/* Helper note for testers */}
+                <div className="text-[11px] text-gray-500">
+                  Doctor demo: <span className="font-medium">doctor@tempr.email</span> / <span className="font-medium">Aran@123</span>
+                </div>
               </>
             ) : (
               <>
