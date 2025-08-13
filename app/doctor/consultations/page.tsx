@@ -1,31 +1,36 @@
 "use client";
 
-// ARAN • Doctor → Consultations Page (Modern, Intuitive, One-Page Builder)
-// ----------------------------------------------------------------------------
-// - Patient Context Bar is FROZEN per your snippet (do not change unless asked)
-// - Context widgets REMOVED
-// - Appointment Date & Time moved to right corner under Generate Summary
-// - Editors: OPConsult, Prescription, Immunization, Lab, Wellness
-// - Sticky action bar + keyboard shortcuts (Ctrl+S, Ctrl+Enter)
-// ----------------------------------------------------------------------------
+// ARAN • Doctor → Consultations Page (Default View + Collapsible History)
+// -----------------------------------------------------------------------------
+// - Patient Context Bar is FROZEN (exactly your snippet)
+// - Thin, sleek TOP tab bar under the header
+// - Default view shown until a tab is selected
+//   • Text "Default view"
+//   • Thin divider
+//   • Collapsible "Previous Health Records (latest first)" list (mock data)
+//     - Each record expandable to show details
+// - Tabs: Lab Request Form, Immunization Card, Discharge Summary, Document, Consent Request
+// - Sticky action bar + shortcuts (Ctrl+S, Ctrl+Enter)
+// -----------------------------------------------------------------------------
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 // ----------------------------- Types & Constants -----------------------------
 
-type RecordKey =
-  | "wellness"
-  | "opconsult"
-  | "prescription"
-  | "immunization"
-  | "lab";
+type TopTabKey =
+  | "default"
+  | "labRequest"
+  | "immunizationCard"
+  | "dischargeSummary"
+  | "document"
+  | "consentRequest";
 
-const RECORD_TABS: { key: RecordKey; label: string; hint: string }[] = [
-  { key: "opconsult", label: "OPConsult", hint: "Findings, Dx, Plan" },
-  { key: "prescription", label: "Prescription", hint: "Medications" },
-  { key: "immunization", label: "Immunization", hint: "Vaccines" },
-  { key: "lab", label: "Lab Records", hint: "Labs & Reports" },
-  { key: "wellness", label: "Wellness", hint: "Vitals & Lifestyle" },
+const TOP_TABS: { key: Exclude<TopTabKey, "default">; label: string }[] = [
+  { key: "labRequest", label: "Lab Request Form" },
+  { key: "immunizationCard", label: "Immunization Card" },
+  { key: "dischargeSummary", label: "Discharge Summary" },
+  { key: "document", label: "Document" },
+  { key: "consentRequest", label: "Consent Request" },
 ];
 
 type PatientInfo = {
@@ -37,61 +42,42 @@ type PatientInfo = {
   abhaNumber: string;
 };
 
-type Med = {
+type LabReq = {
   id: string;
-  name: string;
-  route: "PO" | "IV" | "IM" | "Topical" | "Inhale" | "SC";
-  dose: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
+  testName: string;
+  priority: "Routine" | "Urgent" | "STAT";
+  specimen: string;
+  fasting: boolean;
+  notes: string;
+};
+
+type PrevRecord = {
+  id: string;
+  dateISO: string;
+  kind: "OPConsult" | "Prescription" | "Immunization" | "Lab" | "Discharge";
+  title: string;
+  snippet: string;
 };
 
 // ----------------------------- Page Component -------------------------------
 
 export default function DoctorConsultationsPage() {
-  // Under-the-hood patient state (kept aligned with the frozen header values)
-  const [patient, setPatient] = useState<PatientInfo>({
+  // Patient (internal mirror; header shows frozen values)
+  const [patient] = useState<PatientInfo>({
     name: "Ms Shampa Goswami",
     age: "52 yrs",
     gender: "Female",
-    contact: "", // hidden in UI per request
+    contact: "",
     abhaAddress: "shampa.go@sbx",
     abhaNumber: "91-5510-2061-4469",
   });
 
-  // Last consultation (null => New Patient)
-  const [lastConsultDate, setLastConsultDate] = useState<string | null>(null);
-  const lastConsultText = lastConsultDate
-    ? formatDate(lastConsultDate)
-    : "New Patient";
+  // Appointment display (shown in header center)
+  const [apptDate] = useState<string>(today());
+  const [apptTime] = useState<string>(nowTime());
 
-  // Appointment date/time (now by default) — shown in header right column
-  const [apptDate, setApptDate] = useState<string>(today());
-  const [apptTime, setApptTime] = useState<string>(nowTime());
-
-  // Active tab
-  const [active, setActive] = useState<RecordKey>("opconsult");
-
-  // OPConsult state
-  const [opChiefComplaints, setOpChiefComplaints] = useState("");
-  const [opExamination, setOpExamination] = useState("");
-  const [opDiagnosis, setOpDiagnosis] = useState("");
-  const [opPlan, setOpPlan] = useState("");
-  const [opAdvice, setOpAdvice] = useState("");
-
-  // Prescription state
-  const [meds, setMeds] = useState<Med[]>([
-    {
-      id: uid(),
-      name: "",
-      route: "PO",
-      dose: "",
-      frequency: "",
-      duration: "",
-      instructions: "",
-    },
-  ]);
+  // Active top tab: start with "default"
+  const [active, setActive] = useState<TopTabKey>("default");
 
   // Immunization state
   const [immVaccine, setImmVaccine] = useState("");
@@ -103,37 +89,94 @@ export default function DoctorConsultationsPage() {
   const [immSite, setImmSite] = useState("");
   const [immRoute, setImmRoute] = useState("IM");
 
-  // Lab state
-  const [labTestName, setLabTestName] = useState("");
-  const [labSampleDate, setLabSampleDate] = useState("");
-  const [labResult, setLabResult] = useState("");
+  // Lab Request state (dynamic list)
+  const [labReqs, setLabReqs] = useState<LabReq[]>([
+    {
+      id: uid(),
+      testName: "",
+      priority: "Routine",
+      specimen: "",
+      fasting: false,
+      notes: "",
+    },
+  ]);
 
-  // Wellness state
-  const [wlBpSys, setWlBpSys] = useState("");
-  const [wlBpDia, setWlBpDia] = useState("");
-  const [wlPulse, setWlPulse] = useState("");
-  const [wlTemp, setWlTemp] = useState("");
-  const [wlSpo2, setWlSpo2] = useState("");
-  const [wlHeight, setWlHeight] = useState("");
-  const [wlWeight, setWlWeight] = useState("");
-  const [wlLifestyle, setWlLifestyle] = useState("");
-  const [wlFollowUp, setWlFollowUp] = useState("");
+  // Discharge Summary state
+  const [dsAdmissionDate, setDsAdmissionDate] = useState("");
+  const [dsDischargeDate, setDsDischargeDate] = useState("");
+  const [dsPrimaryDx, setDsPrimaryDx] = useState("");
+  const [dsSecondaryDx, setDsSecondaryDx] = useState("");
+  const [dsProcedures, setDsProcedures] = useState("");
+  const [dsHospitalCourse, setDsHospitalCourse] = useState("");
+  const [dsMedications, setDsMedications] = useState("");
+  const [dsAdvice, setDsAdvice] = useState("");
+  const [dsFollowUp, setDsFollowUp] = useState("");
+
+  // Document state
+  const [docType, setDocType] = useState("");
+  const [docDesc, setDocDesc] = useState("");
+  const [docFiles, setDocFiles] = useState<string[]>([]); // store names for preview
+
+  // Consent Request state
+  const [consentType, setConsentType] = useState("Data Sharing");
+  const [consentPurpose, setConsentPurpose] = useState("");
+  const [consentScope, setConsentScope] = useState("OPD Visit");
+  const [consentFrom, setConsentFrom] = useState(today());
+  const [consentTo, setConsentTo] = useState(today());
+  const [consentChannel, setConsentChannel] = useState<"SMS" | "Email">("SMS");
+
+  // Mock previous health records (Latest-first)
+  // Mock previous health records (Latest-first)
+  const prevRecords = useMemo<PrevRecord[]>(() => {
+    const data: PrevRecord[] = [
+      {
+        id: uid(),
+        dateISO: isoMinusDays(0, "10:15"),
+        kind: "OPConsult" as const,
+        title: "OPD • Fever & Cough",
+        snippet: "Dx: Viral URTI; Plan: antipyretics, fluids; Advice: rest",
+      },
+      {
+        id: uid(),
+        dateISO: isoMinusDays(7, "11:40"),
+        kind: "Lab" as const,
+        title: "CBC Panel",
+        snippet: "Hb 13.4, TLC 7.2, Platelets 2.1L — within normal limits",
+      },
+      {
+        id: uid(),
+        dateISO: isoMinusDays(15, "09:05"),
+        kind: "Prescription" as const,
+        title: "Rx Update",
+        snippet: "Paracetamol 500 mg 1-0-1 x5 days; Steam inhalation",
+      },
+      {
+        id: uid(),
+        dateISO: isoMinusDays(30, "16:20"),
+        kind: "Immunization" as const,
+        title: "Tdap Booster",
+        snippet: "Administered IM, left deltoid; Next due in 10 years",
+      },
+      {
+        id: uid(),
+        dateISO: isoMinusDays(45, "14:00"),
+        kind: "Discharge" as const,
+        title: "Daycare • Observation",
+        snippet: "Stable at discharge; follow-up after 2 weeks",
+      },
+    ];
+    return data.sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+  }, []);
+
+  // Collapsible state for the Previous Health Records section and each item
+  const [prevOpen, setPrevOpen] = useState(false); // collapsed by default
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({}); // per-record expansion
 
   // Toast
   const [toast, setToast] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
-
-  // Auto BMI
-  const bmi = useMemo(() => {
-    const h = parseFloat(wlHeight);
-    const w = parseFloat(wlWeight);
-    if (!h || !w) return "";
-    const m = h / 100;
-    const v = w / (m * m);
-    return Number.isFinite(v) ? v.toFixed(1) : "";
-  }, [wlHeight, wlWeight]);
 
   // Shortcuts
   useEffect(() => {
@@ -160,38 +203,46 @@ export default function DoctorConsultationsPage() {
       });
       return false;
     }
-    if (active === "opconsult" && !opChiefComplaints.trim()) {
+    if (active === "labRequest" && labReqs.some((r) => !r.testName.trim())) {
       setToast({
         type: "error",
-        message: "Chief complaints are required for OPConsult.",
+        message: "Please add at least one Lab Test name.",
       });
       return false;
     }
-    if (active === "prescription" && meds.some((m) => !m.name.trim())) {
+    if (active === "immunizationCard" && !immVaccine.trim()) {
       setToast({
         type: "error",
-        message: "Please enter at least one medication name.",
+        message: "Vaccine name is required for Immunization Card.",
       });
       return false;
     }
-    if (active === "immunization" && !immVaccine.trim()) {
+    if (active === "dischargeSummary" && !dsPrimaryDx.trim()) {
       setToast({
         type: "error",
-        message: "Vaccine name is required for Immunization record.",
+        message: "Primary Diagnosis is required for Discharge Summary.",
       });
       return false;
     }
-    if (active === "lab" && !labTestName.trim()) {
+    if (
+      active === "document" &&
+      docFiles.length === 0 &&
+      !docType.trim() &&
+      !docDesc.trim()
+    ) {
       setToast({
         type: "error",
-        message: "Test name is required for Lab record.",
+        message: "Please attach a document or provide its type/description.",
       });
       return false;
     }
-    if (active === "wellness" && (!wlHeight || !wlWeight)) {
+    if (
+      active === "consentRequest" &&
+      (!consentPurpose.trim() || !patient.abhaAddress.trim())
+    ) {
       setToast({
         type: "error",
-        message: "Height and Weight are needed to compute BMI.",
+        message: "Purpose and patient's ABHA address are required for consent.",
       });
       return false;
     }
@@ -199,12 +250,14 @@ export default function DoctorConsultationsPage() {
   }, [
     active,
     patient.name,
-    opChiefComplaints,
-    meds,
+    patient.abhaAddress,
+    labReqs,
     immVaccine,
-    labTestName,
-    wlHeight,
-    wlWeight,
+    dsPrimaryDx,
+    docFiles.length,
+    docType,
+    docDesc,
+    consentPurpose,
   ]);
 
   const handleSaveDraft = useCallback(() => {
@@ -227,29 +280,12 @@ export default function DoctorConsultationsPage() {
     });
   }, [validate, active]);
 
-  const copyOpToPrescription = useCallback(() => {
-    if (!opPlan && !opAdvice && !opDiagnosis) return;
-    setMeds((curr) => {
-      const text = [
-        opDiagnosis && `Dx: ${opDiagnosis}`,
-        opPlan && `Plan: ${opPlan}`,
-        opAdvice && `Advice: ${opAdvice}`,
-      ]
-        .filter(Boolean)
-        .join(" | ");
-      return curr.map((m, i) =>
-        i === 0 && !m.instructions ? { ...m, instructions: text } : m
-      );
-    });
-    setToast({
-      type: "info",
-      message: "OPConsult notes copied to prescription instructions.",
-    });
-  }, [opPlan, opAdvice, opDiagnosis]);
-
   const handleGenerateSummary = useCallback(() => {
     setToast({ type: "info", message: "Generating consultation summary…" });
   }, []);
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
   // ------------------------------- Render -----------------------------------
 
@@ -303,12 +339,8 @@ export default function DoctorConsultationsPage() {
             </div>
           </div>
 
-          {/* Center: Last Consultation */}
+          {/* Center: Appointment Date & Time (labels + values) */}
           <div className="order-2 text-center">
-            {/* <div className="text-[11px] uppercase tracking-wide text-gray-500">
-              Last Consultation
-            </div>
-            <div className="text-sm font-medium">{lastConsultText}</div> */}
             <div className="space-y-2 text-left md:text-right">
               <div>
                 <div className="text-[11px] text-gray-600 mb-1">
@@ -327,7 +359,7 @@ export default function DoctorConsultationsPage() {
             </div>
           </div>
 
-          {/* Right: Generate Summary + Appointment Date/Time */}
+          {/* Right: Generate Summary */}
           <div className="order-3 text-right">
             <button
               className="btn-outline text-xs px-3 py-1.5 inline-flex items-center gap-2 mb-2"
@@ -350,382 +382,491 @@ export default function DoctorConsultationsPage() {
         </div>
       </div>
 
-      {/* Main Shell: Left tabs + Right editor (Context widgets removed) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
-        {/* Left: Sticky tabs */}
-        <aside className="ui-card p-3 h-max sticky top-24">
-          <div className="text-xs font-semibold text-gray-600 mb-2">
-            Record Types
-          </div>
-          <nav className="space-y-1">
-            {RECORD_TABS.map((t) => {
-              const isActive = active === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setActive(t.key)}
-                  className={[
-                    "w-full text-left px-3 py-2 rounded-lg transition",
-                    isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100",
-                  ].join(" ")}
-                >
-                  <div className="text-sm font-medium">{t.label}</div>
-                  <div className="text-[11px] text-gray-500">{t.hint}</div>
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Right: Active Editor */}
-        <section className="space-y-4">
-          {active === "opconsult" && (
-            <div className="ui-card p-4">
-              <HeaderRow
-                title="OPConsult Record"
-                subtitle="Findings, Diagnoses and Plan"
-              />
-              <div className="grid md:grid-cols-2 gap-3">
-                <Field label="Chief Complaints*">
-                  <Textarea
-                    value={opChiefComplaints}
-                    onChange={(e) => setOpChiefComplaints(e.target.value)}
-                    placeholder="e.g., Fever, cough for 3 days"
-                  />
-                </Field>
-                <Field label="Examination">
-                  <Textarea
-                    value={opExamination}
-                    onChange={(e) => setOpExamination(e.target.value)}
-                    placeholder="Vitals, systemic exams"
-                  />
-                </Field>
-                <Field label="Diagnosis">
-                  <Textarea
-                    value={opDiagnosis}
-                    onChange={(e) => setOpDiagnosis(e.target.value)}
-                    placeholder="Primary/secondary Dx"
-                  />
-                </Field>
-                <Field label="Plan">
-                  <Textarea
-                    value={opPlan}
-                    onChange={(e) => setOpPlan(e.target.value)}
-                    placeholder="Investigations, follow-up, lifestyle"
-                  />
-                </Field>
-                <Field className="md:col-span-2" label="Advice / Notes">
-                  <Textarea
-                    value={opAdvice}
-                    onChange={(e) => setOpAdvice(e.target.value)}
-                    placeholder="Any additional instructions"
-                  />
-                </Field>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button className="btn-outline" onClick={copyOpToPrescription}>
-                  Copy notes to Prescription
-                </button>
-                <button className="btn-outline">Attach Documents</button>
-              </div>
-            </div>
-          )}
-
-          {active === "prescription" && (
-            <div className="ui-card p-4">
-              <HeaderRow
-                title="Prescription"
-                subtitle="Add medications and instructions"
-              />
-              <div className="space-y-3">
-                {meds.map((m, idx) => (
-                  <div
-                    key={m.id}
-                    className="grid md:grid-cols-6 gap-3 items-start"
-                  >
-                    <Field label={`Medicine ${idx + 1}*`}>
-                      <input
-                        className="ui-input"
-                        value={m.name}
-                        onChange={(e) =>
-                          updateMed(m.id, { name: e.target.value })
-                        }
-                        placeholder="e.g., Paracetamol 500mg"
-                      />
-                    </Field>
-                    <Field label="Route">
-                      <select
-                        className="ui-input"
-                        value={m.route}
-                        onChange={(e) =>
-                          updateMed(m.id, {
-                            route: e.target.value as Med["route"],
-                          })
-                        }
-                      >
-                        <option>PO</option>
-                        <option>IV</option>
-                        <option>IM</option>
-                        <option>Topical</option>
-                        <option>Inhale</option>
-                        <option>SC</option>
-                      </select>
-                    </Field>
-                    <Field label="Dose">
-                      <input
-                        className="ui-input"
-                        value={m.dose}
-                        onChange={(e) =>
-                          updateMed(m.id, { dose: e.target.value })
-                        }
-                        placeholder="e.g., 500 mg"
-                      />
-                    </Field>
-                    <Field label="Frequency">
-                      <input
-                        className="ui-input"
-                        value={m.frequency}
-                        onChange={(e) =>
-                          updateMed(m.id, { frequency: e.target.value })
-                        }
-                        placeholder="e.g., 1-0-1"
-                      />
-                    </Field>
-                    <Field label="Duration">
-                      <input
-                        className="ui-input"
-                        value={m.duration}
-                        onChange={(e) =>
-                          updateMed(m.id, { duration: e.target.value })
-                        }
-                        placeholder="e.g., 5 days"
-                      />
-                    </Field>
-                    <div className="flex items-end gap-2">
-                      <button
-                        type="button"
-                        className="btn-outline"
-                        onClick={() => removeMed(m.id)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <Field className="md:col-span-6" label="Instructions">
-                      <Textarea
-                        value={m.instructions}
-                        onChange={(e) =>
-                          updateMed(m.id, { instructions: e.target.value })
-                        }
-                        placeholder="e.g., After food, increase fluids"
-                      />
-                    </Field>
-                  </div>
-                ))}
-                <div>
-                  <button className="btn-primary" onClick={() => addMed()}>
-                    + Add Medicine
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {active === "immunization" && (
-            <div className="ui-card p-4">
-              <HeaderRow
-                title="Immunization Record"
-                subtitle="Capture vaccine details"
-              />
-              <div className="grid md:grid-cols-3 gap-3">
-                <Field label="Vaccine*">
-                  <input
-                    className="ui-input"
-                    value={immVaccine}
-                    onChange={(e) => setImmVaccine(e.target.value)}
-                    placeholder="e.g., Tdap"
-                  />
-                </Field>
-                <Field label="Batch">
-                  <input
-                    className="ui-input"
-                    value={immBatch}
-                    onChange={(e) => setImmBatch(e.target.value)}
-                  />
-                </Field>
-                <Field label="Manufacturer">
-                  <input
-                    className="ui-input"
-                    value={immManufacturer}
-                    onChange={(e) => setImmManufacturer(e.target.value)}
-                  />
-                </Field>
-                <Field label="Dose #">
-                  <input
-                    className="ui-input"
-                    value={immDoseNum}
-                    onChange={(e) => setImmDoseNum(e.target.value)}
-                    placeholder="e.g., 1"
-                  />
-                </Field>
-                <Field label="Date">
-                  <input
-                    type="date"
-                    className="ui-input"
-                    value={immDate}
-                    onChange={(e) => setImmDate(e.target.value)}
-                  />
-                </Field>
-                <Field label="Next Due">
-                  <input
-                    type="date"
-                    className="ui-input"
-                    value={immNextDue}
-                    onChange={(e) => setImmNextDue(e.target.value)}
-                  />
-                </Field>
-                <Field label="Site">
-                  <input
-                    className="ui-input"
-                    value={immSite}
-                    onChange={(e) => setImmSite(e.target.value)}
-                    placeholder="e.g., Left deltoid"
-                  />
-                </Field>
-                <Field label="Route">
-                  <input
-                    className="ui-input"
-                    value={immRoute}
-                    onChange={(e) => setImmRoute(e.target.value)}
-                    placeholder="e.g., IM"
-                  />
-                </Field>
-              </div>
-            </div>
-          )}
-
-          {active === "lab" && (
-            <div className="ui-card p-4">
-              <HeaderRow
-                title="Lab Record"
-                subtitle="Add new lab test or results"
-              />
-              <div className="grid md:grid-cols-3 gap-3">
-                <Field label="Test Name*">
-                  <input
-                    className="ui-input"
-                    value={labTestName}
-                    onChange={(e) => setLabTestName(e.target.value)}
-                    placeholder="e.g., CBC"
-                  />
-                </Field>
-                <Field label="Sample Date">
-                  <input
-                    type="date"
-                    className="ui-input"
-                    value={labSampleDate}
-                    onChange={(e) => setLabSampleDate(e.target.value)}
-                  />
-                </Field>
-                <Field label="Result">
-                  <input
-                    className="ui-input"
-                    value={labResult}
-                    onChange={(e) => setLabResult(e.target.value)}
-                    placeholder="e.g., Within normal limits"
-                  />
-                </Field>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <button className="btn-outline">Attach PDF/Images</button>
-                <button className="btn-outline">Browse Past Labs</button>
-              </div>
-            </div>
-          )}
-
-          {active === "wellness" && (
-            <div className="ui-card p-4">
-              <HeaderRow
-                title="Wellness Record"
-                subtitle="Vitals and lifestyle assessment"
-              />
-              <div className="grid md:grid-cols-4 gap-3">
-                <Field label="BP Systolic (mmHg)">
-                  <input
-                    className="ui-input"
-                    value={wlBpSys}
-                    onChange={(e) => setWlBpSys(e.target.value)}
-                  />
-                </Field>
-                <Field label="BP Diastolic (mmHg)">
-                  <input
-                    className="ui-input"
-                    value={wlBpDia}
-                    onChange={(e) => setWlBpDia(e.target.value)}
-                  />
-                </Field>
-                <Field label="Pulse (bpm)">
-                  <input
-                    className="ui-input"
-                    value={wlPulse}
-                    onChange={(e) => setWlPulse(e.target.value)}
-                  />
-                </Field>
-                <Field label="Temp (°C)">
-                  <input
-                    className="ui-input"
-                    value={wlTemp}
-                    onChange={(e) => setWlTemp(e.target.value)}
-                  />
-                </Field>
-                <Field label="SpO₂ (%)">
-                  <input
-                    className="ui-input"
-                    value={wlSpo2}
-                    onChange={(e) => setWlSpo2(e.target.value)}
-                  />
-                </Field>
-                <Field label="Height (cm)">
-                  <input
-                    className="ui-input"
-                    value={wlHeight}
-                    onChange={(e) => setWlHeight(e.target.value)}
-                  />
-                </Field>
-                <Field label="Weight (kg)">
-                  <input
-                    className="ui-input"
-                    value={wlWeight}
-                    onChange={(e) => setWlWeight(e.target.value)}
-                  />
-                </Field>
-                <Field label="BMI (auto)">
-                  <input
-                    className="ui-input"
-                    value={bmi}
-                    readOnly
-                    placeholder="Auto"
-                  />
-                </Field>
-                <Field className="md:col-span-4" label="Lifestyle Notes">
-                  <Textarea
-                    value={wlLifestyle}
-                    onChange={(e) => setWlLifestyle(e.target.value)}
-                    placeholder="Diet, exercise, sleep"
-                  />
-                </Field>
-                <Field label="Follow-up">
-                  <input
-                    type="date"
-                    className="ui-input"
-                    value={wlFollowUp}
-                    onChange={(e) => setWlFollowUp(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </div>
-          )}
-        </section>
+      {/* Thin, sleek TOP tabs bar */}
+      <div className="ui-card p-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {TOP_TABS.map((t) => {
+            const activeTab = active === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setActive(t.key)}
+                className={[
+                  "px-3 py-1.5 rounded-md text-sm whitespace-nowrap",
+                  activeTab ? "bg-gray-900 text-white" : "hover:bg-gray-100",
+                ].join(" ")}
+                aria-pressed={activeTab}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Editor Panel */}
+      <section className="space-y-4">
+        {/* Default view (shown until a tab is selected) */}
+        {/* Default view (shown until a tab is selected) */}
+        {active === "default" && (
+          <div className="ui-card p-4">
+            <div className="text-sm font-medium">Default view</div>
+
+            {/* Collapsible Previous Health Records */}
+            <div className="mt-3 rounded-lg border border-gray-200">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-2 text-sm"
+                onClick={() => setPrevOpen((s) => !s)}
+                aria-expanded={prevOpen}
+              >
+                <span className="text-gray-800">
+                  Previous Health Records (latest first)
+                </span>
+                {/* Header arrow (secondary color) */}
+                <span style={{ color: "var(--secondary)" }}>
+                  {prevOpen ? "▾" : "▸"}
+                </span>
+              </button>
+
+              {prevOpen && (
+                <div className="border-t border-[#f0fff6]">
+                  <ul className="divide-y divide-[#f0fff6]">
+                    {prevRecords.map((r) => {
+                      const isOpen = !!expanded[r.id];
+                      return (
+                        <li key={r.id} className="py-2 px-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium truncate">
+                                {r.kind} • {r.title}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatDateTime(r.dateISO)}
+                              </div>
+                            </div>
+
+                            {/* Row-level collapsible arrow (secondary color) */}
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(r.id)}
+                              aria-expanded={isOpen}
+                              className="p-1 rounded-md shrink-0"
+                              style={{ color: "var(--secondary)" }}
+                            >
+                              <span className="text-base">
+                                {isOpen ? "▾" : "▸"}
+                              </span>
+                            </button>
+                          </div>
+
+                          {isOpen && (
+                            <div className="mt-2 rounded-md bg-gray-50 border px-3 py-2">
+                              <div className="text-sm text-gray-800">
+                                {r.snippet}
+                              </div>
+                              <div className="mt-2 text-xs text-gray-600">
+                                Doctor: Dr. A • Facility: ARAN Clinic • Ref#:{" "}
+                                {r.id.slice(0, 6).toUpperCase()}
+                              </div>
+                              <div className="mt-2 flex gap-2">
+                                <button className="btn-outline text-xs">
+                                  Open Record
+                                </button>
+                                <button className="btn-outline text-xs">
+                                  Download
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Lab Request Form */}
+        {active === "labRequest" && (
+          <div className="ui-card p-4">
+            <HeaderRow
+              title="Lab Request Form"
+              subtitle="Add investigations to be performed"
+            />
+            <div className="space-y-3">
+              {labReqs.map((r, idx) => (
+                <div
+                  key={r.id}
+                  className="grid md:grid-cols-6 gap-3 items-start"
+                >
+                  <Field label={`Test Name ${idx + 1}*`}>
+                    <input
+                      className="ui-input"
+                      value={r.testName}
+                      onChange={(e) =>
+                        updateLabReq(r.id, { testName: e.target.value })
+                      }
+                      placeholder="e.g., CBC"
+                    />
+                  </Field>
+                  <Field label="Priority">
+                    <select
+                      className="ui-input"
+                      value={r.priority}
+                      onChange={(e) =>
+                        updateLabReq(r.id, {
+                          priority: e.target.value as LabReq["priority"],
+                        })
+                      }
+                    >
+                      <option>Routine</option>
+                      <option>Urgent</option>
+                      <option>STAT</option>
+                    </select>
+                  </Field>
+                  <Field label="Specimen">
+                    <input
+                      className="ui-input"
+                      value={r.specimen}
+                      onChange={(e) =>
+                        updateLabReq(r.id, { specimen: e.target.value })
+                      }
+                      placeholder="e.g., EDTA blood"
+                    />
+                  </Field>
+                  <Field label="Fasting">
+                    <div className="flex items-center h-10">
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={r.fasting}
+                        onChange={(e) =>
+                          updateLabReq(r.id, { fasting: e.target.checked })
+                        }
+                      />
+                      <span className="text-sm text-gray-700">Required</span>
+                    </div>
+                  </Field>
+                  <Field label="Notes">
+                    <input
+                      className="ui-input"
+                      value={r.notes}
+                      onChange={(e) =>
+                        updateLabReq(r.id, { notes: e.target.value })
+                      }
+                      placeholder="Any instructions for lab"
+                    />
+                  </Field>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={() => removeLabReq(r.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div>
+                <button className="btn-primary" onClick={() => addLabReq()}>
+                  + Add Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Immunization Card */}
+        {active === "immunizationCard" && (
+          <div className="ui-card p-4">
+            <HeaderRow
+              title="Immunization Card"
+              subtitle="Capture vaccine details"
+            />
+            <div className="grid md:grid-cols-3 gap-3">
+              <Field label="Vaccine*">
+                <input
+                  className="ui-input"
+                  value={immVaccine}
+                  onChange={(e) => setImmVaccine(e.target.value)}
+                  placeholder="e.g., Tdap"
+                />
+              </Field>
+              <Field label="Batch">
+                <input
+                  className="ui-input"
+                  value={immBatch}
+                  onChange={(e) => setImmBatch(e.target.value)}
+                />
+              </Field>
+              <Field label="Manufacturer">
+                <input
+                  className="ui-input"
+                  value={immManufacturer}
+                  onChange={(e) => setImmManufacturer(e.target.value)}
+                />
+              </Field>
+              <Field label="Dose #">
+                <input
+                  className="ui-input"
+                  value={immDoseNum}
+                  onChange={(e) => setImmDoseNum(e.target.value)}
+                  placeholder="e.g., 1"
+                />
+              </Field>
+              <Field label="Date">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={immDate}
+                  onChange={(e) => setImmDate(e.target.value)}
+                />
+              </Field>
+              <Field label="Next Due">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={immNextDue}
+                  onChange={(e) => setImmNextDue(e.target.value)}
+                />
+              </Field>
+              <Field label="Site">
+                <input
+                  className="ui-input"
+                  value={immSite}
+                  onChange={(e) => setImmSite(e.target.value)}
+                  placeholder="e.g., Left deltoid"
+                />
+              </Field>
+              <Field label="Route">
+                <input
+                  className="ui-input"
+                  value={immRoute}
+                  onChange={(e) => setImmRoute(e.target.value)}
+                  placeholder="e.g., IM"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {/* Discharge Summary */}
+        {active === "dischargeSummary" && (
+          <div className="ui-card p-4">
+            <HeaderRow
+              title="Discharge Summary"
+              subtitle="Summarize inpatient care and advice"
+            />
+            <div className="grid md:grid-cols-3 gap-3">
+              <Field label="Admission Date">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={dsAdmissionDate}
+                  onChange={(e) => setDsAdmissionDate(e.target.value)}
+                />
+              </Field>
+              <Field label="Discharge Date">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={dsDischargeDate}
+                  onChange={(e) => setDsDischargeDate(e.target.value)}
+                />
+              </Field>
+              <Field label="Follow-up Date">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={dsFollowUp}
+                  onChange={(e) => setDsFollowUp(e.target.value)}
+                />
+              </Field>
+
+              <Field className="md:col-span-3" label="Primary Diagnosis*">
+                <Textarea
+                  value={dsPrimaryDx}
+                  onChange={(e) => setDsPrimaryDx(e.target.value)}
+                  placeholder="Primary Dx"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Secondary Diagnoses">
+                <Textarea
+                  value={dsSecondaryDx}
+                  onChange={(e) => setDsSecondaryDx(e.target.value)}
+                  placeholder="List other diagnoses"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Procedures">
+                <Textarea
+                  value={dsProcedures}
+                  onChange={(e) => setDsProcedures(e.target.value)}
+                  placeholder="Procedures performed"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Hospital Course">
+                <Textarea
+                  value={dsHospitalCourse}
+                  onChange={(e) => setDsHospitalCourse(e.target.value)}
+                  placeholder="Course in hospital"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Medications at Discharge">
+                <Textarea
+                  value={dsMedications}
+                  onChange={(e) => setDsMedications(e.target.value)}
+                  placeholder="Discharge meds"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Advice & Instructions">
+                <Textarea
+                  value={dsAdvice}
+                  onChange={(e) => setDsAdvice(e.target.value)}
+                  placeholder="Diet, activity, warnings"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {/* Document */}
+        {active === "document" && (
+          <div className="ui-card p-4">
+            <HeaderRow
+              title="Document"
+              subtitle="Attach or describe a document"
+            />
+            <div className="grid md:grid-cols-3 gap-3">
+              <Field label="Document Type">
+                <input
+                  className="ui-input"
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value)}
+                  placeholder="e.g., Referral, Report, Image"
+                />
+              </Field>
+              <Field className="md:col-span-2" label="Description">
+                <input
+                  className="ui-input"
+                  value={docDesc}
+                  onChange={(e) => setDocDesc(e.target.value)}
+                  placeholder="Short description"
+                />
+              </Field>
+              <Field className="md:col-span-3" label="Attachments">
+                <input
+                  type="file"
+                  className="ui-input"
+                  multiple
+                  onChange={(e) => {
+                    const list = Array.from(e.target.files || []).map(
+                      (f) => f.name
+                    );
+                    setDocFiles(list);
+                  }}
+                />
+              </Field>
+              {docFiles.length > 0 && (
+                <div className="md:col-span-3 text-sm text-gray-700">
+                  <div className="mb-1 font-medium">Selected Files</div>
+                  <ul className="list-disc ml-5 space-y-0.5">
+                    {docFiles.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Consent Request */}
+        {active === "consentRequest" && (
+          <div className="ui-card p-4">
+            <HeaderRow
+              title="Consent Request"
+              subtitle="Request patient consent for data access or procedures"
+            />
+            <div className="grid md:grid-cols-3 gap-3">
+              <Field label="Consent Type">
+                <select
+                  className="ui-input"
+                  value={consentType}
+                  onChange={(e) => setConsentType(e.target.value)}
+                >
+                  <option>Data Sharing</option>
+                  <option>Procedure</option>
+                  <option>Research</option>
+                </select>
+              </Field>
+              <Field label="Purpose*">
+                <input
+                  className="ui-input"
+                  value={consentPurpose}
+                  onChange={(e) => setConsentPurpose(e.target.value)}
+                  placeholder="e.g., Review previous labs"
+                />
+              </Field>
+              <Field label="Scope">
+                <select
+                  className="ui-input"
+                  value={consentScope}
+                  onChange={(e) => setConsentScope(e.target.value)}
+                >
+                  <option>OPD Visit</option>
+                  <option>30 days</option>
+                  <option>90 days</option>
+                  <option>Custom</option>
+                </select>
+              </Field>
+              <Field label="Valid From">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={consentFrom}
+                  onChange={(e) => setConsentFrom(e.target.value)}
+                />
+              </Field>
+              <Field label="Valid To">
+                <input
+                  type="date"
+                  className="ui-input"
+                  value={consentTo}
+                  onChange={(e) => setConsentTo(e.target.value)}
+                />
+              </Field>
+              <Field label="Channel">
+                <select
+                  className="ui-input"
+                  value={consentChannel}
+                  onChange={(e) =>
+                    setConsentChannel(e.target.value as "SMS" | "Email")
+                  }
+                >
+                  <option>SMS</option>
+                  <option>Email</option>
+                </select>
+              </Field>
+              <Field className="md:col-span-3" label="Patient ABHA Address">
+                <input
+                  className="ui-input"
+                  value={patient.abhaAddress}
+                  disabled
+                />
+              </Field>
+              <div className="md:col-span-3">
+                <button className="btn-primary">
+                  Generate Consent Request
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Sticky Action Bar */}
       <div className="sticky bottom-4">
@@ -760,43 +901,47 @@ export default function DoctorConsultationsPage() {
 
   // ------------------------- Local helpers & UI atoms ------------------------
 
-  function updateMed(id: string, patch: Partial<Med>) {
-    setMeds((curr) => curr.map((m) => (m.id === id ? { ...m, ...patch } : m)));
-  }
-  function removeMed(id: string) {
-    setMeds((curr) =>
-      curr.length === 1 ? curr : curr.filter((m) => m.id !== id)
+  // LabReq mutators
+  function updateLabReq(id: string, patch: Partial<LabReq>) {
+    setLabReqs((curr) =>
+      curr.map((r) => (r.id === id ? { ...r, ...patch } : r))
     );
   }
-  function addMed() {
-    setMeds((curr) => [
+  function removeLabReq(id: string) {
+    setLabReqs((curr) =>
+      curr.length === 1 ? curr : curr.filter((r) => r.id !== id)
+    );
+  }
+  function addLabReq() {
+    setLabReqs((curr) => [
       ...curr,
       {
         id: uid(),
-        name: "",
-        route: "PO",
-        dose: "",
-        frequency: "",
-        duration: "",
-        instructions: "",
+        testName: "",
+        priority: "Routine",
+        specimen: "",
+        fasting: false,
+        notes: "",
       },
     ]);
   }
 }
 
-// Label mapper
-function labelFor(key: RecordKey) {
+// Label mapper for sticky bar
+function labelFor(key: TopTabKey) {
   switch (key) {
-    case "opconsult":
-      return "OPConsult Record";
-    case "prescription":
-      return "Prescription";
-    case "immunization":
-      return "Immunization Record";
-    case "lab":
-      return "Lab Record";
-    case "wellness":
-      return "Wellness Record";
+    case "default":
+      return "Default view";
+    case "labRequest":
+      return "Lab Request Form";
+    case "immunizationCard":
+      return "Immunization Card";
+    case "dischargeSummary":
+      return "Discharge Summary";
+    case "document":
+      return "Document";
+    case "consentRequest":
+      return "Consent Request";
   }
 }
 
@@ -830,6 +975,32 @@ function formatDate(iso: string) {
   } catch {
     return iso;
   }
+}
+function formatDateTime(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+function isoMinusDays(days: number, timeHHmm: string = "09:00") {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const [hh, mm] = timeHHmm.split(":");
+  d.setHours(Number(hh), Number(mm), 0, 0);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const h2 = String(d.getHours()).padStart(2, "0");
+  const m2 = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${dd}T${h2}:${m2}:00`;
 }
 
 // Read-only info cell
