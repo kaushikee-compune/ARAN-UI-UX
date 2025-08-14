@@ -1,53 +1,42 @@
 "use client";
 
 /**
- * ARAN • Doctor → Patients (Consultation v2 Panel)
- * - NO auto-collapse on mount
- * - Sidebar toggle button in header (top-right)
- * - Three-pane: OPD Queue | Editor | Live Preview
+ * ARAN • Doctor → Patients (New Consultation Canvas)
+ * --------------------------------------------------
+ * Spec:
+ * 1) Horizontal menu under top header with 5 items + a sidebar toggle switch on the right.
+ * 2) Below it, a white paper "health-record pane":
+ *    - Center: small logo
+ *    - Left: patient demographics
+ *    - Right (top): small icon + label "Patient Summary"
+ *    - Rest: empty (for future content)
+ * 3) A vertical toolbar on the RIGHT EDGE of the health-record pane with icons only
+ *    (tooltips on hover): Voice, Form, Scribe.
+ * 4) Floating bottom bar with Save and Submit.
+ *
+ * Notes:
+ * - No auto-collapse. Only the toggle switch controls the sidebar via localStorage.
+ * - Uses /public/ABHA.png as a placeholder logo. Replace if needed.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 
-// ----------------------------- Types -----------------------------
-type QueueItem = {
-  id: string;
-  ticket: string;
-  name: string;
-  age: string;
-  gender: "Male" | "Female" | "Other";
-  reason: string;
-  scheduledAt: string;
-};
+// --------------------------- Types ---------------------------
+type TabKey = "consultation" | "lab" | "immunization" | "discharge" | "consent";
 
-type Medication = {
-  id: string;
-  name: string;
-  dose: string;
-  frequency: string;
-  duration: string;
-  route: string;
-  notes: string;
-};
+// --------------------------- Page ----------------------------
+export default function PatientsPage() {
+  // Active tab
+  const [active, setActive] = useState<TabKey>("consultation");
 
-type PatientContext = {
-  name: string;
-  age: string;
-  gender: "Male" | "Female" | "Other" | "";
-  abhaNumber?: string;
-  abhaAddress?: string;
-};
-
-// --------------------------- Page Component ---------------------------
-export default function PatientsConsultationV2Page() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  // Sidebar toggle (sync with localStorage)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  // Sidebar toggle (sync with layout via storage + custom event)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => {
     try {
-      setSidebarCollapsed(localStorage.getItem("aran:sidebarCollapsed") === "1");
+      setSidebarCollapsed(
+        localStorage.getItem("aran:sidebarCollapsed") === "1"
+      );
     } catch {}
   }, []);
   const toggleSidebar = () => {
@@ -59,441 +48,159 @@ export default function PatientsConsultationV2Page() {
     } catch {}
   };
 
-  // Patient context (frozen header data)
-  const [patient] = useState<PatientContext>({
-    name: "Ms Shampa Goswami",
-    age: "52 yrs",
-    gender: "Female",
-    abhaNumber: "91-5510-2061-4469",
-    abhaAddress: "shampa.go@sbx",
-  });
-
-  // OPD queue panel state
-  const [queueOpen, setQueueOpen] = useState(true);
-  const queue = useMemo<QueueItem[]>(
-    () => [
-      {
-        id: uid(),
-        ticket: "Q-1021",
-        name: "Ms Shampa Goswami",
-        age: "52",
-        gender: "Female",
-        reason: "Fever & Cough",
-        scheduledAt: isoWithHM(0, 0),
-      },
-      {
-        id: uid(),
-        ticket: "Q-1022",
-        name: "Mr Ritesh Mehta",
-        age: "38",
-        gender: "Male",
-        reason: "Back pain",
-        scheduledAt: isoWithHM(0, 30),
-      },
-      {
-        id: uid(),
-        ticket: "Q-1023",
-        name: "Baby Anvi",
-        age: "3",
-        gender: "Female",
-        reason: "Immunization",
-        scheduledAt: isoWithHM(1, 0),
-      },
-    ],
+  // Patient snapshot (left demographics)
+  const patient = useMemo(
+    () => ({
+      name: "Ms Shampa Goswami",
+      age: "52 yrs",
+      gender: "Female",
+      abhaNumber: "91-5510-2061-4469",
+      abhaAddress: "shampa.go@sbx",
+    }),
     []
   );
 
-  // Consultation editor state (v2)
-  const [chiefComplaints, setChiefComplaints] = useState("");
-  const [examination, setExamination] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [plan, setPlan] = useState("");
-  const [advice, setAdvice] = useState("");
+  // Toast (for Save/Submit feedback)
+  const [toast, setToast] = useState<{
+    type: "success" | "info" | "error";
+    message: string;
+  } | null>(null);
+  const show = (t: typeof toast) => setToast(t);
+  const onSave = useCallback(
+    () => show({ type: "info", message: "Draft saved." }),
+    []
+  );
+  const onSubmit = useCallback(
+    () => show({ type: "success", message: "Record submitted." }),
+    []
+  );
 
-  // Dynamic prescriptions
-  const [meds, setMeds] = useState<Medication[]>([
-    { id: uid(), name: "", dose: "", frequency: "", duration: "", route: "", notes: "" },
-  ]);
-
-  // Local toast
-  const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        handleSaveDraft();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        e.preventDefault();
-        handleSubmit();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // -------------------------- Actions --------------------------
-  const handleSaveDraft = useCallback(() => {
-    setToast({ type: "info", message: "Draft saved for Consultation (v2)." });
-  }, []);
-
-  const validate = useCallback(() => {
-    if (!patient.name.trim()) {
-      setToast({ type: "error", message: "Select a patient before proceeding." });
-      return false;
-    }
-    if (!chiefComplaints.trim()) {
-      setToast({ type: "error", message: "Chief Complaints are required." });
-      return false;
-    }
-    if (meds.some((m) => hasAnyValue(m) && !m.name.trim())) {
-      setToast({ type: "error", message: "Provide medicine name for filled rows." });
-      return false;
-    }
-    return true;
-  }, [patient.name, chiefComplaints, meds]);
-
-  const handleValidate = useCallback(() => {
-    if (!validate()) return;
-    setToast({ type: "success", message: "Validation passed." });
-  }, [validate]);
-
-  const handleSubmit = useCallback(() => {
-    if (!validate()) return;
-    const payload = {
-      patient,
-      consultation: { chiefComplaints, examination, diagnosis, plan, advice },
-      prescriptions: meds.filter((m) => m.name.trim()),
-      submittedAt: new Date().toISOString(),
-    };
-    console.log("Submit payload (v2)", payload);
-    setToast({ type: "success", message: "Consultation (v2) submitted." });
-  }, [validate, patient, chiefComplaints, examination, diagnosis, plan, advice, meds]);
-
-  const assignFromQueue = (q: QueueItem) =>
-    setToast({ type: "info", message: `Loaded ${q.ticket} • ${q.name} into editor.` });
-
-  const addMed = () =>
-    setMeds((curr) => [...curr, { id: uid(), name: "", dose: "", frequency: "", duration: "", route: "", notes: "" }]);
-  const removeMed = (id: string) =>
-    setMeds((curr) => (curr.length === 1 ? curr : curr.filter((m) => m.id !== id)));
-  const patchMed = (id: string, patch: Partial<Medication>) =>
-    setMeds((curr) => curr.map((m) => (m.id === id ? { ...m, ...patch } : m)));
-
-  // -------------------------- Render --------------------------
+  // ------------------------- Render --------------------------
   return (
-    <div className="relative space-y-4">
-      {/* Patient Context Bar (with Sidebar toggle at top-right) */}
-      <div className="ui-card p-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-          <div className="flex items-start gap-3">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--secondary)", color: "var(--on-secondary)" }}
-              aria-label="Patient"
-              title="Patient"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                <circle cx="12" cy="8" r="3" />
-                <path d="M4 20a8 8 0 0 1 16 0" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Info label="Patient Name" value={patient.name} />
-                <Info label="Age" value={patient.age} />
-                <Info label="Gender" value={patient.gender} />
-              </div>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Info label="ABHA Number" value={patient.abhaNumber || "—"} />
-                <Info label="ABHA Address" value={patient.abhaAddress || "—"} />
-                <Info label="Last Consultation" value={"New Patient"} />
-              </div>
-            </div>
-          </div>
+    <div className="space-y-3">
+      {/* 1) Horizontal Menu + Sidebar Toggle */}
+      <div className="ui-card px-3 py-2">
+        <div className="flex items-center gap-2">
+          <TabButton
+            active={active === "consultation"}
+            onClick={() => setActive("consultation")}
+            label="Consultation"
+          />
+          <TabButton
+            active={active === "lab"}
+            onClick={() => setActive("lab")}
+            label="Lab Request"
+          />
+          <TabButton
+            active={active === "immunization"}
+            onClick={() => setActive("immunization")}
+            label="Immunization Record"
+          />
+          <TabButton
+            active={active === "discharge"}
+            onClick={() => setActive("discharge")}
+            label="Discharge Summary"
+          />
+          <TabButton
+            active={active === "consent"}
+            onClick={() => setActive("consent")}
+            label="Consent"
+          />
 
-          {/* Right: header actions */}
-          <div className="md:col-span-2 flex items-center justify-end gap-2">
-            <button
-              className="btn-outline text-xs px-3 py-1.5 inline-flex items-center gap-2"
-              onClick={() => setToast({ type: "info", message: "Generating summary…" })}
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
-                <path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
-                <path d="M14 3v6h6" />
-              </svg>
-              Summary
-            </button>
-
-            {/* Sidebar toggle */}
-            <button
-              className="btn-outline text-xs px-3 py-1.5 inline-flex items-center gap-2"
-              onClick={toggleSidebar}
-              aria-pressed={sidebarCollapsed}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                aria-hidden
-                style={{ color: "var(--secondary)" }}
-              >
-                <path d="M3 6h18M3 12h18M3 18h18" />
-              </svg>
-              {sidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
-            </button>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-gray-600">Sidebar</span>
+            <Switch checked={sidebarCollapsed} onChange={toggleSidebar} />
           </div>
         </div>
       </div>
 
-      {/* Workspace: Queue (L) • Editor (M) • Preview (R) */}
-      <div
-        className="grid gap-3"
-        style={{
-          gridTemplateColumns: `${queueOpen ? "280px" : "0px"} minmax(0,1fr) minmax(320px, 420px)`,
-        }}
-      >
-        {/* OPD Queue */}
-        <aside
-          className={[
-            "ui-card overflow-hidden transition-all duration-200",
-            queueOpen ? "p-3" : "p-0 w-0 border-0",
-          ].join(" ")}
-          aria-hidden={!queueOpen}
+      {/* 2) Health-record Pane (paper canvas) */}
+      <div className="relative">
+        {/* The canvas frame */}
+        <div
+          className="relative mx-auto bg-white border rounded-xl shadow-sm"
+          style={{
+            maxWidth: 1100,
+            minHeight: 620,
+            // small paper-like texture using subtle gradient
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(252,252,252,1) 100%)",
+          }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-semibold">OPD Queue</div>
-            <button
-              className="btn-outline text-xs px-2 py-1"
-              onClick={() => setQueueOpen((s) => !s)}
-              aria-expanded={queueOpen}
-              title={queueOpen ? "Hide queue" : "Show queue"}
-            >
-              {queueOpen ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          <ul className="space-y-2">
-            {queue.map((q) => (
-              <li
-                key={q.id}
-                className="rounded-lg border p-2 hover:bg-gray-50 cursor-pointer"
-                onClick={() => assignFromQueue(q)}
-                title="Load into editor"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-medium">
-                      {q.ticket} • {q.name}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {q.gender}, {q.age}y • {q.reason}
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-gray-500">{formatHM(q.scheduledAt)}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        {/* Editor */}
-        <section className="ui-card p-4 space-y-4">
-          <Header title="Consultation (v2)" subtitle="Form • Diagnosis • Plan • Rx" />
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <Field label="Chief Complaints*">
-              <Textarea
-                value={chiefComplaints}
-                onChange={(e) => setChiefComplaints(e.target.value)}
-                placeholder="e.g., Fever and cough for 3 days"
-              />
-            </Field>
-            <Field label="Examination">
-              <Textarea
-                value={examination}
-                onChange={(e) => setExamination(e.target.value)}
-                placeholder="Vitals, systemic exams"
-              />
-            </Field>
-            <Field label="Diagnosis">
-              <Textarea
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="Primary/secondary diagnoses"
-              />
-            </Field>
-            <Field label="Plan">
-              <Textarea
-                value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                placeholder="Investigations, follow-up, lifestyle"
-              />
-            </Field>
-            <Field className="md:col-span-2" label="Advice / Notes">
-              <Textarea
-                value={advice}
-                onChange={(e) => setAdvice(e.target.value)}
-                placeholder="Any additional instructions"
-              />
-            </Field>
-          </div>
-
-          {/* Prescriptions */}
-          <div>
-            <div className="mb-2 text-sm font-semibold">Prescriptions</div>
-            <div className="space-y-3">
-              {meds.map((m, idx) => (
-                <div key={m.id} className="grid md:grid-cols-6 gap-2 items-start">
-                  <Field label={`Medicine ${idx + 1}`}>
-                    <input
-                      className="ui-input"
-                      value={m.name}
-                      onChange={(e) => patchMed(m.id, { name: e.target.value })}
-                      placeholder="e.g., Paracetamol 500 mg"
-                    />
-                  </Field>
-                  <Field label="Dose">
-                    <input
-                      className="ui-input"
-                      value={m.dose}
-                      onChange={(e) => patchMed(m.id, { dose: e.target.value })}
-                      placeholder="e.g., 500 mg"
-                    />
-                  </Field>
-                  <Field label="Frequency">
-                    <input
-                      className="ui-input"
-                      value={m.frequency}
-                      onChange={(e) => patchMed(m.id, { frequency: e.target.value })}
-                      placeholder="e.g., 1-0-1"
-                    />
-                  </Field>
-                  <Field label="Duration">
-                    <input
-                      className="ui-input"
-                      value={m.duration}
-                      onChange={(e) => patchMed(m.id, { duration: e.target.value })}
-                      placeholder="e.g., 5 days"
-                    />
-                  </Field>
-                  <Field label="Route">
-                    <input
-                      className="ui-input"
-                      value={m.route}
-                      onChange={(e) => patchMed(m.id, { route: e.target.value })}
-                      placeholder="e.g., PO / IM"
-                    />
-                  </Field>
-                  <Field label="Notes">
-                    <input
-                      className="ui-input"
-                      value={m.notes}
-                      onChange={(e) => patchMed(m.id, { notes: e.target.value })}
-                      placeholder="Optional instruction"
-                    />
-                  </Field>
-
-                  <div className="md:col-span-6 flex justify-between">
-                    <button type="button" className="btn-outline" onClick={addMed}>
-                      + Add Medicine
-                    </button>
-                    <button type="button" className="btn-outline" onClick={() => removeMed(m.id)}>
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Live Preview */}
-        <aside className="ui-card p-4 overflow-auto">
-          <Header title="Preview" subtitle="Print-friendly view (auto-updates)" />
-
-          <div className="rounded-lg border p-3 space-y-3 text-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-semibold">{patient.name}</div>
-                <div className="text-xs text-gray-600">
+          {/* Paper inner padding */}
+          <div className="p-4 md:p-6">
+            {/* Header row inside paper */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start">
+              {/* Left: Patient demographics */}
+              <div className="min-w-0 pr-3">
+                <div className="text-xs text-gray-500 mb-1">Patient</div>
+                <div className="text-sm font-semibold">{patient.name}</div>
+                <div className="text-xs text-gray-700 mt-0.5">
                   {patient.gender} • {patient.age}
                 </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  ABHA No: {patient.abhaNumber}
+                </div>
                 <div className="text-xs text-gray-600">
-                  ABHA: {patient.abhaNumber || "—"} • {patient.abhaAddress || "—"}
+                  ABHA Address: {patient.abhaAddress}
                 </div>
               </div>
-              <div className="text-right text-xs text-gray-500">
-                {mounted ? new Date().toLocaleString() : "—"}
+
+              {/* Center: Logo */}
+              <Image
+                src="/whitelogo.png" // because it's now inside /public
+                alt="ARAN Logo"
+                width={40} // adjust as needed
+                height={40}
+              />
+              {/* Right: Patient Summary (icon + label) */}
+              <div className="flex items-start justify-end pl-3">
+                <button
+                  className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
+                  title="Open Patient Summary"
+                >
+                  <SummaryIcon className="w-4 h-4" />
+                  <span className="font-medium">Patient Summary</span>
+                </button>
               </div>
             </div>
 
-            <PreviewBlock title="Chief Complaints" body={chiefComplaints} />
-            <PreviewBlock title="Examination" body={examination} />
-            <PreviewBlock title="Diagnosis" body={diagnosis} />
-            <PreviewBlock title="Plan" body={plan} />
-            <PreviewBlock title="Advice / Notes" body={advice} />
+            {/* Divider */}
+            <div className="my-3 border-t border-gray-200" />
 
-            <div>
-              <div className="font-semibold mb-1">Prescriptions</div>
-              {meds.filter((m) => m.name.trim()).length === 0 ? (
-                <div className="text-gray-500 text-xs">No medicines added.</div>
-              ) : (
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-1 pr-2">Medicine</th>
-                      <th className="text-left py-1 pr-2">Dose</th>
-                      <th className="text-left py-1 pr-2">Frequency</th>
-                      <th className="text-left py-1 pr-2">Duration</th>
-                      <th className="text-left py-1 pr-2">Route</th>
-                      <th className="text-left py-1">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {meds
-                      .filter((m) => m.name.trim())
-                      .map((m) => (
-                        <tr key={m.id} className="border-b">
-                          <td className="py-1 pr-2">{m.name}</td>
-                          <td className="py-1 pr-2">{m.dose || "—"}</td>
-                          <td className="py-1 pr-2">{m.frequency || "—"}</td>
-                          <td className="py-1 pr-2">{m.duration || "—"}</td>
-                          <td className="py-1 pr-2">{m.route || "—"}</td>
-                          <td className="py-1">{m.notes || "—"}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              )}
+            {/* Body area intentionally left empty as per spec */}
+            <div className="min-h-[420px] text-center text-xs text-gray-400 pt-6">
+              (Health record content will appear here…)
             </div>
           </div>
-        </aside>
+
+          {/* 3) Right-edge vertical toolbar (icons only, with tooltips) */}
+          <div className="absolute top-6 -right-14 flex flex-col gap-2">
+            <ToolButton label="Voice">
+              <MicIcon className="w-4 h-4" />
+            </ToolButton>
+            <ToolButton label="Form">
+              <FormIcon className="w-4 h-4" />
+            </ToolButton>
+            <ToolButton label="Scribe">
+              <ScribeIcon className="w-4 h-4" />
+            </ToolButton>
+          </div>
+        </div>
       </div>
 
-      {/* Sticky Action Bar */}
+      {/* 4) Floating bottom bar */}
       <div className="sticky bottom-4">
-        <div className="ui-card p-3 flex flex-col md:flex-row md:items-center gap-3 justify-between">
+        <div className="ui-card px-3 py-2 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            <span className="font-medium">Patient:</span> {patient.name}
-            <span className="mx-2">•</span>
-            <span className="font-medium">Record:</span> Consultation (v2)
+            <span className="font-medium">Active:</span> {labelFor(active)}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-outline" onClick={handleSaveDraft}>
-              Save Draft (Ctrl+S)
+          <div className="flex items-center gap-2">
+            <button className="btn-outline" onClick={onSave}>
+              Save
             </button>
-            <button className="btn-outline" onClick={handleValidate}>
-              Validate & Preview
-            </button>
-            <button className="btn-primary" onClick={handleSubmit}>
-              Submit & Share (Ctrl+Enter)
+            <button className="btn-primary" onClick={onSubmit}>
+              Submit
             </button>
           </div>
         </div>
@@ -509,67 +216,160 @@ export default function PatientsConsultationV2Page() {
   );
 }
 
-// ------------------------ Local UI helpers ------------------------
-function Header({ title, subtitle }: { title: string; subtitle?: string }) {
+// ------------------------- Small UI pieces -------------------------
+
+function TabButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <div className="mb-3">
-      <div className="text-lg font-semibold">{title}</div>
-      {subtitle && <div className="text-[11px] text-gray-500">{subtitle}</div>}
-    </div>
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
+        active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
+      ].join(" ")}
+    >
+      {label}
+    </button>
   );
 }
 
-function Info({ label, value }: { label: string; value?: string }) {
+function Switch({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: () => void;
+}) {
   return (
-    <div>
-      <div className="text-[11px] text-gray-500">{label}</div>
-      <div className="text-sm font-medium">{value && value.trim() ? value : "—"}</div>
-    </div>
+    <button
+      onClick={onChange}
+      aria-pressed={checked}
+      className={[
+        "relative inline-flex h-5 w-9 items-center rounded-full border transition",
+        checked ? "bg-gray-900 border-gray-900" : "bg-white hover:bg-gray-50",
+      ].join(" ")}
+      title={checked ? "Expand sidebar" : "Collapse sidebar"}
+    >
+      <span
+        className={[
+          "inline-block h-4 w-4 transform rounded-full bg-white transition",
+          checked ? "translate-x-4" : "translate-x-0.5",
+        ].join(" ")}
+      />
+    </button>
   );
 }
 
-function Field({
+function ToolButton({
   label,
   children,
-  className = "",
 }: {
   label: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <label className={["block", className].join(" ")}>
-      <span className="block text-xs font-medium text-gray-700 mb-1">{label}</span>
+    <button
+      className="group relative inline-flex items-center justify-center w-9 h-9 rounded-full border bg-white shadow hover:bg-gray-50"
+      title={label}
+    >
       {children}
-    </label>
+      {/* custom tooltip on hover */}
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
+        {label}
+      </span>
+    </button>
   );
 }
 
-function Textarea({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-}) {
+// --------------------------- Icons ---------------------------
+function MicIcon({ className = "" }: { className?: string }) {
   return (
-    <textarea className="ui-input min-h-[96px]" value={value} onChange={onChange} placeholder={placeholder} />
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <rect x="9" y="3" width="6" height="10" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <path d="M12 19v2" />
+    </svg>
   );
 }
-
-function PreviewBlock({ title, body }: { title: string; body: string }) {
+function FormIcon({ className = "" }: { className?: string }) {
   return (
-    <div>
-      <div className="font-semibold">{title}</div>
-      <div className="text-gray-800 whitespace-pre-wrap text-xs mt-1">
-        {body.trim() ? body : "—"}
-      </div>
-    </div>
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+function ScribeIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <path d="M4 20h12l4-4V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16Z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+function SummaryIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8M8 11h8M8 15h5" />
+    </svg>
   );
 }
 
+// --------------------------- Helpers ---------------------------
+function labelFor(key: TabKey) {
+  switch (key) {
+    case "consultation":
+      return "Consultation";
+    case "lab":
+      return "Lab Request";
+    case "immunization":
+      return "Immunization Record";
+    case "discharge":
+      return "Discharge Summary";
+    case "consent":
+      return "Consent";
+  }
+}
+
+// Simple toast
 function Toast({
   type,
   children,
@@ -579,47 +379,31 @@ function Toast({
   children: React.ReactNode;
   onClose: () => void;
 }) {
-  const color = type === "success" ? "#16a34a" : type === "error" ? "#dc2626" : "#2563eb";
-
+  const color =
+    type === "success" ? "#16a34a" : type === "error" ? "#dc2626" : "#2563eb";
   useEffect(() => {
-    const t = setTimeout(onClose, 2200);
+    const t = setTimeout(onClose, 1800);
     return () => clearTimeout(t);
   }, [onClose]);
-
   return (
     <div className="fixed bottom-6 right-6 z-[60]">
-      <div className="rounded-lg shadow-lg border bg-white px-4 py-3 text-sm" style={{ borderColor: color }}>
+      <div
+        className="rounded-lg shadow-lg border bg-white px-4 py-3 text-sm"
+        style={{ borderColor: color }}
+      >
         <div className="flex items-start gap-2">
           <div className="mt-[2px]" style={{ color }}>
             {type === "success" ? "✔" : type === "error" ? "⚠" : "ℹ"}
           </div>
           <div className="text-gray-800">{children}</div>
-          <button onClick={onClose} className="ml-2 text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            className="ml-2 text-gray-500 hover:text-gray-700"
+          >
             Close
           </button>
         </div>
       </div>
     </div>
   );
-}
-
-// ------------------------ Utilities ------------------------
-function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36).slice(2);
-}
-function isoWithHM(plusHours = 0, plusMinutes = 0) {
-  const d = new Date();
-  d.setHours(d.getHours() + plusHours, d.getMinutes() + plusMinutes, 0, 0);
-  return d.toISOString();
-}
-function formatHM(iso: string) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "—";
-  }
-}
-function hasAnyValue(m: Medication) {
-  return m.name.trim() || m.dose.trim() || m.frequency.trim() || m.duration.trim() || m.route.trim() || m.notes.trim();
 }
