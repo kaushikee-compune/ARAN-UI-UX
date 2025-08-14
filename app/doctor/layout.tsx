@@ -5,11 +5,10 @@ import React, { useEffect, useState } from "react";
 import DoctorSidebar from "@/components/doctor/DoctorSidebar";
 
 /**
- * Hydration-safe collapsible layout:
- * - Aside is always in the DOM (no conditional render) to avoid SSR/CSR structure drift.
- * - We collapse it with CSS width = 0, not by removing it.
- * - Floating "Show menu" button appears when collapsed.
- * - Listens to "aran:sidebar" + storage to sync with pages.
+ * Doctor layout with:
+ * - Top app bar
+ * - Left sidebar that can be collapsed via localStorage("aran:sidebarCollapsed")
+ * - NO auto-collapse here; pages can toggle explicitly via a button.
  */
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -34,50 +33,46 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   }, []);
 
   return (
-    <div
-      className="min-h-screen grid"
-      style={{
-        // Keep structure stable; just change column widths
-        gridTemplateColumns: `${collapsed ? "0px" : "280px"} minmax(0,1fr)`,
-      }}
-    >
-      <aside
-        className={[
-          "border-r bg-white overflow-hidden transition-all duration-200",
-          collapsed ? "w-0 p-0 border-0 pointer-events-none" : "w-[280px]",
-        ].join(" ")}
-        aria-hidden={collapsed}
+    <div className="min-h-screen flex flex-col">
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+              style={{ background: "var(--secondary)", color: "var(--on-secondary)" }}
+              aria-hidden
+            >
+              A
+            </span>
+            <div className="font-semibold">ARAN • Doctor</div>
+          </div>
+          <div className="text-xs text-gray-500">
+            {/* space reserved for theme/appearance toggles if you wire them later */}
+            v0.1
+          </div>
+        </div>
+      </header>
+
+      {/* Content Grid: Sidebar + Main */}
+      <div
+        className="flex-1 grid"
+        style={{
+          gridTemplateColumns: `${collapsed ? "0px" : "280px"} minmax(0,1fr)`,
+        }}
       >
-        <DoctorSidebar />
-      </aside>
-
-      <main className="min-w-0">{children}</main>
-
-      {/* Expand Sidebar button (visible only when collapsed) */}
-      {/* {collapsed && (
-        <button
-          onClick={() => {
-            localStorage.setItem("aran:sidebarCollapsed", "0");
-            window.dispatchEvent(new Event("aran:sidebar"));
-          }}
-          className="fixed left-3 top-20 z-50 inline-flex items-center gap-2 rounded-full border bg-white/90 backdrop-blur px-3 py-1.5 text-sm shadow hover:bg-white"
-          title="Show sidebar"
-          aria-label="Show sidebar"
+        <aside
+          className={[
+            "border-r bg-white overflow-hidden transition-all duration-200",
+            collapsed ? "w-0 p-0 border-0 pointer-events-none" : "w-[280px]",
+          ].join(" ")}
+          aria-hidden={collapsed}
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            aria-hidden
-            style={{ color: "var(--secondary)" }}
-          >
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
-          <span>Show menu</span>
-        </button>
-      )} */}
+          <DoctorSidebar />
+        </aside>
+
+        <main className="min-w-0">{children}</main>
+      </div>
     </div>
   );
 }
