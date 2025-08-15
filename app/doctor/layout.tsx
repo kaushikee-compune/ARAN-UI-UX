@@ -10,7 +10,11 @@ import DoctorSidebar from "@/components/doctor/DoctorSidebar";
  * - Left sidebar that can be collapsed via localStorage("aran:sidebarCollapsed")
  * - NO auto-collapse here; pages can toggle explicitly via a button.
  */
-export default function DoctorLayout({ children }: { children: React.ReactNode }) {
+export default function DoctorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -40,7 +44,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           <div className="flex items-center gap-2">
             <span
               className="inline-flex items-center justify-center w-6 h-6 rounded-md"
-              style={{ background: "var(--secondary)", color: "var(--on-secondary)" }}
+              style={{
+                background: "var(--secondary)",
+                color: "var(--on-secondary)",
+              }}
               aria-hidden
             >
               A
@@ -71,7 +78,14 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           <DoctorSidebar />
         </aside>
 
-        <main className="min-w-0">{children}</main>
+        <main
+          className={[
+            "min-w-0 transition-[padding] duration-200",
+            collapsed ? "pl-0" : "pl-4 md:pl-8 lg:pl-10",
+          ].join(" ")}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
