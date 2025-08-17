@@ -14,6 +14,21 @@
  * 3) Prescription (table with add/remove rows): Medicine, Frequency, Instruction, Duration, Dosage
  * 4) Investigations & Advice: Investigations, Note, Advice, Doctor Note, Follow-up (instructions + date)
  */
+// + ADD
+import {
+  ClinicalDetailsIcon,
+  LabRequestIcon,
+  ImmunizationIcon,
+  DischargeSummaryIcon,
+  ConsentRequestIcon,
+} from "@/components/icons/health";
+
+import {
+  RecordTypeIcon,
+  recordKindColor,
+  prettyRecordKind,
+  type RecordKindKey,
+} from "@/components/icons/health";
 
 import React, {
   useEffect,
@@ -201,13 +216,13 @@ const PAST_DAYS: DayRecords[] = [
 
 /* --------------------------- Tab Colors --------------------------- */
 const TAB_COLORS = [
-  { bg: "#E0F2FE", text: "#0C4A6E" }, // Sky
-  { bg: "#FDE68A", text: "#92400E" }, // Amber
-  { bg: "#FBCFE8", text: "#831843" }, // Pink
-  { bg: "#C7D2FE", text: "#3730A3" }, // Indigo
-  { bg: "#BBF7D0", text: "#065F46" }, // Green
-  { bg: "#FEF9C3", text: "#854D0E" }, // Yellow
-  { bg: "#E9D5FF", text: "#6B21A8" }, // Purple
+  { bg: "#84bec7", text: "#080808" }, // Sky
+  { bg: "#89b73c", text: "#080808" }, // Amber
+  { bg: "#d94f70", text: "#080808" }, // Pink
+  { bg: "#a4a0e7", text: "#080808" }, // Indigo
+  { bg: "#fa7c36", text: "#080808" }, // Green
+  { bg: "#ffd300", text: "#080808" }, // Yellow
+  { bg: "#df7c6c", text: "#080808" }, // Purple
 ];
 
 /* --------------------------- Rx presets --------------------------- */
@@ -263,10 +278,35 @@ function makeEmptyForm(): FormState {
     vitals: {},
     clinical: {},
     prescription: [
-      { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
+      {
+        medicine: "",
+        frequency: "",
+        instruction: "",
+        duration: "",
+        dosage: "",
+      },
     ],
     plan: {},
   };
+}
+/* -------------------- Global Icons -------------------- */
+// + ADD: map your HealthRecordType to the icon keys
+function toIconKind(t: HealthRecordType): RecordKindKey {
+  switch (t) {
+    case "Lab":
+      return "DiagnosticReport";
+    case "Immunization":
+      return "Immunization";
+    case "DischargeSummary":
+      return "DischargeSummary";
+    case "Prescription":
+      return "Prescription";
+    case "Vitals":
+      return "Vitals";
+    // add ClinicalDetails if you start saving it in past records
+    default:
+      return t as RecordKindKey;
+  }
 }
 
 /* -------------------- Past-records right-rail helpers -------------------- */
@@ -513,26 +553,40 @@ export default function PatientsPage() {
             active={active === "consultation"}
             onClick={() => setActive("consultation")}
             label="Consultation"
+            icon={ClinicalDetailsIcon}
+            iconClassName="text-slate-700" // 👈 color
           />
+
           <TopMenuButton
             active={active === "lab"}
             onClick={() => setActive("lab")}
             label="Lab Request"
+            icon={LabRequestIcon}
+            iconClassName="text-sky-600" // 👈 color
           />
+
           <TopMenuButton
             active={active === "immunization"}
             onClick={() => setActive("immunization")}
             label="Immunization Record"
+            icon={ImmunizationIcon}
+            iconClassName="text-emerald-600" // 👈 color
           />
+
           <TopMenuButton
             active={active === "discharge"}
             onClick={() => setActive("discharge")}
             label="Discharge Summary"
+            icon={DischargeSummaryIcon}
+            iconClassName="text-amber-600" // 👈 color
           />
+
           <TopMenuButton
             active={active === "consent"}
             onClick={() => setActive("consent")}
             label="Consent"
+            icon={ConsentRequestIcon}
+            iconClassName="text-fuchsia-600" // 👈 color
           />
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-gray-600">Write Record</span>
@@ -579,7 +633,9 @@ export default function PatientsPage() {
                       aria-pressed={activeTab}
                       className={[
                         "px-4 py-2 text-sm font-semibold border-2 shadow-sm rounded-tl-none rounded-tr-lg",
-                        activeTab ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+                        activeTab
+                          ? "ring-2 z-20"
+                          : "hover:brightness-[.98] z-0",
                       ].join(" ")}
                       style={{
                         background: col.bg,
@@ -610,7 +666,9 @@ export default function PatientsPage() {
                       title={`Records from ${d.dateLabel}`}
                       className={[
                         "px-4 py-2 text-sm font-semibold border-2 shadow-sm rounded-tl-none rounded-tr-lg",
-                        activeTab ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+                        activeTab
+                          ? "ring-2 z-20"
+                          : "hover:brightness-[.98] z-0",
                       ].join(" ")}
                       style={{
                         background: col.bg,
@@ -661,7 +719,12 @@ export default function PatientsPage() {
                   </div>
 
                   {/* Center: Logo */}
-                  <Image src="/whitelogo.png" alt="ARAN Logo" width={40} height={40} />
+                  <Image
+                    src="/whitelogo.png"
+                    alt="ARAN Logo"
+                    width={40}
+                    height={40}
+                  />
 
                   {/* Right: Patient Summary (placeholder) */}
                   <div className="flex items-start justify-end pl-3">
@@ -687,9 +750,10 @@ export default function PatientsPage() {
                     </div>
                   ) : selectedDay ? (
                     // NEW: two-column past records view (content | right rail)
-                    <div className="grid grid-cols-[1fr,180px] gap-0 relative">
+                    // AFTER
+                    <div className="relative flex gap-0">
                       {/* LEFT: record content */}
-                      <div className="pr-4">
+                      <div className="flex-1 min-w-0 pr-4">
                         <div className="text-sm mb-2 font-semibold opacity-80">
                           {selectedDay.dateLabel}
                           {(() => {
@@ -703,7 +767,9 @@ export default function PatientsPage() {
                             const kind = activeTypeByDay[selectedDay.dateISO];
                             const entry =
                               (kind &&
-                                selectedDay.items.find((i) => i.type === kind)) ||
+                                selectedDay.items.find(
+                                  (i) => i.type === kind
+                                )) ||
                               selectedDay.items[0];
                             return entry ? (
                               <RecordRenderer record={entry} />
@@ -715,7 +781,8 @@ export default function PatientsPage() {
                       </div>
 
                       {/* RIGHT: vertical rail of record types */}
-                      <aside className="border-l pl-3 relative overflow-hidden">
+                      <aside className="w-[180px] shrink-0 border-l pl-3 relative overflow-hidden">
+                        {/* subtle join */}
                         <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-l from-transparent to-black/5 pointer-events-none" />
                         {(() => {
                           const types = getDayTypes(selectedDay);
@@ -744,21 +811,37 @@ export default function PatientsPage() {
                                       className={[
                                         "w-full text-left text-sm transition-all",
                                         "px-2 py-1.5 rounded-md",
+                                        // ⬇ no opacity here (so icon color stays vivid)
                                         isActive
                                           ? "font-semibold shadow-sm bg-black/5"
-                                          : "font-medium opacity-80 hover:opacity-100 hover:bg-black/5",
+                                          : "font-medium hover:bg-black/5",
                                       ].join(" ")}
-                                      title={prettyType(t)}
+                                      title={prettyRecordKind(toIconKind(t))}
                                     >
                                       <span
                                         className={[
-                                          "inline-block -ml-2 pl-2 border-l-4",
+                                          "inline-flex items-center gap-2 -ml-2 pl-2 border-l-4",
                                           isActive
                                             ? "border-l-emerald-600"
                                             : "border-l-transparent",
                                         ].join(" ")}
                                       >
-                                        {prettyType(t)}
+                                        {/* Colored icon */}
+                                        <RecordTypeIcon
+                                          kind={toIconKind(t)}
+                                          className={[
+                                            "w-4 h-4 shrink-0",
+                                            recordKindColor(toIconKind(t)),
+                                          ].join(" ")}
+                                        />
+                                        {/* Apply subtle opacity to label only (not the icon) */}
+                                        <span
+                                          className={
+                                            isActive ? "" : "opacity-80"
+                                          }
+                                        >
+                                          {prettyRecordKind(toIconKind(t))}
+                                        </span>
                                       </span>
                                     </button>
                                   </li>
@@ -1185,28 +1268,33 @@ export default function PatientsPage() {
                       Select language
                     </div>
                     <ul className="max-h-48 overflow-auto text-sm">
-                      {["English", "Hindi", "Bengali", "Kannada", "Tamil", "Telugu"].map(
-                        (opt) => (
-                          <li key={opt}>
-                            <button
-                              className={[
-                                "w-full text-left px-2 py-1 rounded-md hover:bg-gray-100",
-                                opt === lang ? "font-medium" : "",
-                              ].join(" ")}
-                              onClick={() => {
-                                setLang(opt);
-                                setLangOpen(false);
-                                setToast({
-                                  type: "info",
-                                  message: `Language: ${opt}`,
-                                });
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          </li>
-                        )
-                      )}
+                      {[
+                        "English",
+                        "Hindi",
+                        "Bengali",
+                        "Kannada",
+                        "Tamil",
+                        "Telugu",
+                      ].map((opt) => (
+                        <li key={opt}>
+                          <button
+                            className={[
+                              "w-full text-left px-2 py-1 rounded-md hover:bg-gray-100",
+                              opt === lang ? "font-medium" : "",
+                            ].join(" ")}
+                            onClick={() => {
+                              setLang(opt);
+                              setLangOpen(false);
+                              setToast({
+                                type: "info",
+                                message: `Language: ${opt}`,
+                              });
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 )}
@@ -1329,7 +1417,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Vitals</h4>
           <div className="grid gap-2 text-sm md:grid-cols-3">
-            <KV label="Temperature" value={fmt(form.vitals.temperature, "°C")} />
+            <KV
+              label="Temperature"
+              value={fmt(form.vitals.temperature, "°C")}
+            />
             <KV label="Blood Pressure" value={form.vitals.bp} />
             <KV label="Weight" value={fmt(form.vitals.weight, "kg")} />
             <KV label="Height" value={fmt(form.vitals.height, "cm")} />
@@ -1350,7 +1441,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
               />
             )}
             {form.clinical.pastHistory && (
-              <KV label="Past Medical History" value={form.clinical.pastHistory} />
+              <KV
+                label="Past Medical History"
+                value={form.clinical.pastHistory}
+              />
             )}
             {form.clinical.familyHistory && (
               <KV label="Family History" value={form.clinical.familyHistory} />
@@ -1561,21 +1655,28 @@ function TopMenuButton({
   active,
   label,
   onClick,
+  icon: Icon,
+  iconClassName, // + NEW
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  iconClassName?: string; // + NEW
 }) {
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
       className={[
-        "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
+        "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition inline-flex items-center gap-2",
         active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
       ].join(" ")}
     >
-      {label}
+      {Icon ? (
+        <Icon className={["w-4 h-4", iconClassName || ""].join(" ")} />
+      ) : null}
+      <span>{label}</span>
     </button>
   );
 }
