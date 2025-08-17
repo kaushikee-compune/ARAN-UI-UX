@@ -61,7 +61,7 @@ export default function AppearancePanel() {
         Appearance
         <ChevronDownIcon
           className={[
-            "w-3.5 h-3.5 transition-transform",
+            "w-3 h-3 transition-transform",
             open ? "rotate-180" : "",
           ].join(" ")}
         />
@@ -78,7 +78,9 @@ export default function AppearancePanel() {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-sm font-semibold">Appearance</div>
-              <div className="text-xs text-gray-600">Pick a UI style and color palette</div>
+              <div className="text-xs text-gray-600">
+                Pick a UI style and color palette
+              </div>
             </div>
             <button
               type="button"
@@ -97,7 +99,9 @@ export default function AppearancePanel() {
             </section>
 
             <section className="space-y-2">
-              <h3 className="text-xs font-medium text-gray-700">Color Palette</h3>
+              <h3 className="text-xs font-medium text-gray-700">
+                Color Palette
+              </h3>
               <ThemeToggle />
             </section>
           </div>
@@ -110,7 +114,14 @@ export default function AppearancePanel() {
 /* ---------- Inline Icons ---------- */
 function PaletteIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    >
       <path d="M12 3a9 9 0 1 0 0 18h2a3 3 0 0 0 3-3 2 2 0 0 0-2-2h-1a2 2 0 1 1 0-4h.5A3.5 3.5 0 0 0 18 8.5 5.5 5.5 0 0 0 12.5 3H12Z" />
       <circle cx="7.5" cy="10.5" r="1" />
       <circle cx="9.5" cy="6.5" r="1" />
@@ -118,9 +129,19 @@ function PaletteIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+// replace the existing ChevronDownIcon with this
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="m6 9 6 6 6-6" />
     </svg>
   );

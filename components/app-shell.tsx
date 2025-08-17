@@ -8,7 +8,6 @@ import { usePathname } from "next/navigation";
 import AppearancePanel from "./appearance-panel";
 import type { PropsWithChildren } from "react";
 
-
 /** Icon type */
 type IconType = (props: SVGProps<SVGSVGElement>) => ReactElement;
 
@@ -151,10 +150,9 @@ function SectionHeader({
         {/* Plain chevron — no border/box */}
         <ChevronDownIcon
           className={[
-            "w-4 h-4 text-gray-600 transition-transform",
+            "w-3 h-3 text-gray-600 transition-transform",
             expanded ? "rotate-180" : "",
           ].join(" ")}
-          aria-hidden="true"
         />
       </button>
     );
@@ -372,19 +370,23 @@ export default function AppShell({ children }: AppShellProps): ReactElement {
 }
 
 /* ================= Icons ================= */
+// replace the existing ChevronDownIcon at the bottom with this
 function ChevronDownIcon(props: SVGProps<SVGSVGElement>): ReactElement {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.6}
+      strokeWidth={1.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       {...props}
     >
       <path d="m6 9 6 6 6-6" />
     </svg>
   );
 }
+
 function DotIcon(props: SVGProps<SVGSVGElement>): ReactElement {
   return (
     <svg viewBox="0 0 8 8" fill="currentColor" {...props}>
