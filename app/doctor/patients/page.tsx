@@ -781,7 +781,7 @@ export default function PatientsPage() {
                       </div>
 
                       {/* RIGHT: vertical rail of record types */}
-                      <aside className="w-[180px] shrink-0 border-l pl-3 relative overflow-hidden">
+                      <aside className="w-[180px] shrink-0  pl-3 relative overflow-visible">
                         {/* subtle join */}
                         <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-l from-transparent to-black/5 pointer-events-none" />
                         {(() => {
@@ -794,60 +794,61 @@ export default function PatientsPage() {
                             );
                           const activeKind =
                             activeTypeByDay[selectedDay.dateISO] ?? types[0];
+                          // BEFORE
+                          // AFTER — vertical tabs (semantics + look)
                           return (
-                            <ul className="space-y-1">
+                            <div
+                              role="tablist"
+                              aria-orientation="vertical"
+                              className="space-y-1"
+                            >
                               {types.map((t) => {
                                 const isActive = t === activeKind;
                                 return (
-                                  <li key={t}>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setActiveTypeByDay((prev) => ({
-                                          ...prev,
-                                          [selectedDay.dateISO]: t,
-                                        }))
-                                      }
-                                      className={[
-                                        "w-full text-left text-sm transition-all",
-                                        "px-2 py-1.5 rounded-md",
-                                        // ⬇ no opacity here (so icon color stays vivid)
-                                        isActive
-                                          ? "font-semibold shadow-sm bg-black/5"
-                                          : "font-medium hover:bg-black/5",
-                                      ].join(" ")}
-                                      title={prettyRecordKind(toIconKind(t))}
-                                    >
-                                      <span
+                                  <button
+                                    key={t}
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveTypeByDay((prev) => ({
+                                        ...prev,
+                                        [selectedDay.dateISO]: t,
+                                      }))
+                                    }
+                                    className={[
+                                      "w-full text-left text-sm transition-all transform-gpu",
+                                      // tab shape
+                                      "px-3 py-2 rounded-l-lg rounded-r-md",
+                                      // active = “popped” tab overlapping the pane edge
+                                      isActive
+                                        ? "bg-white  -translate-x-2 md:-translate-x-3 border-gray-300 relative z-10"
+                                        : "bg-transparent hover:bg-gray-50 ",
+                                    ].join(" ")}
+                                    title={prettyRecordKind(toIconKind(t))}
+                                  >
+                                    <span className="inline-flex items-center gap-2">
+                                      <RecordTypeIcon
+                                        kind={toIconKind(t)}
                                         className={[
-                                          "inline-flex items-center gap-2 -ml-2 pl-2 border-l-4",
-                                          isActive
-                                            ? "border-l-emerald-600"
-                                            : "border-l-transparent",
+                                          "w-4 h-4 shrink-0",
+                                          recordKindColor(toIconKind(t)),
                                         ].join(" ")}
+                                      />
+                                      <span
+                                        className={
+                                          isActive
+                                            ? "font-semibold"
+                                            : "opacity-80"
+                                        }
                                       >
-                                        {/* Colored icon */}
-                                        <RecordTypeIcon
-                                          kind={toIconKind(t)}
-                                          className={[
-                                            "w-4 h-4 shrink-0",
-                                            recordKindColor(toIconKind(t)),
-                                          ].join(" ")}
-                                        />
-                                        {/* Apply subtle opacity to label only (not the icon) */}
-                                        <span
-                                          className={
-                                            isActive ? "" : "opacity-80"
-                                          }
-                                        >
-                                          {prettyRecordKind(toIconKind(t))}
-                                        </span>
+                                        {prettyRecordKind(toIconKind(t))}
                                       </span>
-                                    </button>
-                                  </li>
+                                    </span>
+                                  </button>
                                 );
                               })}
-                            </ul>
+                            </div>
                           );
                         })()}
                       </aside>
