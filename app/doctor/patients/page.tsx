@@ -84,6 +84,7 @@ type FormState = {
 };
 
 /* --------------------------- Mock Data (past tabs) --------------------------- */
+
 const PAST_DAYS: DayRecords[] = [
   {
     dateLabel: "02 Feb 2025",
@@ -210,15 +211,20 @@ const RECORD_TYPE_ORDER = [
 type RecordType = (typeof RECORD_TYPE_ORDER)[number];
 
 // Normalize & sort the record types that exist for a given day
-function getDayTypes(day: { records: Array<{ kind: string }> }): RecordType[] {
-  const unique = Array.from(new Set(day.records.map((r) => r.kind)));
-  const filtered = unique.filter((k): k is RecordType =>
-    (RECORD_TYPE_ORDER as readonly string[]).includes(k)
-  );
-  return [...filtered].sort(
-    (a, b) => RECORD_TYPE_ORDER.indexOf(a) - RECORD_TYPE_ORDER.indexOf(b)
-  );
-}
+// function getDayTypes(day: { records: Array<{ kind: string }> }): RecordType[] {
+//   const unique = Array.from(new Set(day.records.map((r) => r.kind)));
+//   const filtered = unique.filter((k): k is RecordType =>
+//     (RECORD_TYPE_ORDER as readonly string[]).includes(k)
+//   );
+//   return [...filtered].sort(
+//     (a, b) => RECORD_TYPE_ORDER.indexOf(a) - RECORD_TYPE_ORDER.indexOf(b)
+//   );
+// } Kaushikee Commented 
+// Given a day, list its record types in a fixed order
+const getDayTypes = useCallback((day: DayRecords): HealthRecordType[] => {
+  const uniq = Array.from(new Set(day.items.map(i => i.type)));
+  return uniq.sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
+}, []);
 
 /* --------------------------- Tab Colors --------------------------- */
 const TAB_COLORS = [
@@ -230,6 +236,56 @@ const TAB_COLORS = [
   { bg: "#FEF9C3", text: "#854D0E" }, // Yellow
   { bg: "#E9D5FF", text: "#6B21A8" }, // Purple
 ];
+/* -------------------- Past-records right-rail helpers -------------------- */
+const TYPE_ORDER: HealthRecordType[] = [
+  "Prescription",
+  "Lab",              // shown as "Diagnostic Report"
+  "Immunization",
+  "Vitals",
+  "DischargeSummary",
+];
+
+function prettyType(t: HealthRecordType) {
+  return t === "Lab"
+    ? "Diagnostic Report"
+    : t === "DischargeSummary"
+    ? "Discharge Summary"
+    : t;
+}
+
+
+/* --------------------------- Empty form factory --------------------------- */
+function makeEmptyForm(): FormState {
+  return {
+    vitals: {},
+    clinical: {},
+    prescription: [
+      { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
+    ],
+    plan: {},
+  };
+}
+
+
+/* --------------------------- Helpers: ids & dates --------------------------- */
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+function todayYMD() {
+  // local date YYYY-MM-DD
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatDateLabel(d: Date) {
+  // e.g. "17 Aug 2025"
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mon = d.toLocaleString("en-US", { month: "short" }); // Aug, Sep...
+  const yyyy = d.getFullYear();
+  return `${dd} ${mon} ${yyyy}`;
+}
 
 /* --------------------------- Rx presets --------------------------- */
 const RX_FREQUENCY_OPTIONS = [
@@ -319,10 +375,16 @@ export default function PatientsPage() {
     []
   );
 
+  
+
   // Tabs (0 = New Record preview, 1.. = past days)
+  // Was using the constant PAST_DAYS directly.
+  // ✅ Add state so we can push today's records on Save:
+  const [pastDays, setPastDays] = useState<DayRecords[]>(PAST_DAYS);
+
   const [tabIndex, setTabIndex] = useState(0);
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
-  useEffect(() => setSelectedItemIdx(0), [tabIndex]);
+  useEffect(() => setSelectedItemIdx(0), [tabIndex]);  
 
   // Toasts
   const [toast, setToast] = useState<{
@@ -330,10 +392,94 @@ export default function PatientsPage() {
     message: string;
   } | null>(null);
   const show = (t: typeof toast) => setToast(t);
-  const onSave = useCallback(
-    () => show({ type: "info", message: "Draft saved." }),
-    []
+  // Replace your existing onSave with the real save
+   // ✅ REPLACE any previous onSave with this simple function version
+const onSave = () => {
+  // 1) Build record entries from the form
+  const newEntries: RecordEntry[] = [];
+
+  const rxRows = form.prescription.filter(
+    (r) => r.medicine || r.frequency || r.instruction || r.duration || r.dosage
   );
+  if (rxRows.length > 0) {
+    newEntries.push({
+      id: uid(),
+      type: "Prescription",
+      hospital: "Sushila Mathrutva Clinic",
+      doctor: {
+        name: "Dr. A. Banerjee",
+        specialty: "Internal Medicine",
+        regNo: "KMC/2011/12345",
+      },
+      data: {
+        medications: rxRows.map((r) => ({
+          name: r.medicine || "-",
+          // show something in the "Dose" column (you can switch to r.dosage if you prefer)
+          dose: r.frequency || r.dosage || "-",
+          duration: r.duration || "-",
+          notes: r.instruction || "-",
+        })),
+        advice: form.plan.advice || undefined,
+      },
+    });
+  }
+
+  const hasVitals =
+    !!form.vitals.bp ||
+    !!form.vitals.weight ||
+    !!form.vitals.height ||
+    !!form.vitals.temperature ||
+    !!form.vitals.bmi;
+
+  if (hasVitals) {
+    newEntries.push({
+      id: uid(),
+      type: "Vitals",
+      hospital: "Sushila Mathrutva Clinic",
+      doctor: {
+        name: "Dr. A. Banerjee",
+        specialty: "Internal Medicine",
+        regNo: "KMC/2011/12345",
+      },
+      data: {
+        height: form.vitals.height ? `${form.vitals.height} cm` : undefined,
+        weight: form.vitals.weight ? `${form.vitals.weight} kg` : undefined,
+        bp: form.vitals.bp || undefined,
+      },
+    });
+  }
+
+  if (newEntries.length === 0) {
+    setToast({ type: "error", message: "Nothing to save. Add Vitals or Prescription." });
+    return;
+  }
+
+  // 2) Upsert today's day bucket
+  const now = new Date();
+  const iso = todayYMD();           // e.g., "2025-08-17"
+  const label = formatDateLabel(now); // e.g., "17 Aug 2025"
+
+  setPastDays((prev) => {
+    const idx = prev.findIndex((d) => d.dateISO === iso);
+    if (idx >= 0) {
+      const copy = prev.slice();
+      copy[idx] = { ...copy[idx], items: [...newEntries, ...copy[idx].items] };
+      return copy;
+    }
+    return [{ dateLabel: label, dateISO: iso, items: newEntries }, ...prev];
+  });
+
+  // 3) Show the new tab and first record
+  setTabIndex(1);
+  setSelectedItemIdx(0);
+  setForm(makeEmptyForm());
+
+
+  // 4) Toast
+  setToast({ type: "success", message: "Record saved." });
+};
+
+// OnSubmit callback
   const onSubmit = useCallback(
     () => show({ type: "success", message: "Record submitted." }),
     []
@@ -343,10 +489,8 @@ export default function PatientsPage() {
   // ✅ ADD: put with other useState hooks
   // Track the selected record type per day (keyed by day.id)
 
-  const [activeTypeByDay, setActiveTypeByDay] = useState<
-    Record<string, string>
-  >({});
-  const selectedDay = tabIndex > 0 ? PAST_DAYS[tabIndex - 1] : undefined;
+  const [activeTypeByDay, setActiveTypeByDay] = useState<Record<string, HealthRecordType>>({});
+  const selectedDay = tabIndex > 0 ? pastDays[tabIndex - 1] : undefined;
   const currentRecord = selectedDay?.items[selectedItemIdx];
   const canGoLeft = !!selectedDay && selectedItemIdx > 0;
   const canGoRight =
@@ -356,22 +500,25 @@ export default function PatientsPage() {
 
   const colorFor = (i: number) => TAB_COLORS[i % TAB_COLORS.length];
 
+  
+
   // ---------- NEW: Form toggle + state ----------
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<FormState>({
-    vitals: {},
-    clinical: {},
-    prescription: [
-      {
-        medicine: "",
-        frequency: "",
-        instruction: "",
-        duration: "",
-        dosage: "",
-      },
-    ],
-    plan: {},
-  });
+  // const [form, setForm] = useState<FormState>({
+  //   vitals: {},
+  //   clinical: {},
+  //   prescription: [
+  //     {
+  //       medicine: "",
+  //       frequency: "",
+  //       instruction: "",
+  //       duration: "",
+  //       dosage: "",
+  //     },
+  //   ],
+  //   plan: {},
+  // });
+  const [form, setForm] = useState<FormState>(() => makeEmptyForm());
 
   // Open the split view & jump to "New Record" preview when user presses Form tool
   const handleToggleForm = useCallback(() => {
@@ -497,7 +644,7 @@ export default function PatientsPage() {
                 })()}
 
                 {/* Date tabs */}
-                {PAST_DAYS.map((d, idx) => {
+                {pastDays.map((d, idx) => {
                   const i = idx + 1;
                   const activeTab = tabIndex === i;
                   const col = colorFor(i);
