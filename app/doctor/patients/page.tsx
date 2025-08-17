@@ -38,6 +38,7 @@ import React, {
   useRef,
 } from "react";
 import Image from "next/image";
+import AranLogo from "@/components/image/aranlogo.png";
 
 /* --------------------------- Types --------------------------- */
 type TopMenuKey =
@@ -362,14 +363,23 @@ export default function PatientsPage() {
       );
     } catch {}
   }, []);
-  const toggleSidebar = () => {
-    const next = !sidebarCollapsed;
-    setSidebarCollapsed(next);
+  const toggleSidebar = useCallback(
+    (next?: boolean) => {
+      const resolved = typeof next === "boolean" ? next : !sidebarCollapsed;
+      setSidebarCollapsed(resolved);
+      try {
+        localStorage.setItem("aran:sidebarCollapsed", resolved ? "1" : "0");
+        // window.dispatchEvent(new Event("aran:sidebar"));
+      } catch {}
+    },
+    [sidebarCollapsed]
+  );
+  useEffect(() => {
     try {
-      localStorage.setItem("aran:sidebarCollapsed", next ? "1" : "0");
+      // fire after commit so DoctorLayout updates safely
       window.dispatchEvent(new Event("aran:sidebar"));
     } catch {}
-  };
+  }, [sidebarCollapsed]);
 
   // Patient snapshot (placeholder)
   const patient = useMemo(
@@ -403,10 +413,15 @@ export default function PatientsPage() {
   const handleToggleForm = useCallback(() => {
     setFormOpen((prev) => {
       const next = !prev;
-      if (next) setTabIndex(0); // ensure paper shows the live preview
+      if (next) {
+        setTabIndex(0); // show live preview on open
+        toggleSidebar(true); // collapse sidebar when opening form
+      } else {
+        toggleSidebar(false); // expand sidebar when closing form
+      }
       return next;
     });
-  }, []);
+  }, [toggleSidebar]);
 
   // Auto-calc BMI whenever height(cm) & weight(kg) are entered
   useEffect(() => {
@@ -588,10 +603,6 @@ export default function PatientsPage() {
             icon={ConsentRequestIcon}
             iconClassName="text-fuchsia-600" // 👈 color
           />
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-gray-600">Write Record</span>
-            <Switch checked={sidebarCollapsed} onChange={toggleSidebar} />
-          </div>
         </div>
       </div>
 
@@ -720,7 +731,7 @@ export default function PatientsPage() {
 
                   {/* Center: Logo */}
                   <Image
-                    src="/whitelogo.png"
+                    src={AranLogo}
                     alt="ARAN Logo"
                     width={40}
                     height={40}
