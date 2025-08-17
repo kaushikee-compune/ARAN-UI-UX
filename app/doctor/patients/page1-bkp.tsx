@@ -208,82 +208,12 @@ const TAB_COLORS = [
   { bg: "#BBF7D0", text: "#065F46" }, // Green
   { bg: "#FEF9C3", text: "#854D0E" }, // Yellow
   { bg: "#E9D5FF", text: "#6B21A8" }, // Purple
+  //  { bg: "#347433", text: "#FFFFFF" }, // green
+  // { bg: "#FFC107", text: "#6B3D00" }, // amber (dark text for contrast)
+  // { bg: "#FF6F3C", text: "#FFFFFF" }, // orange
+  // { bg: "#B22222", text: "#FFFFFF" }, // firebrick
+  // { bg: "#4682A9", text: "#FFFFFF" }, // steel blue
 ];
-
-/* --------------------------- Rx presets --------------------------- */
-const RX_FREQUENCY_OPTIONS = [
-  "1-1-1",
-  "1-1-0",
-  "1-0-1",
-  "0-1-1",
-  "1-0-0",
-  "0-1-0",
-  "0-0-1",
-  "OD (once daily)",
-  "BID (twice daily)",
-  "TID (thrice daily)",
-  "QID (4 times)",
-  "HS (at bedtime)",
-  "STAT",
-  "SOS",
-];
-
-const RX_INSTRUCTION_OPTIONS = [
-  "After food",
-  "Before food",
-  "With food",
-  "Empty stomach",
-  "With water",
-  "With milk",
-  "Morning",
-  "Night",
-  "As directed",
-];
-
-/* --------------------------- Helpers: ids & dates --------------------------- */
-function uid() {
-  return Math.random().toString(36).slice(2, 10);
-}
-function todayYMD() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-function formatDateLabel(d: Date) {
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mon = d.toLocaleString("en-US", { month: "short" });
-  const yyyy = d.getFullYear();
-  return `${dd} ${mon} ${yyyy}`;
-}
-/* --------------------------- Empty form factory --------------------------- */
-function makeEmptyForm(): FormState {
-  return {
-    vitals: {},
-    clinical: {},
-    prescription: [
-      { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
-    ],
-    plan: {},
-  };
-}
-
-/* -------------------- Past-records right-rail helpers -------------------- */
-const TYPE_ORDER: HealthRecordType[] = [
-  "Prescription",
-  "Lab", // shown as "Diagnostic Report"
-  "Immunization",
-  "Vitals",
-  "DischargeSummary",
-];
-function prettyType(t: HealthRecordType) {
-  return t === "Lab"
-    ? "Diagnostic Report"
-    : t === "DischargeSummary"
-    ? "Discharge Summary"
-    : t;
-}
 
 /* --------------------------- Page ---------------------------- */
 export default function PatientsPage() {
@@ -345,19 +275,51 @@ export default function PatientsPage() {
 
   // Tabs (0 = New Record preview, 1.. = past days)
   const [tabIndex, setTabIndex] = useState(0);
+  const [selectedItemIdx, setSelectedItemIdx] = useState(0);
+  useEffect(() => setSelectedItemIdx(0), [tabIndex]);
 
   // Toasts
   const [toast, setToast] = useState<{
     type: "success" | "info" | "error";
     message: string;
   } | null>(null);
+  const show = (t: typeof toast) => setToast(t);
+  const onSave = useCallback(
+    () => show({ type: "info", message: "Draft saved." }),
+    []
+  );
+  const onSubmit = useCallback(
+    () => show({ type: "success", message: "Record submitted." }),
+    []
+  );
 
-  // ---------- NEW: stateful past days (so Save can add today's tab) ----------
-  const [pastDays, setPastDays] = useState<DayRecords[]>(PAST_DAYS);
+  // Past record selection
+  const selectedDay = tabIndex > 0 ? PAST_DAYS[tabIndex - 1] : undefined;
+  const currentRecord = selectedDay?.items[selectedItemIdx];
+  const canGoLeft = !!selectedDay && selectedItemIdx > 0;
+  const canGoRight =
+    !!selectedDay && selectedItemIdx < selectedDay.items.length - 1;
+  const goLeft = () => canGoLeft && setSelectedItemIdx((i) => i - 1);
+  const goRight = () => canGoRight && setSelectedItemIdx((i) => i + 1);
+
+  const colorFor = (i: number) => TAB_COLORS[i % TAB_COLORS.length];
 
   // ---------- NEW: Form toggle + state ----------
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(() => makeEmptyForm());
+  const [form, setForm] = useState<FormState>({
+    vitals: {},
+    clinical: {},
+    prescription: [
+      {
+        medicine: "",
+        frequency: "",
+        instruction: "",
+        duration: "",
+        dosage: "",
+      },
+    ],
+    plan: {},
+  });
 
   // Open the split view & jump to "New Record" preview when user presses Form tool
   const handleToggleForm = useCallback(() => {
@@ -385,124 +347,6 @@ export default function PatientsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.vitals.height, form.vitals.weight]);
-
-  // ---------- NEW: right-rail selection per day ----------
-  const [activeTypeByDay, setActiveTypeByDay] = useState<
-    Record<string, HealthRecordType>
-  >({});
-  const getDayTypes = useCallback((day: DayRecords): HealthRecordType[] => {
-    const uniq = Array.from(new Set(day.items.map((i) => i.type)));
-    return uniq.sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
-  }, []);
-  const selectedDay = tabIndex > 0 ? pastDays[tabIndex - 1] : undefined;
-  useEffect(() => {
-    if (!selectedDay) return;
-    setActiveTypeByDay((prev) => {
-      if (prev[selectedDay.dateISO]) return prev;
-      const first = getDayTypes(selectedDay)[0];
-      return first ? { ...prev, [selectedDay.dateISO]: first } : prev;
-    });
-  }, [selectedDay, getDayTypes]);
-
-  // ---------- NEW: onSave actually creates records + today's tab, then clears form ----------
-  const onSave = () => {
-    // 1) Build record entries from the form
-    const newEntries: RecordEntry[] = [];
-
-    // Prescription rows with any data
-    const rxRows = form.prescription.filter(
-      (r) =>
-        r.medicine || r.frequency || r.instruction || r.duration || r.dosage
-    );
-    if (rxRows.length > 0) {
-      newEntries.push({
-        id: uid(),
-        type: "Prescription",
-        hospital: "Sushila Mathrutva Clinic",
-        doctor: {
-          name: "Dr. A. Banerjee",
-          specialty: "Internal Medicine",
-          regNo: "KMC/2011/12345",
-        },
-        data: {
-          medications: rxRows.map((r) => ({
-            name: r.medicine || "-",
-            dose: r.frequency || r.dosage || "-",
-            duration: r.duration || "-",
-            notes: r.instruction || "-",
-          })),
-          advice: form.plan.advice || undefined,
-        },
-      });
-    }
-
-    // Vitals (if any)
-    const hasVitals =
-      !!form.vitals.bp ||
-      !!form.vitals.weight ||
-      !!form.vitals.height ||
-      !!form.vitals.temperature ||
-      !!form.vitals.bmi;
-    if (hasVitals) {
-      newEntries.push({
-        id: uid(),
-        type: "Vitals",
-        hospital: "Sushila Mathrutva Clinic",
-        doctor: {
-          name: "Dr. A. Banerjee",
-          specialty: "Internal Medicine",
-          regNo: "KMC/2011/12345",
-        },
-        data: {
-          height: form.vitals.height ? `${form.vitals.height} cm` : undefined,
-          weight: form.vitals.weight ? `${form.vitals.weight} kg` : undefined,
-          bp: form.vitals.bp || undefined,
-        },
-      });
-    }
-
-    if (newEntries.length === 0) {
-      setToast({
-        type: "error",
-        message: "Nothing to save. Add Vitals or Prescription.",
-      });
-      return;
-    }
-
-    // 2) Upsert today's day
-    const now = new Date();
-    const iso = todayYMD();
-    const label = formatDateLabel(now);
-
-    setPastDays((prev) => {
-      const idx = prev.findIndex((d) => d.dateISO === iso);
-      if (idx >= 0) {
-        const copy = prev.slice();
-        copy[idx] = {
-          ...copy[idx],
-          items: [...newEntries, ...copy[idx].items],
-        };
-        return copy;
-      }
-      return [{ dateLabel: label, dateISO: iso, items: newEntries }, ...prev];
-    });
-
-    // 3) Jump to today's tab and ensure a selection exists
-    setTabIndex(1);
-
-    // 4) Clear the form (blank New Record panel)
-    setForm(makeEmptyForm());
-
-    // 5) Toast
-    setToast({ type: "success", message: "Record saved." });
-  };
-
-  const onSubmit = useCallback(
-    () => setToast({ type: "success", message: "Record submitted." }),
-    []
-  );
-
-  const colorFor = (i: number) => TAB_COLORS[i % TAB_COLORS.length];
 
   return (
     <div className="space-y-3">
@@ -553,17 +397,18 @@ export default function PatientsPage() {
               : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_64px]")
           }
         >
-          {/* LEFT: Paper panel */}
+          {/* LEFT: Paper panel (health record canvas, now in its own column) */}
           <div className="min-w-0">
             <div
               className="relative mx-auto bg-white border rounded-xl shadow-sm overflow-visible"
               style={{
+                // Let grid define the width; we only set height and paper look
                 minHeight: 700,
                 background:
                   "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(252,252,252,1) 100%)",
               }}
             >
-              {/* Tabs Rail */}
+              {/* Tabs Rail (behind) */}
               <div
                 className="absolute left-4 -top-5 flex flex-wrap gap-2 z-0"
                 aria-label="Health record tabs"
@@ -579,7 +424,9 @@ export default function PatientsPage() {
                       aria-pressed={activeTab}
                       className={[
                         "px-4 py-2 text-sm font-semibold border-2 shadow-sm rounded-tl-none rounded-tr-lg",
-                        activeTab ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+                        activeTab
+                          ? "ring-2 z-20"
+                          : "hover:brightness-[.98] z-0",
                       ].join(" ")}
                       style={{
                         background: col.bg,
@@ -598,7 +445,7 @@ export default function PatientsPage() {
                 })()}
 
                 {/* Date tabs */}
-                {pastDays.map((d, idx) => {
+                {PAST_DAYS.map((d, idx) => {
                   const i = idx + 1;
                   const activeTab = tabIndex === i;
                   const col = colorFor(i);
@@ -610,7 +457,9 @@ export default function PatientsPage() {
                       title={`Records from ${d.dateLabel}`}
                       className={[
                         "px-4 py-2 text-sm font-semibold border-2 shadow-sm rounded-tl-none rounded-tr-lg",
-                        activeTab ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+                        activeTab
+                          ? "ring-2 z-20"
+                          : "hover:brightness-[.98] z-0",
                       ].join(" ")}
                       style={{
                         background: col.bg,
@@ -660,8 +509,13 @@ export default function PatientsPage() {
                     </div>
                   </div>
 
-                  {/* Center: Logo */}
-                  <Image src="/whitelogo.png" alt="ARAN Logo" width={40} height={40} />
+                  {/* Center: Logo (use your public asset) */}
+                  <Image
+                    src="/whitelogo.png"
+                    alt="ARAN Logo"
+                    width={40}
+                    height={40}
+                  />
 
                   {/* Right: Patient Summary (placeholder) */}
                   <div className="flex items-start justify-end pl-3">
@@ -685,94 +539,80 @@ export default function PatientsPage() {
                     <div className="ui-card p-4 text-sm text-gray-800 space-y-6">
                       <NewRecordPreview form={form} />
                     </div>
-                  ) : selectedDay ? (
-                    // NEW: two-column past records view (content | right rail)
-                    <div className="grid grid-cols-[1fr,180px] gap-0 relative">
-                      {/* LEFT: record content */}
-                      <div className="pr-4">
-                        <div className="text-sm mb-2 font-semibold opacity-80">
-                          {selectedDay.dateLabel}
-                          {(() => {
-                            const kind = activeTypeByDay[selectedDay.dateISO];
-                            return kind ? ` • ${prettyType(kind)}` : "";
-                          })()}
-                        </div>
-
-                        <div className="ui-card p-4">
-                          {(() => {
-                            const kind = activeTypeByDay[selectedDay.dateISO];
-                            const entry =
-                              (kind &&
-                                selectedDay.items.find((i) => i.type === kind)) ||
-                              selectedDay.items[0];
-                            return entry ? (
-                              <RecordRenderer record={entry} />
-                            ) : (
-                              <div className="text-sm text-gray-500">—</div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* RIGHT: vertical rail of record types */}
-                      <aside className="border-l pl-3 relative overflow-hidden">
-                        <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-l from-transparent to-black/5 pointer-events-none" />
-                        {(() => {
-                          const types = getDayTypes(selectedDay);
-                          if (types.length === 0)
-                            return (
-                              <div className="text-xs text-gray-500 italic">
-                                No records
-                              </div>
-                            );
-                          const activeKind =
-                            activeTypeByDay[selectedDay.dateISO] ?? types[0];
-                          return (
-                            <ul className="space-y-1">
-                              {types.map((t) => {
-                                const isActive = t === activeKind;
-                                return (
-                                  <li key={t}>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setActiveTypeByDay((prev) => ({
-                                          ...prev,
-                                          [selectedDay.dateISO]: t,
-                                        }))
-                                      }
-                                      className={[
-                                        "w-full text-left text-sm transition-all",
-                                        "px-2 py-1.5 rounded-md",
-                                        isActive
-                                          ? "font-semibold shadow-sm bg-black/5"
-                                          : "font-medium opacity-80 hover:opacity-100 hover:bg-black/5",
-                                      ].join(" ")}
-                                      title={prettyType(t)}
-                                    >
-                                      <span
-                                        className={[
-                                          "inline-block -ml-2 pl-2 border-l-4",
-                                          isActive
-                                            ? "border-l-emerald-600"
-                                            : "border-l-transparent",
-                                        ].join(" ")}
-                                      >
-                                        {prettyType(t)}
-                                      </span>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          );
-                        })()}
-                      </aside>
-                    </div>
                   ) : (
-                    <div className="text-sm text-gray-500">
-                      No records found for this day.
-                    </div>
+                    <>
+                      {currentRecord ? (
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="text-sm">
+                            <span className="font-semibold">
+                              {currentRecord.type}
+                            </span>
+                            <span className="text-gray-500">
+                              {" "}
+                              • {currentRecord.hospital}
+                            </span>
+                            <span className="text-gray-500">
+                              {" "}
+                              • {currentRecord.doctor.name}
+                              {currentRecord.doctor.specialty
+                                ? ` (${currentRecord.doctor.specialty})`
+                                : ""}
+                              {currentRecord.doctor.regNo
+                                ? ` • Reg: ${currentRecord.doctor.regNo}`
+                                : ""}
+                            </span>
+                          </div>
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={goLeft}
+                              disabled={!canGoLeft}
+                              className={[
+                                "inline-flex items-center justify-center w-8 h-8 rounded-md border",
+                                canGoLeft
+                                  ? "bg-white hover:bg-gray-50"
+                                  : "bg-gray-50 opacity-50 cursor-not-allowed",
+                              ].join(" ")}
+                              aria-label="Previous record"
+                              title="Previous record"
+                            >
+                              <ChevronLeftIcon className="w-4 h-4" />
+                            </button>
+                            <div className="text-xs text-gray-500">
+                              {selectedItemIdx + 1} /{" "}
+                              {selectedDay?.items.length || 0}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={goRight}
+                              disabled={!canGoRight}
+                              className={[
+                                "inline-flex items-center justify-center w-8 h-8 rounded-md border",
+                                canGoRight
+                                  ? "bg-white hover:bg-gray-50"
+                                  : "bg-gray-50 opacity-50 cursor-not-allowed",
+                              ].join(" ")}
+                              aria-label="Next record"
+                              title="Next record"
+                            >
+                              <ChevronRightIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">
+                          No records found for this day.
+                        </div>
+                      )}
+
+                      <div className="mt-3 ui-card p-4">
+                        {currentRecord ? (
+                          <RecordRenderer record={currentRecord} />
+                        ) : (
+                          <div className="text-sm text-gray-500">—</div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -956,18 +796,16 @@ export default function PatientsPage() {
                               <Td>
                                 <input
                                   className="ui-input w-full"
-                                  list="rx-frequency-options"
                                   value={row.frequency}
                                   onChange={(e) =>
                                     updateRx(idx, { frequency: e.target.value })
                                   }
-                                  placeholder="1-0-1 or BID/TID"
+                                  placeholder="1-0-1"
                                 />
                               </Td>
                               <Td>
                                 <input
                                   className="ui-input w-full"
-                                  list="rx-instruction-options"
                                   value={row.instruction}
                                   onChange={(e) =>
                                     updateRx(idx, {
@@ -1019,18 +857,6 @@ export default function PatientsPage() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Shared suggestion lists */}
-                    <datalist id="rx-frequency-options">
-                      {RX_FREQUENCY_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt} />
-                      ))}
-                    </datalist>
-                    <datalist id="rx-instruction-options">
-                      {RX_INSTRUCTION_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt} />
-                      ))}
-                    </datalist>
                   </section>
 
                   {/* 4) Investigations & Advice */}
@@ -1114,7 +940,7 @@ export default function PatientsPage() {
                     </div>
                   </section>
 
-                  {/* Footer controls */}
+                  {/* Footer controls (optional, main Save/Submit still in right dock) */}
                   <div className="pt-2 flex items-center gap-2">
                     <button
                       className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
@@ -1166,7 +992,8 @@ export default function PatientsPage() {
 
               <div className="my-1 h-px w-8 bg-gray-200" />
 
-              {/* Action icons */}
+              {/* Action icons (tiny) */}
+              {/* Language (icon → floating selection window) */}
               <div className="relative" ref={langRef}>
                 <IconBtn
                   label="Language"
@@ -1185,41 +1012,49 @@ export default function PatientsPage() {
                       Select language
                     </div>
                     <ul className="max-h-48 overflow-auto text-sm">
-                      {["English", "Hindi", "Bengali", "Kannada", "Tamil", "Telugu"].map(
-                        (opt) => (
-                          <li key={opt}>
-                            <button
-                              className={[
-                                "w-full text-left px-2 py-1 rounded-md hover:bg-gray-100",
-                                opt === lang ? "font-medium" : "",
-                              ].join(" ")}
-                              onClick={() => {
-                                setLang(opt);
-                                setLangOpen(false);
-                                setToast({
-                                  type: "info",
-                                  message: `Language: ${opt}`,
-                                });
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          </li>
-                        )
-                      )}
+                      {[
+                        "English",
+                        "Hindi",
+                        "Bengali",
+                        "Kannada",
+                        "Tamil",
+                        "Telugu",
+                      ].map((opt) => (
+                        <li key={opt}>
+                          <button
+                            className={[
+                              "w-full text-left px-2 py-1 rounded-md hover:bg-gray-100",
+                              opt === lang ? "font-medium" : "",
+                            ].join(" ")}
+                            onClick={() => {
+                              setLang(opt);
+                              setLangOpen(false);
+                              show({
+                                type: "info",
+                                message: `Language: ${opt}`,
+                              });
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 )}
               </div>
 
+              {/* Save (tiny, blue) */}
               <IconBtn label="Save" tone="info" onClick={onSave}>
                 <SaveIcon className="w-4 h-4" />
               </IconBtn>
 
+              {/* Submit (tiny, green) */}
               <IconBtn label="Submit" tone="success" onClick={onSubmit}>
                 <TickIcon className="w-4 h-4" />
               </IconBtn>
 
+              {/* Print (icon → small panel) */}
               <div className="relative" ref={printRef}>
                 <IconBtn
                   label="Print"
@@ -1233,7 +1068,7 @@ export default function PatientsPage() {
                 </IconBtn>
 
                 {printOpen && (
-                  <div className="absolute left_full top-0 ml-2 z-50 w-48 border rounded-lg bg-white shadow-md p-2">
+                  <div className="absolute left-full top-0 ml-2 z-50 w-48 border rounded-lg bg-white shadow-md p-2">
                     <div className="px-1 pb-1 text-[11px] text-gray-600">
                       Print options
                     </div>
@@ -1329,7 +1164,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Vitals</h4>
           <div className="grid gap-2 text-sm md:grid-cols-3">
-            <KV label="Temperature" value={fmt(form.vitals.temperature, "°C")} />
+            <KV
+              label="Temperature"
+              value={fmt(form.vitals.temperature, "°C")}
+            />
             <KV label="Blood Pressure" value={form.vitals.bp} />
             <KV label="Weight" value={fmt(form.vitals.weight, "kg")} />
             <KV label="Height" value={fmt(form.vitals.height, "cm")} />
@@ -1350,7 +1188,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
               />
             )}
             {form.clinical.pastHistory && (
-              <KV label="Past Medical History" value={form.clinical.pastHistory} />
+              <KV
+                label="Past Medical History"
+                value={form.clinical.pastHistory}
+              />
             )}
             {form.clinical.familyHistory && (
               <KV label="Family History" value={form.clinical.familyHistory} />
@@ -1718,6 +1559,34 @@ function SummaryIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+function ChevronLeftIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+function ChevronRightIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
 function PenIcon({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -1886,3 +1755,5 @@ function LabeledTextarea({
     </div>
   );
 }
+
+
