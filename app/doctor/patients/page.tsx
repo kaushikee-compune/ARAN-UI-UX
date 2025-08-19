@@ -425,20 +425,23 @@ export default function PatientsPage() {
   // ========================================================================
 
   // Open the split view & jump to "New Record" preview when user presses Form tool
-  const handleToggleForm = useCallback(() => {
-    setFormOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        setImmunizationOpen(false); // ensure only one editor open
-        setTabIndex(0); // show live preview on open
-        toggleSidebar(true); // collapse sidebar when opening form
-        setActive("consultation");
-      } else {
-        toggleSidebar(false); // expand sidebar when closing form
-      }
-      return next;
-    });
-  }, [toggleSidebar]);
+ const handleToggleForm = useCallback(() => {
+  setFormOpen((prev) => {
+    const next = !prev;
+    if (next) {
+      setTabIndex(0); // ensure live preview
+      // scroll to the form after layout paints
+      requestAnimationFrame(() => {
+        document.getElementById("aran-form")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+    return next;
+  });
+}, []);
+
 
   // ------------------------- IMMUNIZATION TOGGLE --------------------------
   const handleToggleImmunization = useCallback(() => {
@@ -728,19 +731,26 @@ export default function PatientsPage() {
           - Else:               [paper ........... | 64px dock] */}
       <div className="mt-8 px-3 md:px-6 lg:px-8">
         <div
-          className={
-            "grid gap-4 items-start " +
-            (formOpen || immunizationOpen
-              ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]"
-              : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_64px]")
+          className="grid gap-4 items-start"
+          style={
+            formOpen || immunizationOpen
+              ? {
+                  // 2 rows: preview (auto height), form (fills the rest)
+                  gridTemplateColumns: "minmax(0,1fr) 64px",
+                  gridTemplateRows: "auto minmax(0,1fr)",
+                }
+              : {
+                  // no form: single row layout
+                  gridTemplateColumns: "minmax(0,1fr) 64px",
+                }
           }
         >
           {/* LEFT: Paper panel */}
-          <div className="min-w-0">
+          <div className="min-w-0" style={{ gridColumn: "1 / 2", gridRow: "1 / 2" }}>
             <div
               className="relative mx-auto bg-white border rounded-xl shadow-sm overflow-visible"
               style={{
-                minHeight: 700,
+                minHeight: formOpen ? 100 : 700, // was 700; now compact when form is open
                 background:
                   "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(252,252,252,1) 100%)",
               }}
@@ -873,7 +883,7 @@ export default function PatientsPage() {
                 <div className="mt-2">
                   {tabIndex === 0 ? (
                     // LIVE PREVIEW of the current editor
-                    <div className="ui-card p-4 text-sm text-gray-800 space-y-6">
+                    <div className="min-h-[120px] grid place-items-center text-gray-400">
                       {immunizationOpen ? (
                         <ImmunizationPreview value={immForm} />
                       ) : (
@@ -992,7 +1002,10 @@ export default function PatientsPage() {
 
           {/* ======================= MIDDLE: EDITOR PANEL ======================= */}
           {(formOpen || immunizationOpen) && (
-            <div className="min-w-0">
+            <div
+              className="min-w-0"
+              style={{ gridColumn: "1 / 2", gridRow: "4 / 5" }}
+            >
               <div className="ui-card p-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">
@@ -1377,8 +1390,11 @@ export default function PatientsPage() {
           )}
           {/* ==================================================================== */}
 
-          {/* RIGHT: Slim outside dock (vertical tools + compact action icons) */}
-          <aside className="hidden md:block sticky top-20 self-start w-[64px]">
+          {/* RIGHT: Slim outside dock (vertical tools + compact action icons) + Horizontal split*/}
+          <aside
+            className="hidden md:block sticky top-20 self-start w-[64px]"
+            style={{ gridColumn: "2 / 3", gridRow: formOpen ? "1 / 3" : "1 / 2" }}
+          >
             <div className="flex flex-col items-center gap-2">
               {/* Vertical tool buttons */}
               <ToolButton label="Voice">
