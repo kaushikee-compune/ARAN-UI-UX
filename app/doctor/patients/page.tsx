@@ -40,6 +40,14 @@ import React, {
 import Image from "next/image";
 import AranLogo from "@/components/image/aranlogo.png";
 
+/* ======================= IMMUNIZATION (SEPARATE MODULE) ======================= */
+import ImmunizationForm, {
+  ImmunizationFormValue,
+  makeEmptyImmunization,
+  ImmunizationPreview,
+} from "@/components/healthrecords/immunization-record";
+/* ============================================================================ */
+
 /* --------------------------- Types --------------------------- */
 type TopMenuKey =
   | "consultation"
@@ -161,7 +169,7 @@ const PAST_DAYS: DayRecords[] = [
         data: {
           vaccine: "Tdap",
           lot: "TD-8821",
-          site: "Left deltoid",
+          next_dose: "03/09/2026",
           nextDose: "After 10 years",
         },
       },
@@ -217,13 +225,13 @@ const PAST_DAYS: DayRecords[] = [
 
 /* --------------------------- Tab Colors --------------------------- */
 const TAB_COLORS = [
-  { bg: "#84bec7", text: "#080808" }, // Sky
-  { bg: "#89b73c", text: "#080808" }, // Amber
-  { bg: "#d94f70", text: "#080808" }, // Pink
-  { bg: "#a4a0e7", text: "#080808" }, // Indigo
-  { bg: "#fa7c36", text: "#080808" }, // Green
-  { bg: "#ffd300", text: "#080808" }, // Yellow
-  { bg: "#df7c6c", text: "#080808" }, // Purple
+  { bg: "#d6d1ffff", text: "#080808" }, // Sky
+  { bg: "#facaedff", text: "#080808" }, // Amber
+  { bg: "#fdf6c1ff", text: "#080808" }, // Pink
+  { bg: "#d4f5cfff", text: "#080808" }, // Indigo
+  { bg: "#DEE791", text: "#080808" }, // Green
+  { bg: "#9B7EBD", text: "#080808" }, // Yellow
+  { bg: "#FFD6BA", text: "#080808" }, // Purple
 ];
 
 /* --------------------------- Rx presets --------------------------- */
@@ -409,19 +417,45 @@ export default function PatientsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormState>(() => makeEmptyForm());
 
+  // ===================== IMMUNIZATION: toggle + state ======================
+  const [immunizationOpen, setImmunizationOpen] = useState(false);
+  const [immForm, setImmForm] = useState<ImmunizationFormValue>(() =>
+    makeEmptyImmunization()
+  );
+  // ========================================================================
+
   // Open the split view & jump to "New Record" preview when user presses Form tool
   const handleToggleForm = useCallback(() => {
     setFormOpen((prev) => {
       const next = !prev;
       if (next) {
+        setImmunizationOpen(false); // ensure only one editor open
         setTabIndex(0); // show live preview on open
         toggleSidebar(true); // collapse sidebar when opening form
+        setActive("consultation");
       } else {
         toggleSidebar(false); // expand sidebar when closing form
       }
       return next;
     });
   }, [toggleSidebar]);
+
+  // ------------------------- IMMUNIZATION TOGGLE --------------------------
+  const handleToggleImmunization = useCallback(() => {
+    setImmunizationOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setFormOpen(false); // ensure only one editor open
+        setTabIndex(0); // show live preview
+        toggleSidebar(true); // collapse sidebar
+        setActive("immunization");
+      } else {
+        toggleSidebar(false); // expand sidebar
+      }
+      return next;
+    });
+  }, [toggleSidebar]);
+  // ------------------------------------------------------------------------
 
   // Auto-calc BMI whenever height(cm) & weight(kg) are entered
   useEffect(() => {
@@ -557,6 +591,79 @@ export default function PatientsPage() {
     []
   );
 
+  // =================== SAVE IMMUNIZATION INTO TODAY ===================
+
+  const onSaveImmunization = useCallback(() => {
+    const filled = (immForm.records || []).filter(
+      (r) =>
+        r &&
+        (r.vaccineName?.trim() ||
+          r.dose?.trim() ||
+          r.date?.trim() ||
+          r.route?.trim() ||
+          r.next_dose?.trim() ||
+          r.volume?.trim())
+    );
+
+    if (filled.length === 0) {
+      setToast({ type: "error", message: "Add at least one vaccine row." });
+      return;
+    }
+    const invalid = filled.find(
+      (r) => !r.vaccineName?.trim() || !r.date?.trim()
+    );
+    if (invalid) {
+      setToast({
+        type: "error",
+        message: "Each row needs Vaccine Name and Date.",
+      });
+      return;
+    }
+
+    const entry: RecordEntry = {
+      id: uid(),
+      type: "Immunization",
+      hospital: "Sushila Mathrutva Clinic",
+      doctor: {
+        name: "Dr. A. Banerjee",
+        specialty: "Internal Medicine",
+        regNo: "KMC/2011/12345",
+      },
+      data: {
+        rows: filled.map((r) => ({
+          vaccineName: r.vaccineName,
+          dose: r.dose || "",
+          date: r.date,
+          route: r.route || "",
+          next_dose: r.next_dose || "",
+          volume: r.volume || "",
+        })),
+        vaccinatorName: immForm.vaccinatorName || "",
+        vaccinatorRegNo: immForm.vaccinatorRegNo || "",
+      },
+    };
+
+    const now = new Date();
+    const iso = todayYMD();
+    const label = formatDateLabel(now);
+
+    setPastDays((prev) => {
+      const idx = prev.findIndex((d) => d.dateISO === iso);
+      if (idx >= 0) {
+        const copy = prev.slice();
+        copy[idx] = { ...copy[idx], items: [entry, ...copy[idx].items] };
+        return copy;
+      }
+      return [{ dateLabel: label, dateISO: iso, items: [entry] }, ...prev];
+    });
+
+    setTabIndex(1);
+    setImmForm(makeEmptyImmunization());
+    setImmunizationOpen(false);
+    setToast({ type: "success", message: "Immunization saved." });
+  }, [immForm]);
+  // ===================================================================
+
   const colorFor = (i: number) => TAB_COLORS[i % TAB_COLORS.length];
 
   return (
@@ -565,8 +672,8 @@ export default function PatientsPage() {
       <div className="ui-card px-3 py-2">
         <div className="flex items-center gap-2">
           <TopMenuButton
-            active={active === "consultation"}
-            onClick={() => setActive("consultation")}
+            active={active === "consultation" && formOpen}
+            onClick={handleToggleForm}
             label="Consultation"
             icon={ClinicalDetailsIcon}
             iconClassName="text-slate-700" // 👈 color
@@ -580,13 +687,15 @@ export default function PatientsPage() {
             iconClassName="text-sky-600" // 👈 color
           />
 
+          {/* ========== IMMUNIZATION: behaves like Form toggle ========== */}
           <TopMenuButton
-            active={active === "immunization"}
-            onClick={() => setActive("immunization")}
+            active={active === "immunization" && immunizationOpen}
+            onClick={handleToggleImmunization}
             label="Immunization Record"
             icon={ImmunizationIcon}
             iconClassName="text-emerald-600" // 👈 color
           />
+          {/* ============================================================ */}
 
           <TopMenuButton
             active={active === "discharge"}
@@ -603,17 +712,25 @@ export default function PatientsPage() {
             icon={ConsentRequestIcon}
             iconClassName="text-fuchsia-600" // 👈 color
           />
+
+          {/* right-corner sidebar toggle */}
+          <div className="ml-auto">
+            <SidebarToggle
+              checked={sidebarCollapsed}
+              onChange={() => toggleSidebar()}
+            />
+          </div>
         </div>
       </div>
 
       {/* 2) Split Grid:
-          - If formOpen: [paper | form | 64px dock]
-          - Else:        [paper .......... | 64px dock] */}
+          - If any editor open: [paper | editor | 64px dock]
+          - Else:               [paper ........... | 64px dock] */}
       <div className="mt-8 px-3 md:px-6 lg:px-8">
         <div
           className={
             "grid gap-4 items-start " +
-            (formOpen
+            (formOpen || immunizationOpen
               ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]"
               : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_64px]")
           }
@@ -755,13 +872,16 @@ export default function PatientsPage() {
                 {/* ------- Selected Tab Content ------- */}
                 <div className="mt-2">
                   {tabIndex === 0 ? (
-                    // LIVE PREVIEW of the current form
+                    // LIVE PREVIEW of the current editor
                     <div className="ui-card p-4 text-sm text-gray-800 space-y-6">
-                      <NewRecordPreview form={form} />
+                      {immunizationOpen ? (
+                        <ImmunizationPreview value={immForm} />
+                      ) : (
+                        <NewRecordPreview form={form} />
+                      )}
                     </div>
                   ) : selectedDay ? (
-                    // NEW: two-column past records view (content | right rail)
-                    // AFTER
+                    // two-column past records view (content | right rail)
                     <div className="relative flex gap-0">
                       {/* LEFT: record content */}
                       <div className="flex-1 min-w-0 pr-4">
@@ -805,8 +925,6 @@ export default function PatientsPage() {
                             );
                           const activeKind =
                             activeTypeByDay[selectedDay.dateISO] ?? types[0];
-                          // BEFORE
-                          // AFTER — vertical tabs (semantics + look)
                           return (
                             <div
                               role="tablist"
@@ -829,9 +947,7 @@ export default function PatientsPage() {
                                     }
                                     className={[
                                       "w-full text-left text-sm transition-all transform-gpu",
-                                      // tab shape
                                       "px-3 py-2 rounded-l-lg rounded-r-md",
-                                      // active = “popped” tab overlapping the pane edge
                                       isActive
                                         ? "bg-white  -translate-x-2 md:-translate-x-3 border-gray-300 relative z-10"
                                         : "bg-transparent hover:bg-gray-50 ",
@@ -874,367 +990,399 @@ export default function PatientsPage() {
             </div>
           </div>
 
-          {/* MIDDLE: The Form (appears only when formOpen) */}
-          {formOpen && (
+          {/* ======================= MIDDLE: EDITOR PANEL ======================= */}
+          {(formOpen || immunizationOpen) && (
             <div className="min-w-0">
               <div className="ui-card p-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Consultation Form</h3>
+                  <h3 className="text-sm font-semibold">
+                    {immunizationOpen
+                      ? "Immunization Form"
+                      : "Consultation Form"}
+                  </h3>
                   <button
                     className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                    onClick={() => setFormOpen(false)}
+                    onClick={() => {
+                      if (immunizationOpen) setImmunizationOpen(false);
+                      if (formOpen) setFormOpen(false);
+                    }}
                     title="Close form"
                   >
                     Close
                   </button>
                 </div>
 
-                <div className="mt-3 grid gap-4">
-                  {/* 1) Vitals */}
-                  <section>
-                    <div className="text-xs font-medium text-gray-600 mb-2">
-                      Vitals
-                    </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      <LabeledInput
-                        label="Temperature (°C)"
-                        value={form.vitals.temperature || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            vitals: { ...f.vitals, temperature: v },
-                          }))
-                        }
-                      />
-                      <LabeledInput
-                        label="BP (mmHg)"
-                        placeholder="120/80"
-                        value={form.vitals.bp || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            vitals: { ...f.vitals, bp: v },
-                          }))
-                        }
-                      />
-                      <LabeledInput
-                        label="Weight (kg)"
-                        type="number"
-                        value={form.vitals.weight || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            vitals: { ...f.vitals, weight: v },
-                          }))
-                        }
-                      />
-                      <LabeledInput
-                        label="Height (cm)"
-                        type="number"
-                        value={form.vitals.height || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            vitals: { ...f.vitals, height: v },
-                          }))
-                        }
-                      />
-                      <LabeledInput
-                        label="BMI"
-                        value={form.vitals.bmi || ""}
-                        readOnly
-                      />
-                    </div>
-                  </section>
-
-                  {/* 2) Clinical Details */}
-                  <section>
-                    <div className="text-xs font-medium text-gray-600 mb-2">
-                      Clinical Details
-                    </div>
-                    <div className="grid gap-2">
-                      <LabeledTextarea
-                        label="Chief Complaints"
-                        value={form.clinical.chiefComplaints || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            clinical: { ...f.clinical, chiefComplaints: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Past Medical History"
-                        value={form.clinical.pastHistory || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            clinical: { ...f.clinical, pastHistory: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Family History"
-                        value={form.clinical.familyHistory || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            clinical: { ...f.clinical, familyHistory: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Allergy"
-                        value={form.clinical.allergy || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            clinical: { ...f.clinical, allergy: v },
-                          }))
-                        }
-                      />
-                    </div>
-                  </section>
-
-                  {/* 3) Prescription (table) */}
-                  <section>
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-medium text-gray-600">
-                        Prescription
-                      </div>
-                      <button
-                        className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            prescription: [
-                              ...f.prescription,
-                              {
-                                medicine: "",
-                                frequency: "",
-                                instruction: "",
-                                duration: "",
-                                dosage: "",
-                              },
-                            ],
-                          }))
-                        }
-                      >
-                        + Add Row
-                      </button>
-                    </div>
-                    <div className="mt-2 overflow-x-auto">
-                      <table className="w-full border text-sm table-fixed">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <Th>Medicine</Th>
-                            <Th>Frequency</Th>
-                            <Th>Instruction</Th>
-                            <Th>Duration</Th>
-                            <Th>Dosage</Th>
-                            <Th className="w-16">Actions</Th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {form.prescription.map((row, idx) => (
-                            <tr key={idx} className="border-t align-top">
-                              <Td>
-                                <input
-                                  className="ui-input w-full"
-                                  value={row.medicine}
-                                  onChange={(e) =>
-                                    updateRx(idx, { medicine: e.target.value })
-                                  }
-                                  placeholder="e.g., Paracetamol 500 mg"
-                                />
-                              </Td>
-                              <Td>
-                                <input
-                                  className="ui-input w-full"
-                                  list="rx-frequency-options"
-                                  value={row.frequency}
-                                  onChange={(e) =>
-                                    updateRx(idx, { frequency: e.target.value })
-                                  }
-                                  placeholder="1-0-1 or BID/TID"
-                                />
-                              </Td>
-                              <Td>
-                                <input
-                                  className="ui-input w-full"
-                                  list="rx-instruction-options"
-                                  value={row.instruction}
-                                  onChange={(e) =>
-                                    updateRx(idx, {
-                                      instruction: e.target.value,
-                                    })
-                                  }
-                                  placeholder="After food"
-                                />
-                              </Td>
-                              <Td>
-                                <input
-                                  className="ui-input w-full"
-                                  value={row.duration}
-                                  onChange={(e) =>
-                                    updateRx(idx, { duration: e.target.value })
-                                  }
-                                  placeholder="5 days"
-                                />
-                              </Td>
-                              <Td>
-                                <input
-                                  className="ui-input w-full"
-                                  value={row.dosage}
-                                  onChange={(e) =>
-                                    updateRx(idx, { dosage: e.target.value })
-                                  }
-                                  placeholder="500 mg"
-                                />
-                              </Td>
-                              <Td>
-                                <button
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full border hover:bg-gray-50 text-gray-600 hover:text-gray-900"
-                                  aria-label="Delete row"
-                                  title="Delete row"
-                                  onClick={() =>
-                                    setForm((f) => ({
-                                      ...f,
-                                      prescription: f.prescription.filter(
-                                        (_, i) => i !== idx
-                                      ),
-                                    }))
-                                  }
-                                >
-                                  ×
-                                </button>
-                              </Td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Shared suggestion lists */}
-                    <datalist id="rx-frequency-options">
-                      {RX_FREQUENCY_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt} />
-                      ))}
-                    </datalist>
-                    <datalist id="rx-instruction-options">
-                      {RX_INSTRUCTION_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt} />
-                      ))}
-                    </datalist>
-                  </section>
-
-                  {/* 4) Investigations & Advice */}
-                  <section>
-                    <div className="text-xs font-medium text-gray-600 mb-2">
-                      Investigations &amp; Advice
-                    </div>
-                    <div className="grid gap-2">
-                      <LabeledTextarea
-                        label="Investigations"
-                        value={form.plan.investigations || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            plan: { ...f.plan, investigations: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Note"
-                        value={form.plan.note || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            plan: { ...f.plan, note: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Advice"
-                        value={form.plan.advice || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            plan: { ...f.plan, advice: v },
-                          }))
-                        }
-                      />
-                      <LabeledTextarea
-                        label="Doctor Note"
-                        value={form.plan.doctorNote || ""}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            plan: { ...f.plan, doctorNote: v },
-                          }))
-                        }
-                      />
-
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        <LabeledInput
-                          label="Follow-up Instructions"
-                          value={form.plan.followUpInstructions || ""}
-                          onChange={(v) =>
-                            setForm((f) => ({
-                              ...f,
-                              plan: { ...f.plan, followUpInstructions: v },
-                            }))
-                          }
-                        />
-                        <div className="grid gap-1">
-                          <label className="text-[11px] text-gray-600">
-                            Follow-up Date
-                          </label>
-                          <input
-                            type="date"
-                            className="ui-input w-full min-w-0"
-                            value={form.plan.followUpDate || ""}
-                            onChange={(e) =>
+                <div className="mt-3">
+                  {immunizationOpen ? (
+                    <ImmunizationForm
+                      value={immForm}
+                      onChange={setImmForm}
+                      onSave={onSaveImmunization}
+                    />
+                  ) : (
+                    <div className="grid gap-4">
+                      {/* 1) Vitals */}
+                      <section>
+                        <div className="text-xs font-medium text-gray-600 mb-2">
+                          Vitals
+                        </div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          <LabeledInput
+                            label="Temperature (°C)"
+                            value={form.vitals.temperature || ""}
+                            onChange={(v) =>
                               setForm((f) => ({
                                 ...f,
-                                plan: {
-                                  ...f.plan,
-                                  followUpDate: e.target.value,
+                                vitals: { ...f.vitals, temperature: v },
+                              }))
+                            }
+                          />
+                          <LabeledInput
+                            label="BP (mmHg)"
+                            placeholder="120/80"
+                            value={form.vitals.bp || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                vitals: { ...f.vitals, bp: v },
+                              }))
+                            }
+                          />
+                          <LabeledInput
+                            label="Weight (kg)"
+                            type="number"
+                            value={form.vitals.weight || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                vitals: { ...f.vitals, weight: v },
+                              }))
+                            }
+                          />
+                          <LabeledInput
+                            label="Height (cm)"
+                            type="number"
+                            value={form.vitals.height || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                vitals: { ...f.vitals, height: v },
+                              }))
+                            }
+                          />
+                          <LabeledInput
+                            label="BMI"
+                            value={form.vitals.bmi || ""}
+                            readOnly
+                          />
+                        </div>
+                      </section>
+
+                      {/* 2) Clinical Details */}
+                      <section>
+                        <div className="text-xs font-medium text-gray-600 mb-2">
+                          Clinical Details
+                        </div>
+                        <div className="grid gap-2">
+                          <LabeledTextarea
+                            label="Chief Complaints"
+                            value={form.clinical.chiefComplaints || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                clinical: {
+                                  ...f.clinical,
+                                  chiefComplaints: v,
                                 },
                               }))
                             }
                           />
+                          <LabeledTextarea
+                            label="Past Medical History"
+                            value={form.clinical.pastHistory || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                clinical: { ...f.clinical, pastHistory: v },
+                              }))
+                            }
+                          />
+                          <LabeledTextarea
+                            label="Family History"
+                            value={form.clinical.familyHistory || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                clinical: { ...f.clinical, familyHistory: v },
+                              }))
+                            }
+                          />
+                          <LabeledTextarea
+                            label="Allergy"
+                            value={form.clinical.allergy || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                clinical: { ...f.clinical, allergy: v },
+                              }))
+                            }
+                          />
                         </div>
+                      </section>
+
+                      {/* 3) Prescription (table) */}
+                      <section>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-medium text-gray-600">
+                            Prescription
+                          </div>
+                          <button
+                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                            onClick={() =>
+                              setForm((f) => ({
+                                ...f,
+                                prescription: [
+                                  ...f.prescription,
+                                  {
+                                    medicine: "",
+                                    frequency: "",
+                                    instruction: "",
+                                    duration: "",
+                                    dosage: "",
+                                  },
+                                ],
+                              }))
+                            }
+                          >
+                            + Add Row
+                          </button>
+                        </div>
+                        <div className="mt-2 overflow-x-auto">
+                          <table className="w-full border text-sm table-fixed">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <Th>Medicine</Th>
+                                <Th>Frequency</Th>
+                                <Th>Instruction</Th>
+                                <Th>Duration</Th>
+                                <Th>Dosage</Th>
+                                <Th className="w-16">Actions</Th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {form.prescription.map((row, idx) => (
+                                <tr key={idx} className="border-t align-top">
+                                  <Td>
+                                    <input
+                                      className="ui-input w-full"
+                                      value={row.medicine}
+                                      onChange={(e) =>
+                                        updateRx(idx, {
+                                          medicine: e.target.value,
+                                        })
+                                      }
+                                      placeholder="e.g., Paracetamol 500 mg"
+                                    />
+                                  </Td>
+                                  <Td>
+                                    <input
+                                      className="ui-input w-full"
+                                      list="rx-frequency-options"
+                                      value={row.frequency}
+                                      onChange={(e) =>
+                                        updateRx(idx, {
+                                          frequency: e.target.value,
+                                        })
+                                      }
+                                      placeholder="1-0-1 or BID/TID"
+                                    />
+                                  </Td>
+                                  <Td>
+                                    <input
+                                      className="ui-input w-full"
+                                      list="rx-instruction-options"
+                                      value={row.instruction}
+                                      onChange={(e) =>
+                                        updateRx(idx, {
+                                          instruction: e.target.value,
+                                        })
+                                      }
+                                      placeholder="After food"
+                                    />
+                                  </Td>
+                                  <Td>
+                                    <input
+                                      className="ui-input w-full"
+                                      value={row.duration}
+                                      onChange={(e) =>
+                                        updateRx(idx, {
+                                          duration: e.target.value,
+                                        })
+                                      }
+                                      placeholder="5 days"
+                                    />
+                                  </Td>
+                                  <Td>
+                                    <input
+                                      className="ui-input w-full"
+                                      value={row.dosage}
+                                      onChange={(e) =>
+                                        updateRx(idx, {
+                                          dosage: e.target.value,
+                                        })
+                                      }
+                                      placeholder="500 mg"
+                                    />
+                                  </Td>
+                                  <Td>
+                                    <button
+                                      className="inline-flex items-center justify-center w-6 h-6 rounded-full border hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                      aria-label="Delete row"
+                                      title="Delete row"
+                                      onClick={() =>
+                                        setForm((f) => ({
+                                          ...f,
+                                          prescription: f.prescription.filter(
+                                            (_, i) => i !== idx
+                                          ),
+                                        }))
+                                      }
+                                    >
+                                      ×
+                                    </button>
+                                  </Td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Shared suggestion lists */}
+                        <datalist id="rx-frequency-options">
+                          {RX_FREQUENCY_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt} />
+                          ))}
+                        </datalist>
+                        <datalist id="rx-instruction-options">
+                          {RX_INSTRUCTION_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt} />
+                          ))}
+                        </datalist>
+                      </section>
+
+                      {/* 4) Investigations & Advice */}
+                      <section>
+                        <div className="text-xs font-medium text-gray-600 mb-2">
+                          Investigations &amp; Advice
+                        </div>
+                        <div className="grid gap-2">
+                          <LabeledTextarea
+                            label="Investigations"
+                            value={form.plan.investigations || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                plan: { ...f.plan, investigations: v },
+                              }))
+                            }
+                          />
+                          <LabeledTextarea
+                            label="Note"
+                            value={form.plan.note || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                plan: { ...f.plan, note: v },
+                              }))
+                            }
+                          />
+                          <LabeledTextarea
+                            label="Advice"
+                            value={form.plan.advice || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                plan: { ...f.plan, advice: v },
+                              }))
+                            }
+                          />
+                          <LabeledTextarea
+                            label="Doctor Note"
+                            value={form.plan.doctorNote || ""}
+                            onChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                plan: { ...f.plan, doctorNote: v },
+                              }))
+                            }
+                          />
+
+                          <div className="grid sm:grid-cols-2 gap-2">
+                            <LabeledInput
+                              label="Follow-up Instructions"
+                              value={form.plan.followUpInstructions || ""}
+                              onChange={(v) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  plan: {
+                                    ...f.plan,
+                                    followUpInstructions: v,
+                                  },
+                                }))
+                              }
+                            />
+                            <div className="grid gap-1">
+                              <label className="text-[11px] text-gray-600">
+                                Follow-up Date
+                              </label>
+                              <input
+                                type="date"
+                                className="ui-input w-full min-w-0"
+                                value={form.plan.followUpDate || ""}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    plan: {
+                                      ...f.plan,
+                                      followUpDate: e.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      {/* Footer controls */}
+                      <div className="pt-2 flex items-center gap-2">
+                        <button
+                          className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
+                          onClick={onSave}
+                        >
+                          Save Draft
+                        </button>
+                        <button
+                          className="px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
+                          onClick={onSubmit}
+                        >
+                          Submit
+                        </button>
                       </div>
                     </div>
-                  </section>
-
-                  {/* Footer controls */}
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-                      onClick={onSave}
-                    >
-                      Save Draft
-                    </button>
-                    <button
-                      className="px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
-                      onClick={onSubmit}
-                    >
-                      Submit
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
+          {/* ==================================================================== */}
 
           {/* RIGHT: Slim outside dock (vertical tools + compact action icons) */}
           <aside className="hidden md:block sticky top-20 self-start w-[64px]">
             <div className="flex flex-col items-center gap-2">
               {/* Vertical tool buttons */}
               <ToolButton label="Voice">
-                <MicIcon className="w-4 h-4" />
+                <MicIcon className="w-4 h-4 text-green-500 border-gray-500" />
               </ToolButton>
 
               {/* Form tool wired to split view */}
@@ -1243,7 +1391,7 @@ export default function PatientsPage() {
                   "group relative inline-flex items-center justify-center w-9 h-9 rounded-full border shadow " +
                   (formOpen
                     ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-900 hover:bg-gray-50 border-gray-300")
+                    : "bg-white text-blue-900 hover:bg-gray-50 border-gray-500")
                 }
                 title="Form"
                 aria-pressed={formOpen}
@@ -1256,7 +1404,7 @@ export default function PatientsPage() {
               </button>
 
               <ToolButton label="Scribe">
-                <ScribeIcon className="w-4 h-4" />
+                <ScribeIcon className="w-4 h-4 text-pink-500 border-gray-500" />
               </ToolButton>
 
               <div className="my-1 h-px w-8 bg-gray-200" />
@@ -1591,15 +1739,70 @@ function RecordRenderer({ record }: { record: RecordEntry }) {
           ) : null}
         </div>
       );
-    case "Immunization":
+    case "Immunization": {
+      const rows = Array.isArray(record.data?.rows) ? record.data.rows : null;
+
+      if (rows && rows.length) {
+        return (
+          <div className="space-y-3 text-sm text-gray-800">
+            <div className="overflow-x-auto">
+              <table className="w-full border text-sm table-fixed">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <Th>Vaccine Name</Th>
+                    <Th>Dose</Th>
+                    <Th>Date</Th>
+                    <Th>Route</Th>
+                    <Th>Next Dose</Th>
+                    <Th>Volume</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r: any, i: number) => (
+                    <tr key={i} className="border-t">
+                      <Td>{r.vaccineName || "-"}</Td>
+                      <Td>{r.dose || "-"}</Td>
+                      <Td>{r.date || "-"}</Td>
+                      <Td>{r.route || "-"}</Td>
+                      <Td>{r.next_dose || "-"}</Td>
+                      <Td>{r.volume || "-"}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {(record.data.vaccinatorName || record.data.vaccinatorRegNo) && (
+              <div className="grid gap-1 sm:grid-cols-2">
+                <KV
+                  label="Vaccinator Name"
+                  value={record.data.vaccinatorName}
+                />
+                <KV
+                  label="Vaccinator Reg No."
+                  value={record.data.vaccinatorRegNo}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Fallback: legacy single-row shape (keeps older mock data working)
       return (
         <div className="grid gap-2 text-sm text-gray-800 md:grid-cols-3">
           <KV label="Vaccine" value={record.data.vaccine} />
-          <KV label="Lot/Batch" value={record.data.lot} />
-          <KV label="Site" value={record.data.site} />
-          <KV label="Next Dose" value={record.data.nextDose} />
+          <KV label="Dose No." value={record.data.doseNumber} />
+          <KV label="Date" value={record.data.date} />
+          <KV label="Route" value={record.data.route} />
+          <KV label="Next Dose" value={record.data.next_dose} />
+          <KV label="Volume" value={record.data.volume} />
+          <KV label="Vaccinator" value={record.data.vaccinatorName} />
+          <KV label="Reg. No." value={record.data.vaccinatorRegNo} />
         </div>
       );
+    }
+
     case "Lab":
       return (
         <div className="grid gap-2 text-sm text-gray-800 md:grid-cols-2">
@@ -1942,6 +2145,31 @@ function Toast({
         </div>
       </div>
     </div>
+  );
+}
+/*---------------- Toggle Switch -------------------*/
+function SidebarToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className="relative inline-flex h-5 w-9 items-center rounded-full border border-blue-300 bg-green-200 transition-colors"
+      title={checked ? "Expand sidebar" : "Collapse sidebar"}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-4" : "translate-x-1"
+        }`}
+      />
+    </button>
   );
 }
 
