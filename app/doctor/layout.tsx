@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import DoctorSidebar from "@/components/doctor/DoctorSidebar";
+import Image from "next/image";
 
 /**
  * Doctor layout with:
@@ -44,20 +45,32 @@ export default function DoctorLayout({
           <div className="flex items-center gap-2">
             <span
               className="inline-flex items-center justify-center w-6 h-6 rounded-md"
-              style={{
-                background: "var(--secondary)",
-                color: "var(--on-secondary)",
-              }}
+              // style={{
+              //   background: "var(--secondary)",
+              //   color: "var(--on-secondary)",
+              // }}
               aria-hidden
             >
-              A
+              <Image
+                                  src="/whitelogopng.svg"
+                                  alt="ARAN Logo"
+                                  width={25}
+                                  height={25}
+                                />
             </span>
-            <div className="font-semibold">ARAN • Doctor</div>
+            <div className="font-semibold">ARAN Healthcare </div>
           </div>
-          <div className="text-xs text-gray-500">
-            {/* space reserved for theme/appearance toggles if you wire them later */}
-            v0.1
+          <div className="inline-flex text-md text-gray-800">
+            {/* space reserved for theme/appearance toggles if you wire them later */}            
+            Dr.Vikram Sarabhai
+            <Image
+                                  src="/icons/doctor.png"
+                                  alt="Doctor Profile"
+                                  width={25}
+                                  height={25}
+                                />
           </div>
+          
         </div>
       </header>
 

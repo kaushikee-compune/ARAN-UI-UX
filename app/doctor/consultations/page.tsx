@@ -1,3 +1,4 @@
+// app/doctor/consultations/page.tsx
 "use client";
 
 import React, {
@@ -8,6 +9,8 @@ import React, {
   useState,
 } from "react";
 import Image from "next/image";
+import DigitalRxForm from "@/components/doctor/DigitalRxForm";
+import { X } from "lucide-react";
 
 /* ------------------------------------------------------------
    Types
@@ -216,15 +219,18 @@ export default function ConsultationsPage() {
   const [formOpenSplit, setFormOpenSplit] = useState(false); // RIGHT column form
   const [formInline, setFormInline] = useState(false); // form inside the paper
 
+  // NEW: Digital Rx in-paper component toggle
+  const [digitalRxOpen, setDigitalRxOpen] = useState(false);
+
   // On mount, sync with persisted sidebar state
   useEffect(() => {
     try {
       const collapsed = localStorage.getItem("aran:sidebarCollapsed") === "1";
       if (collapsed) {
-        // If user arrives with collapsed sidebar, assume Companion was ON
         setCompanionOn(true);
         setFormOpenSplit(true); // split open
         setFormInline(false);
+        setDigitalRxOpen(false); // start with preview, not Digital Rx
         setTabIndex(0);
       }
     } catch {}
@@ -233,7 +239,6 @@ export default function ConsultationsPage() {
   const applySidebarCollapsed = useCallback((collapsed: boolean) => {
     try {
       localStorage.setItem("aran:sidebarCollapsed", collapsed ? "1" : "0");
-      // Defer the event so DoctorLayout updates in a later task, not during this render
       setTimeout(() => {
         window.dispatchEvent(new Event("aran:sidebar"));
       }, 0);
@@ -247,6 +252,7 @@ export default function ConsultationsPage() {
         // Companion ON → split view; ensure "New Record" tab
         setFormOpenSplit(true);
         setFormInline(false);
+        setDigitalRxOpen(false); // close Digital Rx view if turning split on
         setTabIndex(0);
       } else {
         // Companion OFF → close split
@@ -287,6 +293,8 @@ export default function ConsultationsPage() {
   const openForm = useCallback(() => {
     // Always collapse sidebar when entering a form flow
     applySidebarCollapsed(true);
+    // Close Digital Rx view if it was open
+    setDigitalRxOpen(false);
     // Inline vs Split depends on Companion switch
     if (companionOn) {
       setFormOpenSplit(true);
@@ -298,6 +306,20 @@ export default function ConsultationsPage() {
       setTabIndex(0);
     }
   }, [applySidebarCollapsed, companionOn]);
+
+  // NEW: Open Digital Rx (separate component rendered inside the paper)
+  const openDigitalRx = useCallback(() => {
+    // 1) Collapse sidebar
+    applySidebarCollapsed(true);
+    // 2) Force Companion OFF (no split)
+    setCompanionOn(false);
+    setFormOpenSplit(false);
+    // 3) Make sure inline form is closed (we'll show Digital Rx instead)
+    setFormInline(false);
+    // 4) Switch to New Record tab and open Digital Rx
+    setTabIndex(0);
+    setDigitalRxOpen(true);
+  }, [applySidebarCollapsed]);
 
   useEffect(() => {
     applySidebarCollapsed(companionOn);
@@ -314,25 +336,18 @@ export default function ConsultationsPage() {
             active={active === "consultation"}
             onClick={() => setActive("consultation")}
           >
-            <img
-              src="/icons/consultation.png"
-              className="w-4 h-4 mr-1.5"
-              alt=""
-            />
             Consultation
           </TopMenuButton>
           <TopMenuButton
             active={active === "consent"}
             onClick={() => setActive("consent")}
           >
-            <img src="/icons/consent.png" className="w-4 h-4 mr-1.5" alt="" />
             Consent
           </TopMenuButton>
           <TopMenuButton
             active={active === "queue"}
             onClick={() => setActive("queue")}
           >
-            <img src="/icons/queue.png" className="w-4 h-4 mr-1.5" alt="" />
             OPD Queue
           </TopMenuButton>
 
@@ -383,7 +398,7 @@ export default function ConsultationsPage() {
       <div className="mt-6 px-3 md:px-6 lg:px-8">
         <div
           className={
-            "grid gap-4 items-start " +
+            "grid gap-4 items-start min-h-[calc(100vh-120px)] " +
             (formOpenSplit
               ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]"
               : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_64px]")
@@ -497,12 +512,7 @@ export default function ConsultationsPage() {
                   </div>
 
                   {/* Center: Logo */}
-                  <Image
-                    src="/whitelogo.png"
-                    alt="ARAN Logo"
-                    width={40}
-                    height={40}
-                  />
+                  <img src="/icons/logo.png" alt="ARAN" className="w-5 h-5" />
 
                   {/* Right: Patient summary placeholder */}
                   <div className="flex items-start justify-end pl-3">
@@ -521,8 +531,34 @@ export default function ConsultationsPage() {
                 {/* ------- Tab content ------- */}
                 <div className="mt-2">
                   {tabIndex === 0 ? (
-                    // New Record: either live preview (default) OR inline form (when companion OFF and user clicked Form)
-                    formInline ? (
+                    // New Record: choose between Digital Rx view, inline form, or live preview
+                    digitalRxOpen ? (
+                      <div className="ui-card p-4">
+                        <div className="mb-2 flex justify-end">
+                          <button
+                            onClick={() => setDigitalRxOpen(false)}
+                            title="Close Digital Rx"
+                            className="p-1 rounded hover:bg-gray-300 text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <DigitalRxForm
+                          onSave={() =>
+                            setToast({
+                              type: "info",
+                              message: "Digital Rx saved.",
+                            })
+                          }
+                          onSubmit={() =>
+                            setToast({
+                              type: "success",
+                              message: "Digital Rx submitted.",
+                            })
+                          }
+                        />
+                      </div>
+                    ) : formInline ? (
                       <div className="ui-card p-4">
                         <FormBlock
                           form={form}
@@ -652,13 +688,18 @@ export default function ConsultationsPage() {
           )}
 
           {/* ---------- RIGHT MINI-DOCK ToolBar ---------- */}
-          {/* Side Toolbar Panel */}
-          <div className="flex flex-col justify-between h-full w-14 border-r bg-gray-50">
+          <div className="sticky top-4 flex flex-col items-center gap-2 self-start">
             {/* --- Top group: Forms --- */}
             <div className="flex flex-col items-center gap-3 mt-4">
               <button
                 title="Digital Rx"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                onClick={openDigitalRx}
+                className={
+                  "w-9 h-9 flex items-center justify-center rounded-md border hover:bg-gray-50 " +
+                  (digitalRxOpen
+                    ? "border-green-700 ring-1 ring-green-300"
+                    : "border-green-600")
+                }
               >
                 <img
                   src="/icons/digitalrx.png"
@@ -668,7 +709,7 @@ export default function ConsultationsPage() {
               </button>
               <button
                 title="Immunization"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-amber-300 hover:bg-gray-50"
               >
                 <img
                   src="/icons/syringe.png"
@@ -678,7 +719,7 @@ export default function ConsultationsPage() {
               </button>
               <button
                 title="Lab Request"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-blue-300 hover:bg-gray-50"
               >
                 <img
                   src="/icons/lab-request.png"
@@ -688,7 +729,7 @@ export default function ConsultationsPage() {
               </button>
               <button
                 title="Discharge Summary"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-pink-300 hover:bg-gray-50"
               >
                 <img
                   src="/icons/discharge-summary.png"
@@ -698,29 +739,61 @@ export default function ConsultationsPage() {
               </button>
             </div>
 
+            <div className="my-6 h-px w-8 bg-gray-300" />
             {/* --- Bottom group: Actions --- */}
-            <div className="flex flex-col items-center gap-3 mb-4">
+            <div className="flex flex-col items-center gap-3 mb-4 mt-4">
               <button
                 title="Save"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                onClick={onSave}
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-sky-300 hover:bg-gray-50"
               >
                 <img src="/icons/save.png" alt="Save" className="w-5 h-5" />
               </button>
               <button
                 title="Send"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-300 hover:bg-gray-50"
               >
                 <img src="/icons/send.png" alt="Send" className="w-5 h-5" />
               </button>
-              <button
-                title="Print"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
-              >
-                <img src="/icons/print.png" alt="Print" className="w-5 h-5" />
-              </button>
+              <div className="relative" ref={printRef}>
+                <button
+                  title="Print"
+                  onClick={() => setPrintOpen((s) => !s)}
+                  className="w-9 h-9 flex items-center justify-center rounded-md border border-red-300 hover:bg-gray-50"
+                >
+                  <img src="/icons/print.png" alt="Print" className="w-5 h-5" />
+                </button>
+                {printOpen && (
+                  <div className="absolute left-full top-0 ml-2 z-50 w-48 border rounded-lg bg-white shadow-md p-2">
+                    <div className="px-1 pb-1 text-[11px] text-gray-600">
+                      Print options
+                    </div>
+                    <div className="space-y-1">
+                      <button
+                        className="w-full text-left px-2 py-1 rounded-md hover:bg-gray-100 text-sm"
+                        onClick={() => {
+                          onPrint();
+                          setPrintOpen(false);
+                        }}
+                      >
+                        Open Print Preview
+                      </button>
+                      <button
+                        className="w-full text-left px-2 py-1 rounded-md hover:bg-gray-100 text-sm"
+                        onClick={() => {
+                          onPrint();
+                          setPrintOpen(false);
+                        }}
+                      >
+                        Print Current Tab
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 title="Language"
-                className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-gray-200"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-yellow-300 hover:bg-gray-50"
               >
                 <img
                   src="/icons/language.png"
@@ -761,7 +834,10 @@ function TopMenuButton({
       aria-pressed={active}
       className={[
         "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
-        active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
+        // Softer active state (was bg-gray-900 text-white)
+        active
+          ? "bg-gray-200 text-gray-900"
+          : "text-gray-700 hover:bg-gray-100",
       ].join(" ")}
     >
       <span className="inline-flex items-center">{children}</span>
@@ -824,65 +900,6 @@ function TinySwitch({
           checked ? "translate-x-[18px]" : "translate-x-[4px]",
         ].join(" ")}
       />
-    </button>
-  );
-}
-
-function ToolButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="group relative inline-flex items-center justify-center w-9 h-9 rounded-full border bg-white shadow hover:bg-gray-50"
-      title={label}
-      aria-label={label}
-    >
-      {children}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function IconBtn({
-  label,
-  children,
-  tone = "neutral",
-  onClick,
-}: {
-  label: string;
-  children: React.ReactNode;
-  tone?: "neutral" | "info" | "success";
-  onClick?: () => void;
-}) {
-  const styles =
-    tone === "success"
-      ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
-      : tone === "info"
-      ? "bg-sky-600 text-white hover:bg-sky-700 border-sky-700"
-      : "bg-white text-gray-900 hover:bg-gray-50 border-gray-300";
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "group relative inline-flex items-center justify-center w-9 h-9 rounded-full border shadow",
-        styles,
-      ].join(" ")}
-      title={label}
-      aria-label={label}
-    >
-      {children}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
-        {label}
-      </span>
     </button>
   );
 }
@@ -1165,9 +1182,7 @@ function FormBlock({
               }
             />
             <div className="grid gap-1">
-              <label className="text-[11px] text-gray-600">
-                Follow-up Date
-              </label>
+              <label className="text[11px] text-gray-600">Follow-up Date</label>
               <input
                 type="date"
                 className="ui-input w-full min-w-0"

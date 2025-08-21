@@ -30,7 +30,7 @@ export default function CompanionToggle({
         className={[
           // Track (sleek)
           "relative inline-flex items-center rounded-full transition-colors outline-none",
-          "h-4 w-7",                        // slim track
+          "h-2 w-9",                        // slim track
           enabled ? "bg-gray-900" : "bg-gray-300",
           "focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 focus-visible:ring-offset-white",
           "dark:focus-visible:ring-offset-red-900",
@@ -40,7 +40,7 @@ export default function CompanionToggle({
         <span
           className={[
             "inline-block rounded-full bg-green-300 shadow-sm transform transition",
-            "h-3 w-3",                       // small knob
+            "h-1 w-1",                       // small knob
             enabled ? "translate-x-4" : "translate-x-1",
           ].join(" ")}
         />
