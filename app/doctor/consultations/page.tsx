@@ -213,14 +213,13 @@ const PAST_DAYS: DayRecords[] = [
   },
 ];
 
-/* A few nice colors for the date tabs */
 const TAB_COLORS = [
-  { bg: "#FFFFFF", text: "#ce130cff" },
-  { bg: "#FDE68A", text: "#92400E" },
-  { bg: "#FBCFE8", text: "#831843" },
-  { bg: "#C7D2FE", text: "#3730A3" },
-  { bg: "#BBF7D0", text: "#065F46" },
-  { bg: "#FEF9C3", text: "#854D0E" },
+  { bg: "#ddfadbff", text: "#313030ff", border: "#afafafff" },
+  { bg: "#fce6f8ff", text: "#313030ff", border: "#afafafff" },
+  { bg: "#e3e1fdff", text: "#313030ff", border: "#afafafff" },
+  { bg: "#e7f8c7ff", text: "#313030ff", border: "#3730A3" },
+  { bg: "#BBF7D0", text: "#065F46", border: "#065F46" },
+  { bg: "#FEF9C3", text: "#854D0E", border: "#854D0E" },
 ];
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -563,7 +562,7 @@ export default function ConsultationsPage() {
                       : undefined
                   }
                   icon={
-                    <img src="/icons/mic.png" alt="" className="w-3.5 h-3.5" />
+                    <img src="/icons/microphone.png" alt="" className="w-3.5 h-3.5" />
                   }
                 />
                 <CompanionChip
@@ -599,7 +598,7 @@ export default function ConsultationsPage() {
           }
         >
           {/* LEFT: Paper (preview / digital rx in-paper) */}
-          <div className="min-w-0">
+          <div className="min-w-0 mt-2">
             <div
               className="relative mx-auto bg-white border rounded-xl shadow-sm overflow-visible"
               style={{
@@ -622,7 +621,7 @@ export default function ConsultationsPage() {
                       onClick={() => setTabIndex(0)}
                       aria-pressed={activeTab}
                       className={[
-                        "px-4 py-2 text-sm font-semibold border-2 border-red-200 shadow-sm rounded-tr-lg",
+                        "px-4 py-2 text-sm font-semibold border-0.5 border-red-200 shadow-lg rounded-tr-lg flex items-end",
                         activeTab
                           ? "ring-2 z-20"
                           : "hover:brightness-[.98] z-0",
@@ -638,7 +637,7 @@ export default function ConsultationsPage() {
                         outline: "none",
                       }}
                     >
-                      <span className="relative -top-[7px]">+ New Record</span>
+                      <span className="relative -middle-[7px]">+ New Record</span>
                     </button>
                   );
                 })()}
@@ -655,7 +654,7 @@ export default function ConsultationsPage() {
                       aria-pressed={activeTab}
                       title={`Records from ${d.dateLabel}`}
                       className={[
-                        "px-4 py-2 text-sm font-semibold border-2 shadow-sm rounded-tr-lg",
+                        "px-4 py-2 text-sm font-semibold border-0.5 shadow-lg rounded-tr-lg",
                         activeTab
                           ? "ring-2 z-20"
                           : "hover:brightness-[.98] z-0",
@@ -671,7 +670,7 @@ export default function ConsultationsPage() {
                         outline: "none",
                       }}
                     >
-                      <span className="relative -top-[7px]">{d.dateLabel}</span>
+                      <span className="relative -middle-[7px]">{d.dateLabel}</span>
                     </button>
                   );
                 })}
