@@ -5,6 +5,13 @@ import React, { useMemo, useState } from "react";
 import { ChevronDown, ChevronDownIcon } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Image from "next/image";
+import {
+  ColumnDef,
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from "@tanstack/react-table";
 
 /** Simple field wrappers (reuse your UI classes) */
 function Field({
@@ -68,37 +75,35 @@ function Section({
     </section>
   );
 }
-/**Kaushikee */
+
 /** Small collapsible block used inside the Vitals → Show More */
 
 function Collapse({
   title,
   children,
   defaultOpen = false,
-  caretColor = "text-blue-600",
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
-  caretColor?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = React.useState(defaultOpen);
 
   return (
-    <div className="rounded-md border border-gray-200 shadow-md bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium"
-      >
-        <span>{title}</span>
-        <ChevronDown
-          className={`w-4 h-4 transition-transform ${
-            open ? `rotate-180 ${caretColor}` : "text-gray-400"
-          }`}
-        />
-      </button>
+    <div className="rounded-md border border-gray-300 shadow-md bg-white">
+      {/* Header Row */}
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="font-medium text-sm">{title}</span>
+        <button
+          type="button"
+          onClick={() => setOpen((s) => !s)}
+          className="text-xs text-blue-600 hover:underline"
+        >
+          {open ? "Less" : "More"}
+        </button>
+      </div>
 
+      {/* Collapsible content */}
       {open && <div className="px-3 pb-3 pt-1 grid gap-2">{children}</div>}
     </div>
   );
@@ -167,6 +172,10 @@ type RxRow = {
   frequency: string;
   duration?: string;
   dosage?: string;
+  durationUnit?: string;
+  durationValue?: string;
+  dosageUnit?: string;
+  dosageValue?: string;
   instruction?: string;
 };
 
@@ -294,7 +303,9 @@ export default function DigitalRxForm({
   const [clinicalNotes, setClinicalNotes] = useState("");
   const [clinicalFiles, setClinicalFiles] = useState<File[]>([]);
 
-  const [rx, setRx] = useState<RxRow[]>([{ medicine: "", frequency: "" }]);
+  const [rx, setRx] = useState<RxRow[]>([
+    { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
+  ]);
 
   const [plan, setPlan] = useState({
     investigations: "",
@@ -303,6 +314,31 @@ export default function DigitalRxForm({
     followUpInstructions: "",
     followUpDate: "",
   });
+
+  const MED_FREQS = [
+    "OD (once daily)",
+    "BD (twice daily)",
+    "TID (thrice daily)",
+    "QID (four times daily)",
+    "HS (at bedtime)",
+    "SOS (as needed)",
+    "1-0-1",
+    "1-1-1",
+    "1-0-0",
+    "0-1-0",
+    "0-0-1",
+  ];
+
+  const INSTRUCTION_OPTS = [
+    "After food",
+    "Before food",
+    "With water",
+    "With milk",
+    "PRN pain/fever",
+  ];
+
+  const DURATION_UNITS = ["days", "weeks", "months"];
+  const DOSAGE_UNITS = ["mg", "mcg", "g", "ml", "drops", "tabs", "caps"];
 
   // Assemble payload
   const payload = {
@@ -341,7 +377,7 @@ export default function DigitalRxForm({
           <div className="grid gap-3">
             {/* Row 1 — Body Measurements | Physical Activity */}
             <div className="grid gap-3 lg:grid-cols-2 ">
-              <Collapse title="Body Measurements" caretColor="text-emerald-600">
+              <Collapse title="Body Measurements">
                 <div className="grid sm:grid-cols-2 gap-2">
                   <Field label="Head Circumference (cm)">
                     <input
@@ -376,7 +412,7 @@ export default function DigitalRxForm({
                 </div>
               </Collapse>
 
-              <Collapse title="Physical Activity" caretColor="text-sky-600">
+              <Collapse title="Physical Activity">
                 <div className="grid sm:grid-cols-2 gap-2">
                   <Field label="Exercise Frequency (times/week)">
                     <input
@@ -435,7 +471,7 @@ export default function DigitalRxForm({
 
             {/* Row 2 — Women’s Health | Lifestyle */}
             <div className="grid gap-3 lg:grid-cols-2">
-              <Collapse title="Women’s Health" caretColor="text-fuchsia-600">
+              <Collapse title="Women’s Health">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <Field label="LMP">
                     <DatePicker
@@ -449,6 +485,9 @@ export default function DigitalRxForm({
                       dateFormat="yyyy-MM-dd"
                       className="ui-input w-full"
                       placeholderText="Select date"
+                      showMonthDropdown // ✅ show month dropdown
+                      showYearDropdown // ✅ show year dropdown
+                      dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
                     />
                   </Field>
                   <Field label="Gravida (G)">
@@ -491,7 +530,7 @@ export default function DigitalRxForm({
                 </div>
               </Collapse>
 
-              <Collapse title="Lifestyle" caretColor="text-amber-600">
+              <Collapse title="Lifestyle">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <Field label="Smoking">
                     <select
@@ -580,7 +619,7 @@ export default function DigitalRxForm({
 
             {/* Row 3 — General Assessment | Additional Info */}
             <div className="grid gap-3 lg:grid-cols-2">
-              <Collapse title="General Assessment" caretColor="text-indigo-600">
+              <Collapse title="General Assessment">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <Field label="General Assessment">
                     <textarea
@@ -631,10 +670,7 @@ export default function DigitalRxForm({
                 </div>
               </Collapse>
 
-              <Collapse
-                title="Additional Info + Attachments"
-                caretColor="text-rose-600"
-              >
+              <Collapse title="Additional Info + Attachments">
                 <Field label="Notes">
                   <textarea
                     className="ui-input w-full min-h-[70px]"
@@ -767,7 +803,7 @@ export default function DigitalRxForm({
           <div className="grid gap-3 ">
             {/* Row 1 — Allergy | Family History */}
             <div className="grid gap-3 lg:grid-cols-2">
-              <Collapse title="Allergy" caretColor="text-rose-600">
+              <Collapse title="Allergy">
                 <Field label="Allergy (Free Text)">
                   <textarea
                     className="ui-input w-full min-h-[70px] border border-gray-400 shadow-md bg-white"
@@ -779,7 +815,7 @@ export default function DigitalRxForm({
                 </Field>
               </Collapse>
 
-              <Collapse title="Family History" caretColor="text-amber-600">
+              <Collapse title="Family History">
                 {/* Mini table: Relation | Disease */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 ">
@@ -853,7 +889,7 @@ export default function DigitalRxForm({
 
             {/* Row 2 — Past Procedures | Investigations Done */}
             <div className="grid gap-3 lg:grid-cols-2">
-              <Collapse title="Past Procedures" caretColor="text-sky-600">
+              <Collapse title="Past Procedures">
                 {/* Mini table: Name | Date */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-[1fr_160px_auto] gap-2 px-1">
@@ -895,6 +931,9 @@ export default function DigitalRxForm({
                           dateFormat="yyyy-MM-dd"
                           className="ui-input w-full"
                           placeholderText="Select date"
+                          showMonthDropdown // ✅ show month dropdown
+                          showYearDropdown // ✅ show year dropdown
+                          dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
                         />
                         <button
                           type="button"
@@ -927,10 +966,7 @@ export default function DigitalRxForm({
                 </div>
               </Collapse>
 
-              <Collapse
-                title="Investigations Done"
-                caretColor="text-emerald-600"
-              >
+              <Collapse title="Investigations Done">
                 {/* Mini table: Name | Date */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-[1fr_160px_auto] gap-2 px-1">
@@ -957,19 +993,26 @@ export default function DigitalRxForm({
                             });
                           }}
                         />
-                        <input
-                          type="date"
-                          className="ui-input w-full"
-                          value={r.date}
-                          onChange={(e) => {
-                            const v = e.target.value;
+                        <DatePicker
+                          selected={r.date ? new Date(r.date) : null}
+                          onChange={(date: Date | null) => {
+                            const v = date
+                              ? date.toISOString().split("T")[0]
+                              : "";
                             setInvestigationsDone((rows) => {
                               const next = rows.slice();
                               next[i] = { ...next[i], date: v };
                               return next;
                             });
                           }}
+                          dateFormat="yyyy-MM-dd"
+                          className="ui-input w-full"
+                          placeholderText="Select date"
+                          showMonthDropdown // ✅ show month dropdown
+                          showYearDropdown // ✅ show year dropdown
+                          dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
                         />
+
                         <button
                           type="button"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50 text-gray-600"
@@ -1004,7 +1047,7 @@ export default function DigitalRxForm({
 
             {/* Row 3 — Notes | Attachment */}
             <div className="grid gap-3 lg:grid-cols-2">
-              <Collapse title="Notes" caretColor="text-indigo-600">
+              <Collapse title="Notes">
                 <Field label="Notes">
                   <textarea
                     className="ui-input w-full min-h-[70px]"
@@ -1014,7 +1057,7 @@ export default function DigitalRxForm({
                 </Field>
               </Collapse>
 
-              <Collapse title="Attachment" caretColor="text-purple-600">
+              <Collapse title="Attachment">
                 <div className="grid gap-2">
                   <label className="text-[11px] text-gray-600">
                     Upload Attachment
@@ -1160,106 +1203,317 @@ export default function DigitalRxForm({
       </Section>
 
       {/* 3) MEDICATIONS (unchanged) */}
+
       <Section
-        icon={<MedsIcon className="text-gray-700" />}
+        icon={
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 border border-emerald-200 overflow-hidden">
+            <Image
+              src="/icons/medicine.png"
+              alt="Medicine"
+              width={20}
+              height={20}
+              className="object-contain"
+              priority
+            />
+          </span>
+        }
         title="Medications"
         more={
           <div className="text-xs text-gray-600">
-            Use “+ Add Row” to add optional medicines; delete with ×.
+            Use the +/- toggle on a row to quickly add or remove. Frequency
+            &amp; Instruction are dropdowns.
           </div>
         }
       >
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-gray-600">
-            Add medicines with frequency; other fields are optional.
-          </div>
-          <button
-            type="button"
-            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-            onClick={() =>
-              setRx((rows) => [...rows, { medicine: "", frequency: "" }])
+        {/* ---------- Types + helpers (local to this section) ---------- */}
+        {(() => {
+          type RxRow = {
+            medicine: string;
+            frequency: string;
+            durationValue?: string;
+            durationUnit?: string;
+            duration?: string; // legacy combined
+            dosageValue?: string;
+            dosageUnit?: string;
+            dosage?: string; // legacy combined
+            instruction?: string;
+          };
+
+          const isRowEmpty = (row: RxRow) =>
+            !row.medicine &&
+            !row.frequency &&
+            !row.duration &&
+            !row.durationValue &&
+            !row.dosage &&
+            !row.dosageValue &&
+            !row.instruction;
+
+          const ensureOneBlankAtEnd = (rows: RxRow[]) => {
+            const out = rows.filter(Boolean);
+            if (out.length === 0 || !isRowEmpty(out[out.length - 1])) {
+              out.push({ medicine: "", frequency: "" });
             }
-          >
-            + Add Row
-          </button>
-        </div>
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full border text-sm table-fixed">
-            <thead className="bg-gray-50">
-              <tr>
-                <Th>Medicine *</Th>
-                <Th>Frequency *</Th>
-                <Th>Duration</Th>
-                <Th>Dosage</Th>
-                <Th>Instruction</Th>
-                <Th className="w-12">Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rx.map((row, i) => (
-                <tr key={i} className="border-t align-top">
-                  <Td>
+            return out;
+          };
+
+          // ---- Columns (TanStack) ----
+          const columns: ColumnDef<RxRow>[] = [
+            {
+              header: "Medicine *",
+              accessorKey: "medicine",
+              cell: ({ row, table, getValue }) => {
+                const i = row.index;
+                return (
+                  <input
+                    className="ui-input w-full"
+                    value={(getValue() as string) || ""}
+                    onChange={(e) =>
+                      (table.options.meta as any).editRx(i, {
+                        medicine: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., Paracetamol 500"
+                    required
+                  />
+                );
+              },
+            },
+            {
+              header: "Frequency *",
+              accessorKey: "frequency",
+              cell: ({ row, table, getValue }) => {
+                const i = row.index;
+                return (
+                  <select
+                    className="ui-input w-full"
+                    value={(getValue() as string) || ""}
+                    onChange={(e) =>
+                      (table.options.meta as any).editRx(i, {
+                        frequency: e.target.value,
+                      })
+                    }
+                    required
+                  >
+                    <option value="">Select</option>
+                    {MED_FREQS.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
+                );
+              },
+              size: 160,
+            },
+            {
+              header: "Duration",
+              id: "duration",
+              cell: ({ row, table }) => {
+                const i = row.index;
+                const r = row.original as RxRow;
+                return (
+                  <div className="grid grid-cols-[1fr_minmax(100px,120px)] gap-2">
                     <input
                       className="ui-input w-full"
-                      value={row.medicine}
-                      onChange={(e) => editRx(i, { medicine: e.target.value })}
-                      placeholder="e.g., Paracetamol 500 mg"
-                      required
+                      inputMode="numeric"
+                      placeholder="e.g., 5"
+                      value={r.durationValue || ""}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d]/g, "");
+                        const unit = r.durationUnit || "days";
+                        (table.options.meta as any).editRx(i, {
+                          durationValue: v,
+                          durationUnit: unit,
+                          duration: v ? `${v} ${unit}` : "",
+                        });
+                      }}
                     />
-                  </Td>
-                  <Td>
-                    <input
+                    <select
                       className="ui-input w-full"
-                      value={row.frequency}
-                      onChange={(e) => editRx(i, { frequency: e.target.value })}
-                      placeholder="1-0-1"
-                      required
-                    />
-                  </Td>
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={row.duration || ""}
-                      onChange={(e) => editRx(i, { duration: e.target.value })}
-                      placeholder="5 days"
-                    />
-                  </Td>
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={row.dosage || ""}
-                      onChange={(e) => editRx(i, { dosage: e.target.value })}
-                      placeholder="500 mg"
-                    />
-                  </Td>
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={row.instruction || ""}
-                      onChange={(e) =>
-                        editRx(i, { instruction: e.target.value })
-                      }
-                      placeholder="After food"
-                    />
-                  </Td>
-                  <Td>
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full border hover:bg-gray-50 text-gray-600 hover:text-gray-900"
-                      onClick={() =>
-                        setRx((rows) => rows.filter((_, idx) => idx !== i))
-                      }
-                      aria-label="Delete row"
-                      title="Delete row"
+                      value={r.durationUnit || ""}
+                      onChange={(e) => {
+                        const unit = e.target.value || "days";
+                        (table.options.meta as any).editRx(i, {
+                          durationUnit: unit,
+                          duration: r.durationValue
+                            ? `${r.durationValue} ${unit}`
+                            : "",
+                        });
+                      }}
                     >
-                      ×
-                    </button>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <option value="">Unit</option>
+                      {DURATION_UNITS.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              },
+              size: 200,
+            },
+            {
+              header: "Dosage",
+              id: "dosage",
+              cell: ({ row, table }) => {
+                const i = row.index;
+                const r = row.original as RxRow;
+                return (
+                  <div className="grid grid-cols-[1fr_minmax(100px,120px)] gap-2">
+                    <input
+                      className="ui-input w-full"
+                      placeholder="e.g., 500"
+                      value={r.dosageValue || ""}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d.]/g, "");
+                        const unit = r.dosageUnit || "mg";
+                        (table.options.meta as any).editRx(i, {
+                          dosageValue: v,
+                          dosageUnit: unit,
+                          dosage: v ? `${v} ${unit}` : "",
+                        });
+                      }}
+                    />
+                    <select
+                      className="ui-input w-full"
+                      value={r.dosageUnit || ""}
+                      onChange={(e) => {
+                        const unit = e.target.value || "mg";
+                        (table.options.meta as any).editRx(i, {
+                          dosageUnit: unit,
+                          dosage: r.dosageValue
+                            ? `${r.dosageValue} ${unit}`
+                            : "",
+                        });
+                      }}
+                    >
+                      <option value="">Unit</option>
+                      {DOSAGE_UNITS.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              },
+              size: 200,
+            },
+            {
+              header: "Instruction",
+              accessorKey: "instruction",
+              cell: ({ row, table, getValue }) => {
+                const i = row.index;
+                return (
+                  <select
+                    className="ui-input w-full"
+                    value={(getValue() as string) || ""}
+                    onChange={(e) =>
+                      (table.options.meta as any).editRx(i, {
+                        instruction: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select</option>
+                    {INSTRUCTION_OPTS.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                );
+              },
+              size: 180,
+            },
+          ];
+
+          // ---- Table instance ----
+          const table = useReactTable({
+            data: rx as RxRow[],
+            columns,
+            getCoreRowModel: getCoreRowModel(),
+            columnResizeMode: "onChange",
+            meta: {
+              editRx: (i: number, patch: Partial<RxRow>) =>
+                editRx(i, patch as any), // uses your existing editRx
+            },
+          });
+
+          // ---- +/- toggle behavior ----
+          const onToggleRow = (rowIndex: number) => {
+            const adder =
+              rowIndex === rx.length - 1 && isRowEmpty(rx[rowIndex] as RxRow);
+            if (adder) {
+              setRx((rows) => ensureOneBlankAtEnd(rows as RxRow[]));
+            } else {
+              setRx((rows) => {
+                const next = rows.filter((_, i) => i !== rowIndex) as RxRow[];
+                return ensureOneBlankAtEnd(next);
+              });
+            }
+          };
+
+          return (
+            <div className="mt-1">
+              {/* Borderless header */}
+              <div className="grid grid-cols-[minmax(220px,1fr)_160px_200px_200px_180px] gap-x-8 px-2 py-2 bg-gray-50 rounded-md">
+                {table.getHeaderGroups().map((hg) =>
+                  hg.headers.map((h) => (
+                    <div
+                      key={h.id}
+                      className="text-xs sm:text-sm font-medium text-gray-700"
+                    >
+                      {h.isPlaceholder
+                        ? null
+                        : flexRender(h.column.columnDef.header, h.getContext())}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Rows — borderless, each with a right-side attached toggle */}
+              <div className="divide-y-0">
+                {table.getRowModel().rows.map((r) => {
+                  const ri = r.index;
+                  const empty = isRowEmpty(r.original as RxRow);
+                  return (
+                    <div
+                      key={r.id}
+                      role="row"
+                      className="relative group grid grid-cols-[minmax(220px,1fr)_160px_200px_200px_180px] gap-x-8 px-2 py-2"
+                    >
+                      {r.getVisibleCells().map((cell) => (
+                        <div key={cell.id} role="cell" className="align-top">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Right-side toggle, outside the grid area but visually attached */}
+                      <button
+                        type="button"
+                        onClick={() => onToggleRow(ri)}
+                        title={empty ? "Add row" : "Remove row"}
+                        className={[
+                          "absolute -right-8 top-1/2 -translate-y-1/2",
+                          "w-7 h-7 rounded-full border leading-none",
+                          "bg-white text-gray-700 hover:bg-gray-50",
+                          "shadow-sm",
+                        ].join(" ")}
+                        aria-label={empty ? "Add row" : "Remove row"}
+                      >
+                        {empty ? "+" : "−"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </Section>
 
       {/* 4) INVESTIGATIONS & ADVICE (unchanged; textareas = ui-input) */}
@@ -1295,13 +1549,20 @@ export default function DigitalRxForm({
           </Field>
           <div className="grid gap-1">
             <label className="text-[11px] text-gray-600">Follow-up Date</label>
-            <input
-              type="date"
-              className="ui-input w-full"
-              value={plan.followUpDate}
-              onChange={(e) =>
-                setPlan((s) => ({ ...s, followUpDate: e.target.value }))
+            <DatePicker
+              selected={plan.followUpDate ? new Date(plan.followUpDate) : null}
+              onChange={(date: Date | null) =>
+                setPlan((s) => ({
+                  ...s,
+                  followUpDate: date ? date.toISOString().split("T")[0] : "",
+                }))
               }
+              dateFormat="yyyy-MM-dd"
+              className="ui-input w-full"
+              placeholderText="Select date"
+              showMonthDropdown // ✅ show month dropdown
+              showYearDropdown // ✅ show year dropdown
+              dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
             />
           </div>
           <Field label="Follow-up Instructions">
