@@ -1,8 +1,7 @@
 // components/doctor/DigitalRxForm.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { ChevronDown, ChevronDownIcon } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Image from "next/image";
@@ -13,7 +12,8 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 
-/** Simple field wrappers (reuse your UI classes) */
+/* ---------------------------- Small primitives ---------------------------- */
+
 function Field({
   label,
   children,
@@ -33,13 +33,30 @@ function Field({
   );
 }
 
+function ChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 function Section({
   icon,
   title,
   children,
   more,
   defaultOpen = false,
-  caretColor = "text-green-600", // pass different color per section if you like
+  caretColor = "text-green-600",
 }: {
   icon: React.ReactNode;
   title: string;
@@ -50,7 +67,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="rounded-md p-4 shadow-sm bg-white">
+    <section className="rounded-md p-4 shadow-sm bg-white border border-gray-200 overflow-hidden">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold">
           {icon}
@@ -76,8 +93,6 @@ function Section({
   );
 }
 
-/** Small collapsible block used inside the Vitals → Show More */
-
 function Collapse({
   title,
   children,
@@ -90,8 +105,7 @@ function Collapse({
   const [open, setOpen] = React.useState(defaultOpen);
 
   return (
-    <div className="rounded-md border border-gray-300 shadow-md bg-white">
-      {/* Header Row */}
+    <div className="rounded-md border border-gray-300 shadow-sm bg-white overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2">
         <span className="font-medium text-sm">{title}</span>
         <button
@@ -102,70 +116,31 @@ function Collapse({
           {open ? "Less" : "More"}
         </button>
       </div>
-
-      {/* Collapsible content */}
       {open && <div className="px-3 pb-3 pt-1 grid gap-2">{children}</div>}
     </div>
   );
 }
 
-// export Collapse;
+/* --------------------------------- Icons --------------------------------- */
 
-/* ---- Inline icons to match your style ---- */
 const VitalsIcon = (p: any) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    {...p}
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
     <path d="M3 12h3l2 6 4-12 3 9h6" />
   </svg>
 );
 const ClinicalIcon = (p: any) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    {...p}
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <path d="M12 7v10M7 12h10" />
   </svg>
 );
-const MedsIcon = (p: any) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    {...p}
-  >
-    <rect x="3" y="7" width="18" height="12" rx="2" />
-    <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-  </svg>
-);
 const AdviceIcon = (p: any) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    {...p}
-  >
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
     <path d="M12 2v4M12 18v4M4 12h4M16 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
   </svg>
 );
+
+/* --------------------------------- Types --------------------------------- */
 
 type RxRow = {
   medicine: string;
@@ -179,6 +154,13 @@ type RxRow = {
   instruction?: string;
 };
 
+type FamilyHistoryRow = { relation: string; disease: string };
+type PastProcedureRow = { name: string; date: string };
+type InvestigationRow = { name: string; date: string };
+type PmhRow = { medicine: string; dosage: string; since: string };
+
+/* ------------------------------- Component -------------------------------- */
+
 export default function DigitalRxForm({
   onSave,
   onSubmit,
@@ -186,95 +168,56 @@ export default function DigitalRxForm({
   onSave?: (data: any) => void;
   onSubmit?: (data: any) => void;
 }) {
-  /** ---------- DEFAULT VITALS (expanded) ---------- */
+  /* ------------------------------ Layout guard ----------------------------- */
+  // Contain the entire sheet inside the panel; prevent horizontal overflow.
+  // (Keep this wrapper class on the topmost element returned by this component.)
+  return (
+    <div className="max-w-full overflow-x-hidden">
+      <InnerForm onSave={onSave} onSubmit={onSubmit} />
+    </div>
+  );
+}
+
+function InnerForm({
+  onSave,
+  onSubmit,
+}: {
+  onSave?: (data: any) => void;
+  onSubmit?: (data: any) => void;
+}) {
+  /* ------------------------------- Vitals -------------------------------- */
   const [vitals, setVitals] = useState({
     temperature: "",
     spo2: "",
     weight: "",
     height: "",
-    // keep a combined bp string for compatibility if you need it elsewhere
     bp: "",
   });
+  const [bpSplit, setBpSplit] = useState<{ sys: string; dia: string }>({ sys: "", dia: "" });
 
-  // Systolic/Diastolic split (1–3 digits, tab to move between fields)
-  const [bpSplit, setBpSplit] = useState<{ sys: string; dia: string }>({
-    sys: "",
-    dia: "",
-  });
-
-  // keep vitals.bp up-to-date (e.g. "120/80")
   const bpStr = useMemo(() => {
     const s = bpSplit.sys.trim();
     const d = bpSplit.dia.trim();
     return s || d ? `${s}${d ? "/" + d : ""}` : "";
   }, [bpSplit]);
+
   const bmi = useMemo(() => {
     const h = Number(vitals.height || "");
     const w = Number(vitals.weight || "");
-    if (h > 0 && w > 0) return (w / Math.pow(h / 100, 2)).toFixed(1);
-    return "";
+    return h > 0 && w > 0 ? (w / Math.pow(h / 100, 2)).toFixed(1) : "";
   }, [vitals.height, vitals.weight]);
 
-  /** ---------- ADVANCED (Show More → Collapsible groups) ---------- */
+  /* ----------------------- Advanced vitals (collapse) --------------------- */
+  const [body, setBody] = useState({ headCircumference: "", hipCircumference: "" });
+  const [activity, setActivity] = useState({ frequency: "", duration: "", type: "", level: "" });
+  const ACTIVITY_LEVELS = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Athlete"];
+  const [assessment, setAssessment] = useState({ generalAssessment: "", painLevel: "", mobilityStatus: "" });
+  const MOBILITY_STATUSES = ["Independent", "Assisted", "Wheelchair", "Bedridden"];
+  const [women, setWomen] = useState({ lmp: "", gravida: "", para: "", gestationalAge: "" });
+  const [lifestyle, setLifestyle] = useState({ smoking: "", alcohol: "", diet: "", stressLevel: "", sleepHours: "" });
+  const [additional, setAdditional] = useState({ notes: "", files: [] as File[] });
 
-  // a) Body Measurements (FHIR anthropometrics)
-  const [body, setBody] = useState({
-    headCircumference: "", // cm
-    hipCircumference: "", // cm
-  });
-
-  // b) Physical Activity
-  const [activity, setActivity] = useState({
-    frequency: "", // e.g. times/week
-    duration: "", // minutes/session
-    type: "", // e.g. walking, running, yoga
-    level: "", // sedentary/light/moderate/very
-  });
-  const ACTIVITY_LEVELS = [
-    "Sedentary",
-    "Lightly Active",
-    "Moderately Active",
-    "Very Active",
-    "Athlete",
-  ];
-
-  // c) General Assessment (FHIR-like observables)
-  const [assessment, setAssessment] = useState({
-    generalAssessment: "", // free text summary
-    painLevel: "", // 0-10
-    mobilityStatus: "", // Independent / Assisted / Wheelchair / Bedridden
-  });
-  const MOBILITY_STATUSES = [
-    "Independent",
-    "Assisted",
-    "Wheelchair",
-    "Bedridden",
-  ];
-
-  // d) Women’s Health (typical obstetric data)
-  const [women, setWomen] = useState({
-    lmp: "", // yyyy-mm-dd
-    gravida: "", // G
-    para: "", // P
-    gestationalAge: "", // weeks
-  });
-
-  // e) Lifestyle
-  const [lifestyle, setLifestyle] = useState({
-    smoking: "", // None / Former / Current
-    alcohol: "", // None / Occasional / Regular
-    diet: "", // Veg / Non-veg / Vegan / Mixed
-    stressLevel: "", // Low / Moderate / High
-    sleepHours: "", // hours/day
-  });
-
-  // f) Additional info + document
-  const [additional, setAdditional] = useState({
-    notes: "",
-    files: [] as File[],
-  });
-
-  /** ---------- Clinical & Rx & Plan (unchanged) ---------- */
+  /* ------------------------------ Clinical -------------------------------- */
   const [clinical, setClinical] = useState({
     chiefComplaints: "",
     note: "",
@@ -283,37 +226,15 @@ export default function DigitalRxForm({
     allergy: "",
   });
 
-  // --- Clinical Details: new states ---
-  const [pmhTable, setPmhTable] = useState(
-    [{ medicine: "", dosage: "", since: "" }] // Past Medical History table
-  );
-
-  const [familyHistoryRows, setFamilyHistoryRows] = useState([
-    { relation: "", disease: "" },
-  ]);
-
-  const [pastProcedures, setPastProcedures] = useState([
-    { name: "", date: "" },
-  ]);
-
-  const [investigationsDone, setInvestigationsDone] = useState([
-    { name: "", date: "" },
-  ]);
-
+  const [familyHistoryRows, setFamilyHistoryRows] = useState<FamilyHistoryRow[]>([{ relation: "", disease: "" }]);
+  const [pastProcedures, setPastProcedures] = useState<PastProcedureRow[]>([{ name: "", date: "" }]);
+  const [investigationsDone, setInvestigationsDone] = useState<InvestigationRow[]>([{ name: "", date: "" }]);
+  const [pmhTable, setPmhTable] = useState<PmhRow[]>([{ medicine: "", dosage: "", since: "" }]);
   const [clinicalNotes, setClinicalNotes] = useState("");
   const [clinicalFiles, setClinicalFiles] = useState<File[]>([]);
 
-  const [rx, setRx] = useState<RxRow[]>([
-    { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
-  ]);
-
-  const [plan, setPlan] = useState({
-    investigations: "",
-    advice: "",
-    doctorNote: "",
-    followUpInstructions: "",
-    followUpDate: "",
-  });
+  /* -------------------------------- Rx ----------------------------------- */
+  const [rx, setRx] = useState<RxRow[]>([{ medicine: "", frequency: "", instruction: "", duration: "", dosage: "" }]);
 
   const MED_FREQS = [
     "OD (once daily)",
@@ -328,19 +249,41 @@ export default function DigitalRxForm({
     "0-1-0",
     "0-0-1",
   ];
-
-  const INSTRUCTION_OPTS = [
-    "After food",
-    "Before food",
-    "With water",
-    "With milk",
-    "PRN pain/fever",
-  ];
-
+  const INSTRUCTION_OPTS = ["After food", "Before food", "With water", "With milk", "PRN pain/fever"];
   const DURATION_UNITS = ["days", "weeks", "months"];
   const DOSAGE_UNITS = ["mg", "mcg", "g", "ml", "drops", "tabs", "caps"];
 
-  // Assemble payload
+  /* --------------------------- Blank-row helpers -------------------------- */
+  const isFHEmpty = (r: FamilyHistoryRow) => !r.relation && !r.disease;
+  const isProcEmpty = (r: PastProcedureRow) => !r.name && !r.date;
+  const isInvEmpty = (r: InvestigationRow) => !r.name && !r.date;
+  const isPmhEmpty = (r: PmhRow) => !r.medicine && !r.dosage && !r.since;
+  const isRxEmpty = (r: RxRow) =>
+    !r.medicine && !r.frequency && !r.duration && !r.durationValue && !r.dosage && !r.dosageValue && !r.instruction;
+
+  const ensureOneBlankAtEnd = <T,>(rows: T[], isEmpty: (r: T) => boolean, blank: T) => {
+    const out = rows.filter(Boolean);
+    if (out.length === 0 || !isEmpty(out[out.length - 1])) out.push({ ...(blank as any) });
+    return out;
+  };
+
+  useEffect(() => {
+    setFamilyHistoryRows((rows) => ensureOneBlankAtEnd(rows, isFHEmpty, { relation: "", disease: "" }));
+    setPastProcedures((rows) => ensureOneBlankAtEnd(rows, isProcEmpty, { name: "", date: "" }));
+    setInvestigationsDone((rows) => ensureOneBlankAtEnd(rows, isInvEmpty, { name: "", date: "" }));
+    setPmhTable((rows) => ensureOneBlankAtEnd(rows, isPmhEmpty, { medicine: "", dosage: "", since: "" }));
+    setRx((rows) =>
+      ensureOneBlankAtEnd(rows, isRxEmpty, {
+        medicine: "",
+        frequency: "",
+        instruction: "",
+        duration: "",
+        dosage: "",
+      })
+    );
+  }, []);
+
+  /* ---------------------------- Submit payload ---------------------------- */
   const payload = {
     vitals: { ...vitals, bp: bpStr, bmi },
     bodyMeasurements: body,
@@ -350,32 +293,29 @@ export default function DigitalRxForm({
     lifestyle,
     additional: {
       notes: additional.notes,
-      files: additional.files.map((f) => ({
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      })),
+      files: additional.files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
     },
     clinical,
     prescription: rx,
-    plan,
   };
+
+  /* -------------------------------- Render -------------------------------- */
 
   return (
     <form
-      className="grid gap-4 text-sm"
+      className="grid gap-4 text-sm max-w-full"
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit?.(payload);
       }}
     >
+      {/* ================================ VITALS ================================ */}
       <Section
         icon={<VitalsIcon className="text-gray-700" />}
         title="Vitals"
         caretColor="text-green-600"
         more={
           <div className="grid gap-3">
-            {/* Row 1 — Body Measurements | Physical Activity */}
             <div className="grid gap-3 lg:grid-cols-2 ">
               <Collapse title="Body Measurements">
                 <div className="grid sm:grid-cols-2 gap-2">
@@ -386,12 +326,7 @@ export default function DigitalRxForm({
                       min={0}
                       step="0.1"
                       value={body.headCircumference}
-                      onChange={(e) =>
-                        setBody((s) => ({
-                          ...s,
-                          headCircumference: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setBody((s) => ({ ...s, headCircumference: e.target.value }))}
                     />
                   </Field>
                   <Field label="Hip Circumference (cm)">
@@ -401,12 +336,7 @@ export default function DigitalRxForm({
                       min={0}
                       step="0.1"
                       value={body.hipCircumference}
-                      onChange={(e) =>
-                        setBody((s) => ({
-                          ...s,
-                          hipCircumference: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setBody((s) => ({ ...s, hipCircumference: e.target.value }))}
                     />
                   </Field>
                 </div>
@@ -420,12 +350,7 @@ export default function DigitalRxForm({
                       type="number"
                       min={0}
                       value={activity.frequency}
-                      onChange={(e) =>
-                        setActivity((s) => ({
-                          ...s,
-                          frequency: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setActivity((s) => ({ ...s, frequency: e.target.value }))}
                     />
                   </Field>
                   <Field label="Duration (minutes/session)">
@@ -434,9 +359,7 @@ export default function DigitalRxForm({
                       type="number"
                       min={0}
                       value={activity.duration}
-                      onChange={(e) =>
-                        setActivity((s) => ({ ...s, duration: e.target.value }))
-                      }
+                      onChange={(e) => setActivity((s) => ({ ...s, duration: e.target.value }))}
                     />
                   </Field>
                   <Field label="Activity Type">
@@ -444,18 +367,14 @@ export default function DigitalRxForm({
                       className="ui-input w-full"
                       placeholder="e.g., Walking, Running, Yoga"
                       value={activity.type}
-                      onChange={(e) =>
-                        setActivity((s) => ({ ...s, type: e.target.value }))
-                      }
+                      onChange={(e) => setActivity((s) => ({ ...s, type: e.target.value }))}
                     />
                   </Field>
                   <Field label="Activity Level">
                     <select
                       className="ui-input w-full"
                       value={activity.level}
-                      onChange={(e) =>
-                        setActivity((s) => ({ ...s, level: e.target.value }))
-                      }
+                      onChange={(e) => setActivity((s) => ({ ...s, level: e.target.value }))}
                     >
                       <option value="">Select</option>
                       {ACTIVITY_LEVELS.map((lvl) => (
@@ -469,7 +388,6 @@ export default function DigitalRxForm({
               </Collapse>
             </div>
 
-            {/* Row 2 — Women’s Health | Lifestyle */}
             <div className="grid gap-3 lg:grid-cols-2">
               <Collapse title="Women’s Health">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -477,17 +395,14 @@ export default function DigitalRxForm({
                     <DatePicker
                       selected={women.lmp ? new Date(women.lmp) : null}
                       onChange={(date: Date | null) =>
-                        setWomen((s) => ({
-                          ...s,
-                          lmp: date ? date.toISOString().split("T")[0] : "",
-                        }))
+                        setWomen((s) => ({ ...s, lmp: date ? date.toISOString().split("T")[0] : "" }))
                       }
                       dateFormat="yyyy-MM-dd"
                       className="ui-input w-full"
                       placeholderText="Select date"
-                      showMonthDropdown // ✅ show month dropdown
-                      showYearDropdown // ✅ show year dropdown
-                      dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
                     />
                   </Field>
                   <Field label="Gravida (G)">
@@ -496,9 +411,7 @@ export default function DigitalRxForm({
                       type="number"
                       min={0}
                       value={women.gravida}
-                      onChange={(e) =>
-                        setWomen((s) => ({ ...s, gravida: e.target.value }))
-                      }
+                      onChange={(e) => setWomen((s) => ({ ...s, gravida: e.target.value }))}
                     />
                   </Field>
                   <Field label="Para (P)">
@@ -507,9 +420,7 @@ export default function DigitalRxForm({
                       type="number"
                       min={0}
                       value={women.para}
-                      onChange={(e) =>
-                        setWomen((s) => ({ ...s, para: e.target.value }))
-                      }
+                      onChange={(e) => setWomen((s) => ({ ...s, para: e.target.value }))}
                     />
                   </Field>
                   <Field label="Gestational Age (weeks)">
@@ -519,12 +430,7 @@ export default function DigitalRxForm({
                       min={0}
                       step="0.1"
                       value={women.gestationalAge}
-                      onChange={(e) =>
-                        setWomen((s) => ({
-                          ...s,
-                          gestationalAge: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setWomen((s) => ({ ...s, gestationalAge: e.target.value }))}
                     />
                   </Field>
                 </div>
@@ -536,9 +442,7 @@ export default function DigitalRxForm({
                     <select
                       className="ui-input w-full"
                       value={lifestyle.smoking}
-                      onChange={(e) =>
-                        setLifestyle((s) => ({ ...s, smoking: e.target.value }))
-                      }
+                      onChange={(e) => setLifestyle((s) => ({ ...s, smoking: e.target.value }))}
                     >
                       <option value="">Select</option>
                       <option>None</option>
@@ -550,9 +454,7 @@ export default function DigitalRxForm({
                     <select
                       className="ui-input w-full"
                       value={lifestyle.alcohol}
-                      onChange={(e) =>
-                        setLifestyle((s) => ({ ...s, alcohol: e.target.value }))
-                      }
+                      onChange={(e) => setLifestyle((s) => ({ ...s, alcohol: e.target.value }))}
                     >
                       <option value="">Select</option>
                       <option>None</option>
@@ -566,9 +468,7 @@ export default function DigitalRxForm({
                       list="dietary-options"
                       placeholder="Type or select…"
                       value={lifestyle.diet}
-                      onChange={(e) =>
-                        setLifestyle((s) => ({ ...s, diet: e.target.value }))
-                      }
+                      onChange={(e) => setLifestyle((s) => ({ ...s, diet: e.target.value }))}
                     />
                     <datalist id="dietary-options">
                       <option value="Vegetarian" />
@@ -580,17 +480,11 @@ export default function DigitalRxForm({
                       <option value="Gluten-free" />
                     </datalist>
                   </Field>
-
                   <Field label="Stress Level">
                     <select
                       className="ui-input w-full"
                       value={lifestyle.stressLevel}
-                      onChange={(e) =>
-                        setLifestyle((s) => ({
-                          ...s,
-                          stressLevel: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setLifestyle((s) => ({ ...s, stressLevel: e.target.value }))}
                     >
                       <option value="">Select</option>
                       <option>Low</option>
@@ -605,19 +499,13 @@ export default function DigitalRxForm({
                       min={0}
                       step="0.1"
                       value={lifestyle.sleepHours}
-                      onChange={(e) =>
-                        setLifestyle((s) => ({
-                          ...s,
-                          sleepHours: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setLifestyle((s) => ({ ...s, sleepHours: e.target.value }))}
                     />
                   </Field>
                 </div>
               </Collapse>
             </div>
 
-            {/* Row 3 — General Assessment | Additional Info */}
             <div className="grid gap-3 lg:grid-cols-2">
               <Collapse title="General Assessment">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -625,12 +513,7 @@ export default function DigitalRxForm({
                     <textarea
                       className="ui-input w-full min-h-[70px]"
                       value={assessment.generalAssessment}
-                      onChange={(e) =>
-                        setAssessment((s) => ({
-                          ...s,
-                          generalAssessment: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setAssessment((s) => ({ ...s, generalAssessment: e.target.value }))}
                     />
                   </Field>
                   <Field label="Pain Level (0–10)">
@@ -640,24 +523,14 @@ export default function DigitalRxForm({
                       min={0}
                       max={10}
                       value={assessment.painLevel}
-                      onChange={(e) =>
-                        setAssessment((s) => ({
-                          ...s,
-                          painLevel: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setAssessment((s) => ({ ...s, painLevel: e.target.value }))}
                     />
                   </Field>
                   <Field label="Mobility Status">
                     <select
                       className="ui-input w-full"
                       value={assessment.mobilityStatus}
-                      onChange={(e) =>
-                        setAssessment((s) => ({
-                          ...s,
-                          mobilityStatus: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setAssessment((s) => ({ ...s, mobilityStatus: e.target.value }))}
                     >
                       <option value="">Select</option>
                       {MOBILITY_STATUSES.map((m) => (
@@ -675,15 +548,11 @@ export default function DigitalRxForm({
                   <textarea
                     className="ui-input w-full min-h-[70px]"
                     value={additional.notes}
-                    onChange={(e) =>
-                      setAdditional((s) => ({ ...s, notes: e.target.value }))
-                    }
+                    onChange={(e) => setAdditional((s) => ({ ...s, notes: e.target.value }))}
                   />
                 </Field>
                 <div className="grid gap-2">
-                  <label className="text-[11px] text-gray-600">
-                    Attach Document
-                  </label>
+                  <label className="text-[11px] text-gray-600">Attach Document</label>
                   <div className="flex items-center gap-2">
                     <label className="ui-input px-3 py-2 rounded-md border cursor-pointer">
                       <input
@@ -709,19 +578,15 @@ export default function DigitalRxForm({
           </div>
         }
       >
-        {/* DEFAULT VITALS GRID (unchanged) */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <Field label="Temperature (°C)" required>
             <input
               className="ui-input w-full"
               value={vitals.temperature}
-              onChange={(e) =>
-                setVitals((s) => ({ ...s, temperature: e.target.value }))
-              }
+              onChange={(e) => setVitals((s) => ({ ...s, temperature: e.target.value }))}
             />
           </Field>
 
-          {/* BP split: systolic / diastolic (1–3 digits each) */}
           <Field label="Blood Pressure (mmHg)" required>
             <div className="flex items-center gap-2">
               <input
@@ -760,9 +625,7 @@ export default function DigitalRxForm({
               min={0}
               max={100}
               value={vitals.spo2}
-              onChange={(e) =>
-                setVitals((s) => ({ ...s, spo2: e.target.value }))
-              }
+              onChange={(e) => setVitals((s) => ({ ...s, spo2: e.target.value }))}
             />
           </Field>
 
@@ -771,9 +634,7 @@ export default function DigitalRxForm({
               type="number"
               className="ui-input w-full"
               value={vitals.weight}
-              onChange={(e) =>
-                setVitals((s) => ({ ...s, weight: e.target.value }))
-              }
+              onChange={(e) => setVitals((s) => ({ ...s, weight: e.target.value }))}
             />
           </Field>
 
@@ -782,9 +643,7 @@ export default function DigitalRxForm({
               type="number"
               className="ui-input w-full"
               value={vitals.height}
-              onChange={(e) =>
-                setVitals((s) => ({ ...s, height: e.target.value }))
-              }
+              onChange={(e) => setVitals((s) => ({ ...s, height: e.target.value }))}
             />
           </Field>
 
@@ -794,258 +653,248 @@ export default function DigitalRxForm({
         </div>
       </Section>
 
-      {/* 2) CLINICAL DETAILS (unchanged; textareas now use ui-input for same focus look) */}
+      {/* =========================== CLINICAL DETAILS ========================== */}
       <Section
         icon={<ClinicalIcon className="text-gray-700" />}
         title="Clinical Details"
         caretColor="text-indigo-600"
         more={
           <div className="grid gap-3 ">
-            {/* Row 1 — Allergy | Family History */}
             <div className="grid gap-3 lg:grid-cols-2">
               <Collapse title="Allergy">
                 <Field label="Allergy (Free Text)">
                   <textarea
-                    className="ui-input w-full min-h-[70px] border border-gray-400 shadow-md bg-white"
+                    className="ui-input w-full min-h-[70px]"
                     value={clinical.allergy}
-                    onChange={(e) =>
-                      setClinical((s) => ({ ...s, allergy: e.target.value }))
-                    }
+                    onChange={(e) => setClinical((s) => ({ ...s, allergy: e.target.value }))}
                   />
                 </Field>
               </Collapse>
 
               <Collapse title="Family History">
-                {/* Mini table: Relation | Disease */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 ">
+                  <div className="grid grid-cols-[1fr_1fr] gap-2 px-1">
                     <div className="text-[11px] text-gray-500">Relation</div>
                     <div className="text-[11px] text-gray-500">Disease</div>
-                    <div />
                   </div>
+
                   <div className="space-y-2">
-                    {familyHistoryRows.map((r, i) => (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[1fr_1fr_auto] gap-2 p-2 rounded-md border border-gray-200 shadow-md bg-white"
-                      >
-                        <input
-                          className="ui-input w-full"
-                          placeholder="e.g., Mother"
-                          value={r.relation}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setFamilyHistoryRows((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], relation: v };
-                              return next;
-                            });
-                          }}
-                        />
-                        <input
-                          className="ui-input w-full"
-                          placeholder="e.g., Diabetes"
-                          value={r.disease}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setFamilyHistoryRows((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], disease: v };
-                              return next;
-                            });
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50 text-gray-600"
-                          onClick={() =>
-                            setFamilyHistoryRows((rows) =>
-                              rows.filter((_, idx) => idx !== i)
-                            )
-                          }
-                          title="Delete row"
-                          aria-label="Delete row"
+                    {familyHistoryRows.map((r, i) => {
+                      const empty = isFHEmpty(r);
+                      const isLast = i === familyHistoryRows.length - 1;
+                      return (
+                        <div
+                          key={i}
+                          className="relative grid grid-cols-[1fr_1fr] gap-2 p-2 pr-10 rounded-md border border-gray-200 bg-white"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <input
+                            className="ui-input w-full"
+                            placeholder="e.g., Mother"
+                            value={r.relation}
+                            onChange={(e) =>
+                              setFamilyHistoryRows((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], relation: e.target.value };
+                                return ensureOneBlankAtEnd(next, isFHEmpty, { relation: "", disease: "" });
+                              })
+                            }
+                          />
+                          <input
+                            className="ui-input w-full"
+                            placeholder="e.g., Diabetes"
+                            value={r.disease}
+                            onChange={(e) =>
+                              setFamilyHistoryRows((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], disease: e.target.value };
+                                return ensureOneBlankAtEnd(next, isFHEmpty, { relation: "", disease: "" });
+                              })
+                            }
+                          />
+
+                          {/* +/- toggle (inside bounds, no negative right) */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFamilyHistoryRows((rows) => {
+                                if (isLast && empty) {
+                                  // ADD: append brand new blank
+                                  return ensureOneBlankAtEnd(
+                                    [...rows, { relation: "", disease: "" }],
+                                    isFHEmpty,
+                                    { relation: "", disease: "" }
+                                  );
+                                } else {
+                                  // REMOVE: drop row, keep one blank at end
+                                  const next = rows.filter((_, idx) => idx !== i);
+                                  return ensureOneBlankAtEnd(next, isFHEmpty, { relation: "", disease: "" });
+                                }
+                              })
+                            }
+                            title={isLast && empty ? "Add row" : "Remove row"}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                            aria-label={isLast && empty ? "Add row" : "Remove row"}
+                          >
+                            {isLast && empty ? "+" : "−"}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                    onClick={() =>
-                      setFamilyHistoryRows((rows) => [
-                        ...rows,
-                        { relation: "", disease: "" },
-                      ])
-                    }
-                  >
-                    + Add Row
-                  </button>
                 </div>
               </Collapse>
             </div>
 
-            {/* Row 2 — Past Procedures | Investigations Done */}
             <div className="grid gap-3 lg:grid-cols-2">
               <Collapse title="Past Procedures">
-                {/* Mini table: Name | Date */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[1fr_160px_auto] gap-2 px-1">
+                  <div className="grid grid-cols-[1fr_160px] gap-2 px-1">
                     <div className="text-[11px] text-gray-500">Name</div>
                     <div className="text-[11px] text-gray-500">Date</div>
-                    <div />
                   </div>
+
                   <div className="space-y-2">
-                    {pastProcedures.map((r, i) => (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[1fr_160px_auto] gap-2 p-2 rounded-md shadow-sm bg-white"
-                      >
-                        <input
-                          className="ui-input w-full"
-                          placeholder="e.g., Appendectomy"
-                          value={r.name}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setPastProcedures((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], name: v };
-                              return next;
-                            });
-                          }}
-                        />
-                        <DatePicker
-                          selected={r.date ? new Date(r.date) : null}
-                          onChange={(date: Date | null) => {
-                            const v = date
-                              ? date.toISOString().split("T")[0]
-                              : "";
-                            setPastProcedures((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], date: v };
-                              return next;
-                            });
-                          }}
-                          dateFormat="yyyy-MM-dd"
-                          className="ui-input w-full"
-                          placeholderText="Select date"
-                          showMonthDropdown // ✅ show month dropdown
-                          showYearDropdown // ✅ show year dropdown
-                          dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
-                        />
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50 text-gray-600"
-                          onClick={() =>
-                            setPastProcedures((rows) =>
-                              rows.filter((_, idx) => idx !== i)
-                            )
-                          }
-                          title="Delete row"
-                          aria-label="Delete row"
+                    {pastProcedures.map((r, i) => {
+                      const empty = isProcEmpty(r);
+                      const isLast = i === pastProcedures.length - 1;
+                      return (
+                        <div
+                          key={i}
+                          className="relative grid grid-cols-[1fr_160px] gap-2 p-2 pr-10 rounded-md bg-white"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <input
+                            className="ui-input w-full"
+                            placeholder="e.g., Appendectomy"
+                            value={r.name}
+                            onChange={(e) =>
+                              setPastProcedures((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], name: e.target.value };
+                                return ensureOneBlankAtEnd(next, isProcEmpty, { name: "", date: "" });
+                              })
+                            }
+                          />
+                          <DatePicker
+                            selected={r.date ? new Date(r.date) : null}
+                            onChange={(date: Date | null) =>
+                              setPastProcedures((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], date: date ? date.toISOString().split("T")[0] : "" };
+                                return ensureOneBlankAtEnd(next, isProcEmpty, { name: "", date: "" });
+                              })
+                            }
+                            dateFormat="yyyy-MM-dd"
+                            className="ui-input w-full"
+                            placeholderText="Select date"
+                            showMonthDropdown
+                            showYearDropdown
+                            dropdownMode="select"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPastProcedures((rows) => {
+                                if (isLast && empty) {
+                                  return ensureOneBlankAtEnd(
+                                    [...rows, { name: "", date: "" }],
+                                    isProcEmpty,
+                                    { name: "", date: "" }
+                                  );
+                                } else {
+                                  const next = rows.filter((_, idx) => idx !== i);
+                                  return ensureOneBlankAtEnd(next, isProcEmpty, { name: "", date: "" });
+                                }
+                              })
+                            }
+                            title={isLast && empty ? "Add row" : "Remove row"}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                            aria-label={isLast && empty ? "Add row" : "Remove row"}
+                          >
+                            {isLast && empty ? "+" : "−"}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                    onClick={() =>
-                      setPastProcedures((rows) => [
-                        ...rows,
-                        { name: "", date: "" },
-                      ])
-                    }
-                  >
-                    + Add Row
-                  </button>
                 </div>
               </Collapse>
 
               <Collapse title="Investigations Done">
-                {/* Mini table: Name | Date */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[1fr_160px_auto] gap-2 px-1">
+                  <div className="grid grid-cols-[1fr_160px] gap-2 px-1">
                     <div className="text-[11px] text-gray-500">Name</div>
                     <div className="text-[11px] text-gray-500">Date</div>
-                    <div />
                   </div>
-                  <div className="space-y-2">
-                    {investigationsDone.map((r, i) => (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[1fr_160px_auto] gap-2 p-2 rounded-md shadow-sm bg-white"
-                      >
-                        <input
-                          className="ui-input w-full"
-                          placeholder="e.g., CBC, X-ray Chest"
-                          value={r.name}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setInvestigationsDone((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], name: v };
-                              return next;
-                            });
-                          }}
-                        />
-                        <DatePicker
-                          selected={r.date ? new Date(r.date) : null}
-                          onChange={(date: Date | null) => {
-                            const v = date
-                              ? date.toISOString().split("T")[0]
-                              : "";
-                            setInvestigationsDone((rows) => {
-                              const next = rows.slice();
-                              next[i] = { ...next[i], date: v };
-                              return next;
-                            });
-                          }}
-                          dateFormat="yyyy-MM-dd"
-                          className="ui-input w-full"
-                          placeholderText="Select date"
-                          showMonthDropdown // ✅ show month dropdown
-                          showYearDropdown // ✅ show year dropdown
-                          dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
-                        />
 
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50 text-gray-600"
-                          onClick={() =>
-                            setInvestigationsDone((rows) =>
-                              rows.filter((_, idx) => idx !== i)
-                            )
-                          }
-                          title="Delete row"
-                          aria-label="Delete row"
+                  <div className="space-y-2">
+                    {investigationsDone.map((r, i) => {
+                      const empty = isInvEmpty(r);
+                      const isLast = i === investigationsDone.length - 1;
+                      return (
+                        <div
+                          key={i}
+                          className="relative grid grid-cols-[1fr_160px] gap-2 p-2 pr-10 rounded-md bg-white"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <input
+                            className="ui-input w-full"
+                            placeholder="e.g., CBC, X-ray Chest"
+                            value={r.name}
+                            onChange={(e) =>
+                              setInvestigationsDone((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], name: e.target.value };
+                                return ensureOneBlankAtEnd(next, isInvEmpty, { name: "", date: "" });
+                              })
+                            }
+                          />
+                          <DatePicker
+                            selected={r.date ? new Date(r.date) : null}
+                            onChange={(date: Date | null) =>
+                              setInvestigationsDone((rows) => {
+                                const next = rows.slice();
+                                next[i] = { ...next[i], date: date ? date.toISOString().split("T")[0] : "" };
+                                return ensureOneBlankAtEnd(next, isInvEmpty, { name: "", date: "" });
+                              })
+                            }
+                            dateFormat="yyyy-MM-dd"
+                            className="ui-input w-full"
+                            placeholderText="Select date"
+                            showMonthDropdown
+                            showYearDropdown
+                            dropdownMode="select"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInvestigationsDone((rows) => {
+                                if (isLast && empty) {
+                                  return ensureOneBlankAtEnd(
+                                    [...rows, { name: "", date: "" }],
+                                    isInvEmpty,
+                                    { name: "", date: "" }
+                                  );
+                                } else {
+                                  const next = rows.filter((_, idx) => idx !== i);
+                                  return ensureOneBlankAtEnd(next, isInvEmpty, { name: "", date: "" });
+                                }
+                              })
+                            }
+                            title={isLast && empty ? "Add row" : "Remove row"}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                            aria-label={isLast && empty ? "Add row" : "Remove row"}
+                          >
+                            {isLast && empty ? "+" : "−"}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                    onClick={() =>
-                      setInvestigationsDone((rows) => [
-                        ...rows,
-                        { name: "", date: "" },
-                      ])
-                    }
-                  >
-                    + Add Row
-                  </button>
                 </div>
               </Collapse>
             </div>
 
-            {/* Row 3 — Notes | Attachment */}
             <div className="grid gap-3 lg:grid-cols-2">
               <Collapse title="Notes">
                 <Field label="Notes">
@@ -1059,9 +908,7 @@ export default function DigitalRxForm({
 
               <Collapse title="Attachment">
                 <div className="grid gap-2">
-                  <label className="text-[11px] text-gray-600">
-                    Upload Attachment
-                  </label>
+                  <label className="text-[11px] text-gray-600">Upload Attachment</label>
                   <div className="flex items-center gap-2">
                     <label className="ui-input px-3 py-2 rounded-md border cursor-pointer">
                       <input
@@ -1087,123 +934,109 @@ export default function DigitalRxForm({
           </div>
         }
       >
-        {/* DEFAULT fields — (A) Chief Complaints | (B) Past Medical History */}
         <div className="grid gap-3">
-          {/* A) Chief Complaints — Free Text */}
           <Field label="Chief Complaints" required>
             <textarea
               className="ui-input w-full min-h-[70px]"
               value={clinical.chiefComplaints}
-              onChange={(e) =>
-                setClinical((s) => ({ ...s, chiefComplaints: e.target.value }))
-              }
+              onChange={(e) => setClinical((s) => ({ ...s, chiefComplaints: e.target.value }))}
             />
           </Field>
 
-          {/* B) Past Medical History — Free Text + Mini Table */}
           <div className="grid gap-2">
             <Field label="Past Medical History (Free Text)">
               <textarea
                 className="ui-input w-full min-h-[70px]"
                 value={clinical.pastHistory}
-                onChange={(e) =>
-                  setClinical((s) => ({ ...s, pastHistory: e.target.value }))
-                }
+                onChange={(e) => setClinical((s) => ({ ...s, pastHistory: e.target.value }))}
               />
             </Field>
 
-            {/* Mini table: Medicines | Dosage | Since (duration) */}
             <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-1">
+              <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 px-1">
                 <div className="text-[11px] text-gray-500">Medicine</div>
                 <div className="text-[11px] text-gray-500">Dosage</div>
-                <div className="text-[11px] text-gray-500">
-                  Since (duration)
-                </div>
-                <div />
+                <div className="text-[11px] text-gray-500">Since (duration)</div>
               </div>
 
               <div className="space-y-2">
-                {pmhTable.map((r, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 p-2 rounded-md shadow-sm bg-white"
-                  >
-                    <input
-                      className="ui-input w-full"
-                      placeholder="e.g., Metformin"
-                      value={r.medicine}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPmhTable((rows) => {
-                          const next = rows.slice();
-                          next[i] = { ...next[i], medicine: v };
-                          return next;
-                        });
-                      }}
-                    />
-                    <input
-                      className="ui-input w-full"
-                      placeholder="e.g., 500 mg 1-0-1"
-                      value={r.dosage}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPmhTable((rows) => {
-                          const next = rows.slice();
-                          next[i] = { ...next[i], dosage: v };
-                          return next;
-                        });
-                      }}
-                    />
-                    <input
-                      className="ui-input w-full"
-                      placeholder="e.g., 2 years"
-                      value={r.since}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPmhTable((rows) => {
-                          const next = rows.slice();
-                          next[i] = { ...next[i], since: v };
-                          return next;
-                        });
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50 text-gray-600"
-                      onClick={() =>
-                        setPmhTable((rows) =>
-                          rows.filter((_, idx) => idx !== i)
-                        )
-                      }
-                      title="Delete row"
-                      aria-label="Delete row"
+                {pmhTable.map((r, i) => {
+                  const empty = isPmhEmpty(r);
+                  const isLast = i === pmhTable.length - 1;
+                  return (
+                    <div
+                      key={i}
+                      className="relative grid grid-cols-[1fr_1fr_1fr] gap-2 p-2 pr-10 rounded-md bg-white"
                     >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <input
+                        className="ui-input w-full"
+                        placeholder="e.g., Metformin"
+                        value={r.medicine}
+                        onChange={(e) =>
+                          setPmhTable((rows) => {
+                            const next = rows.slice();
+                            next[i] = { ...next[i], medicine: e.target.value };
+                            return ensureOneBlankAtEnd(next, isPmhEmpty, { medicine: "", dosage: "", since: "" });
+                          })
+                        }
+                      />
+                      <input
+                        className="ui-input w-full"
+                        placeholder="e.g., 500 mg 1-0-1"
+                        value={r.dosage}
+                        onChange={(e) =>
+                          setPmhTable((rows) => {
+                            const next = rows.slice();
+                            next[i] = { ...next[i], dosage: e.target.value };
+                            return ensureOneBlankAtEnd(next, isPmhEmpty, { medicine: "", dosage: "", since: "" });
+                          })
+                        }
+                      />
+                      <input
+                        className="ui-input w-full"
+                        placeholder="e.g., 2 years"
+                        value={r.since}
+                        onChange={(e) =>
+                          setPmhTable((rows) => {
+                            const next = rows.slice();
+                            next[i] = { ...next[i], since: e.target.value };
+                            return ensureOneBlankAtEnd(next, isPmhEmpty, { medicine: "", dosage: "", since: "" });
+                          })
+                        }
+                      />
 
-              <button
-                type="button"
-                className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                onClick={() =>
-                  setPmhTable((rows) => [
-                    ...rows,
-                    { medicine: "", dosage: "", since: "" },
-                  ])
-                }
-              >
-                + Add Row
-              </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPmhTable((rows) => {
+                            if (isLast && empty) {
+                              return ensureOneBlankAtEnd(
+                                [...rows, { medicine: "", dosage: "", since: "" }],
+                                isPmhEmpty,
+                                { medicine: "", dosage: "", since: "" }
+                              );
+                            } else {
+                              const next = rows.filter((_, idx) => idx !== i);
+                              return ensureOneBlankAtEnd(next, isPmhEmpty, { medicine: "", dosage: "", since: "" });
+                            }
+                          })
+                        }
+                        title={isLast && empty ? "Add row" : "Remove row"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                        aria-label={isLast && empty ? "Add row" : "Remove row"}
+                      >
+                        {isLast && empty ? "+" : "−"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* 3) MEDICATIONS (unchanged) */}
-
+      {/* ================================ MEDICATIONS ================================ */}
       <Section
         icon={
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 border border-emerald-200 overflow-hidden">
@@ -1218,28 +1051,12 @@ export default function DigitalRxForm({
           </span>
         }
         title="Medications"
-        more={
-          <div className="text-xs text-gray-600">
-            Use the +/- toggle on a row to quickly add or remove. Frequency
-            &amp; Instruction are dropdowns.
-          </div>
-        }
+        more={<div className="text-xs text-gray-600">Use the +/- toggle on the right of each row.</div>}
       >
-        {/* ---------- Types + helpers (local to this section) ---------- */}
         {(() => {
-          type RxRow = {
-            medicine: string;
-            frequency: string;
-            durationValue?: string;
-            durationUnit?: string;
-            duration?: string; // legacy combined
-            dosageValue?: string;
-            dosageUnit?: string;
-            dosage?: string; // legacy combined
-            instruction?: string;
-          };
+          type RxRowLocal = RxRow;
 
-          const isRowEmpty = (row: RxRow) =>
+          const isRowEmpty = (row: RxRowLocal) =>
             !row.medicine &&
             !row.frequency &&
             !row.duration &&
@@ -1248,16 +1065,14 @@ export default function DigitalRxForm({
             !row.dosageValue &&
             !row.instruction;
 
-          const ensureOneBlankAtEnd = (rows: RxRow[]) => {
-            const out = rows.filter(Boolean);
-            if (out.length === 0 || !isRowEmpty(out[out.length - 1])) {
-              out.push({ medicine: "", frequency: "" });
-            }
-            return out;
-          };
+          // Important: when clicking "+" on last blank → explicitly append a blank,
+          // not ensureOneBlankAtEnd (which would do nothing because last is already blank).
+          const appendBlank = (rows: RxRowLocal[]) => [
+            ...rows,
+            { medicine: "", frequency: "", instruction: "", duration: "", dosage: "" },
+          ];
 
-          // ---- Columns (TanStack) ----
-          const columns: ColumnDef<RxRow>[] = [
+          const columns: ColumnDef<RxRowLocal>[] = [
             {
               header: "Medicine *",
               accessorKey: "medicine",
@@ -1267,11 +1082,7 @@ export default function DigitalRxForm({
                   <input
                     className="ui-input w-full"
                     value={(getValue() as string) || ""}
-                    onChange={(e) =>
-                      (table.options.meta as any).editRx(i, {
-                        medicine: e.target.value,
-                      })
-                    }
+                    onChange={(e) => (table.options.meta as any).editRx(i, { medicine: e.target.value })}
                     placeholder="e.g., Paracetamol 500"
                     required
                   />
@@ -1287,11 +1098,7 @@ export default function DigitalRxForm({
                   <select
                     className="ui-input w-full"
                     value={(getValue() as string) || ""}
-                    onChange={(e) =>
-                      (table.options.meta as any).editRx(i, {
-                        frequency: e.target.value,
-                      })
-                    }
+                    onChange={(e) => (table.options.meta as any).editRx(i, { frequency: e.target.value })}
                     required
                   >
                     <option value="">Select</option>
@@ -1303,16 +1110,16 @@ export default function DigitalRxForm({
                   </select>
                 );
               },
-              size: 160,
+              size: 140,
             },
             {
               header: "Duration",
               id: "duration",
               cell: ({ row, table }) => {
                 const i = row.index;
-                const r = row.original as RxRow;
+                const r = row.original as RxRowLocal;
                 return (
-                  <div className="grid grid-cols-[1fr_minmax(100px,120px)] gap-2">
+                  <div className="grid grid-cols-[1fr_minmax(90px,110px)] gap-2">
                     <input
                       className="ui-input w-full"
                       inputMode="numeric"
@@ -1335,9 +1142,7 @@ export default function DigitalRxForm({
                         const unit = e.target.value || "days";
                         (table.options.meta as any).editRx(i, {
                           durationUnit: unit,
-                          duration: r.durationValue
-                            ? `${r.durationValue} ${unit}`
-                            : "",
+                          duration: r.durationValue ? `${r.durationValue} ${unit}` : "",
                         });
                       }}
                     >
@@ -1351,16 +1156,16 @@ export default function DigitalRxForm({
                   </div>
                 );
               },
-              size: 200,
+              size: 170,
             },
             {
               header: "Dosage",
               id: "dosage",
               cell: ({ row, table }) => {
                 const i = row.index;
-                const r = row.original as RxRow;
+                const r = row.original as RxRowLocal;
                 return (
-                  <div className="grid grid-cols-[1fr_minmax(100px,120px)] gap-2">
+                  <div className="grid grid-cols-[1fr_minmax(90px,110px)] gap-2">
                     <input
                       className="ui-input w-full"
                       placeholder="e.g., 500"
@@ -1382,9 +1187,7 @@ export default function DigitalRxForm({
                         const unit = e.target.value || "mg";
                         (table.options.meta as any).editRx(i, {
                           dosageUnit: unit,
-                          dosage: r.dosageValue
-                            ? `${r.dosageValue} ${unit}`
-                            : "",
+                          dosage: r.dosageValue ? `${r.dosageValue} ${unit}` : "",
                         });
                       }}
                     >
@@ -1398,7 +1201,7 @@ export default function DigitalRxForm({
                   </div>
                 );
               },
-              size: 200,
+              size: 170,
             },
             {
               header: "Instruction",
@@ -1409,11 +1212,7 @@ export default function DigitalRxForm({
                   <select
                     className="ui-input w-full"
                     value={(getValue() as string) || ""}
-                    onChange={(e) =>
-                      (table.options.meta as any).editRx(i, {
-                        instruction: e.target.value,
-                      })
-                    }
+                    onChange={(e) => (table.options.meta as any).editRx(i, { instruction: e.target.value })}
                   >
                     <option value="">Select</option>
                     {INSTRUCTION_OPTS.map((o) => (
@@ -1424,88 +1223,83 @@ export default function DigitalRxForm({
                   </select>
                 );
               },
-              size: 180,
+              size: 150,
             },
           ];
 
-          // ---- Table instance ----
           const table = useReactTable({
-            data: rx as RxRow[],
+            data: rx as RxRowLocal[],
             columns,
             getCoreRowModel: getCoreRowModel(),
             columnResizeMode: "onChange",
             meta: {
-              editRx: (i: number, patch: Partial<RxRow>) =>
-                editRx(i, patch as any), // uses your existing editRx
+              editRx: (i: number, patch: Partial<RxRowLocal>) => editRx(i, patch as any),
             },
           });
 
-          // ---- +/- toggle behavior ----
           const onToggleRow = (rowIndex: number) => {
-            const adder =
-              rowIndex === rx.length - 1 && isRowEmpty(rx[rowIndex] as RxRow);
-            if (adder) {
-              setRx((rows) => ensureOneBlankAtEnd(rows as RxRow[]));
+            const lastIndex = rx.length - 1;
+            const isLast = rowIndex === lastIndex;
+            const empty = isRowEmpty(rx[rowIndex] as RxRowLocal);
+
+            if (isLast && empty) {
+              // ADD: explicitly append a blank row
+              setRx((rows) => appendBlank(rows as RxRowLocal[]));
             } else {
+              // REMOVE: drop the row, then ensure one blank at end
               setRx((rows) => {
-                const next = rows.filter((_, i) => i !== rowIndex) as RxRow[];
-                return ensureOneBlankAtEnd(next);
+                const next = (rows as RxRowLocal[]).filter((_, i) => i !== rowIndex);
+                return ensureOneBlankAtEnd(next, isRowEmpty, {
+                  medicine: "",
+                  frequency: "",
+                  instruction: "",
+                  duration: "",
+                  dosage: "",
+                });
               });
             }
           };
 
           return (
             <div className="mt-1">
-              {/* Borderless header */}
-              <div className="grid grid-cols-[minmax(220px,1fr)_160px_200px_200px_180px] gap-x-8 px-2 py-2 bg-gray-50 rounded-md">
+              {/* Header */}
+              <div className="grid grid-cols-[minmax(220px,1fr)_140px_170px_170px_150px] gap-x-6 px-2 py-2 bg-gray-50 rounded-md">
                 {table.getHeaderGroups().map((hg) =>
                   hg.headers.map((h) => (
-                    <div
-                      key={h.id}
-                      className="text-xs sm:text-sm font-medium text-gray-700"
-                    >
-                      {h.isPlaceholder
-                        ? null
-                        : flexRender(h.column.columnDef.header, h.getContext())}
+                    <div key={h.id} className="text-xs sm:text-sm font-medium text-gray-700">
+                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                     </div>
                   ))
                 )}
               </div>
 
-              {/* Rows — borderless, each with a right-side attached toggle */}
+              {/* Rows */}
               <div className="divide-y-0">
                 {table.getRowModel().rows.map((r) => {
                   const ri = r.index;
-                  const empty = isRowEmpty(r.original as RxRow);
+                  const empty = isRowEmpty(r.original as RxRowLocal);
+                  const isLast = ri === table.getRowModel().rows.length - 1;
                   return (
                     <div
                       key={r.id}
                       role="row"
-                      className="relative group grid grid-cols-[minmax(220px,1fr)_160px_200px_200px_180px] gap-x-8 px-2 py-2"
+                      className="relative grid grid-cols-[minmax(220px,1fr)_140px_170px_170px_150px] gap-x-6 px-2 py-2 pr-10"
                     >
                       {r.getVisibleCells().map((cell) => (
-                        <div key={cell.id} role="cell" className="align-top">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                        <div key={cell.id} role="cell" className="align-top min-w-0">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </div>
                       ))}
 
-                      {/* Right-side toggle, outside the grid area but visually attached */}
+                      {/* Right toggle, safely inside the row (no negative offset) */}
                       <button
                         type="button"
                         onClick={() => onToggleRow(ri)}
-                        title={empty ? "Add row" : "Remove row"}
-                        className={[
-                          "absolute -right-8 top-1/2 -translate-y-1/2",
-                          "w-7 h-7 rounded-full border leading-none",
-                          "bg-white text-gray-700 hover:bg-gray-50",
-                          "shadow-sm",
-                        ].join(" ")}
-                        aria-label={empty ? "Add row" : "Remove row"}
+                        title={isLast && empty ? "Add row" : "Remove row"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                        aria-label={isLast && empty ? "Add row" : "Remove row"}
                       >
-                        {empty ? "+" : "−"}
+                        {isLast && empty ? "+" : "−"}
                       </button>
                     </div>
                   );
@@ -1516,63 +1310,39 @@ export default function DigitalRxForm({
         })()}
       </Section>
 
-      {/* 4) INVESTIGATIONS & ADVICE (unchanged; textareas = ui-input) */}
-      <Section
-        icon={<AdviceIcon className="text-gray-700" />}
-        title="Investigations & Advice"
-      >
+      {/* ========================= INVESTIGATIONS & ADVICE ======================== */}
+      <Section icon={<AdviceIcon className="text-gray-700" />} title="Investigations & Advice">
         <Field label="Investigations">
           <textarea
             className="ui-input w-full min-h-[70px]"
-            value={plan.investigations}
             onChange={(e) =>
-              setPlan((s) => ({ ...s, investigations: e.target.value }))
+              // Store alongside clinical if you need; left here as simple text area
+              console.log(e.target.value)
             }
           />
         </Field>
         <Field label="Advice">
-          <textarea
-            className="ui-input w-full min-h-[70px]"
-            value={plan.advice}
-            onChange={(e) => setPlan((s) => ({ ...s, advice: e.target.value }))}
-          />
+          <textarea className="ui-input w-full min-h-[70px]" onChange={(e) => console.log(e.target.value)} />
         </Field>
         <div className="grid sm:grid-cols-2 gap-2">
           <Field label="Doctor Note">
-            <textarea
-              className="ui-input w-full min-h-[70px]"
-              value={plan.doctorNote}
-              onChange={(e) =>
-                setPlan((s) => ({ ...s, doctorNote: e.target.value }))
-              }
-            />
+            <textarea className="ui-input w-full min-h-[70px]" onChange={(e) => console.log(e.target.value)} />
           </Field>
           <div className="grid gap-1">
             <label className="text-[11px] text-gray-600">Follow-up Date</label>
             <DatePicker
-              selected={plan.followUpDate ? new Date(plan.followUpDate) : null}
-              onChange={(date: Date | null) =>
-                setPlan((s) => ({
-                  ...s,
-                  followUpDate: date ? date.toISOString().split("T")[0] : "",
-                }))
-              }
+              selected={null}
+              onChange={(date: Date | null) => console.log(date)}
               dateFormat="yyyy-MM-dd"
               className="ui-input w-full"
               placeholderText="Select date"
-              showMonthDropdown // ✅ show month dropdown
-              showYearDropdown // ✅ show year dropdown
-              dropdownMode="select" // ✅ "select" gives you dropdowns instead of scroll
+              showMonthDropdown
+              showYearDropdown
+              dropdownMode="select"
             />
           </div>
           <Field label="Follow-up Instructions">
-            <input
-              className="ui-input w-full"
-              value={plan.followUpInstructions}
-              onChange={(e) =>
-                setPlan((s) => ({ ...s, followUpInstructions: e.target.value }))
-              }
-            />
+            <input className="ui-input w-full" onChange={(e) => console.log(e.target.value)} />
           </Field>
         </div>
       </Section>
@@ -1596,6 +1366,7 @@ export default function DigitalRxForm({
     </form>
   );
 
+  /* ------------------------------- Rx helper ------------------------------- */
   function editRx(i: number, patch: Partial<RxRow>) {
     setRx((rows) => {
       const next = rows.slice();
@@ -1605,26 +1376,10 @@ export default function DigitalRxForm({
   }
 }
 
-/* Reuse table cells */
-function Th({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <th
-      className={`px-2 py-1.5 text-left text-gray-700 border text-xs sm:text-sm ${className}`}
-    >
-      {children}
-    </th>
-  );
+/* (Optional) preview helpers if you still use them somewhere */
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <th className={`px-2 py-1.5 text-left text-gray-700 border text-xs sm:text-sm ${className}`}>{children}</th>;
 }
 function Td({ children }: { children: React.ReactNode }) {
-  return (
-    <td className="px-2 py-1.5 text-gray-900 break-words whitespace-normal align-top">
-      {children}
-    </td>
-  );
+  return <td className="px-2 py-1.5 text-gray-900 break-words whitespace-normal align-top">{children}</td>;
 }
