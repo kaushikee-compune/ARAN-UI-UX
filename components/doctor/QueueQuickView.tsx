@@ -15,9 +15,9 @@ const mockData = [
 
 export default function QueueQuickView({ onClose, onStart }: QueueQuickViewProps) {
   return (
-    <div className="fixed top-20 right-6 z-50 w-[min(90vw,500px)] bg-white shadow-2xl rounded-2xl border">
+    <div className="fixed top-20 right-6 z-50 w-[min(90vw,500px)] bg-beige shadow-2x5 rounded-2xl ">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b">
+      {/* <div className="flex items-center justify-between px-4 py-2 border-b">
         <h3 className="text-sm font-semibold">OPD Queue</h3>
         <button
           onClick={onClose}
@@ -26,13 +26,20 @@ export default function QueueQuickView({ onClose, onStart }: QueueQuickViewProps
         >
           ×
         </button>
-      </div>
+      </div> */}
 
       {/* Table */}
-      <div className="p-3 overflow-x-auto">
+      <div className="p-4 rounded-xl border bg-white shadow-sm overflow-x-auto">
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 text-lg"
+          aria-label="Close queue quick view"
+        >
+          ×
+        </button>
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="text-left text-gray-600 border-b">
+            <tr className="text-left text-gray-600 border-b border-gray-300">
               <th className="py-2 px-2">Token</th>
               <th className="py-2 px-2">Name</th>
               <th className="py-2 px-2">Slot Time</th>
@@ -44,7 +51,7 @@ export default function QueueQuickView({ onClose, onStart }: QueueQuickViewProps
             {mockData.map((row) => (
               <tr
                 key={row.token}
-                className="border-b last:border-0 hover:bg-gray-50"
+                className="border-b last:border-0 hover:bg-gray-50 border-gray-300"
               >
                 <td className="py-2 px-2">{row.token}</td>
                 <td className="py-2 px-2">{row.name}</td>

@@ -26,6 +26,8 @@ import React, {
 //---------------- Imports from components/doctor
 import DigitalRxForm from "@/components/doctor/DigitalRxForm";
 import QueueQuickView from "@/components/doctor/QueueQuickView";
+import VoicePanel from "@/components/doctor/ScribePanel";
+import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 
 // import Image from "next/image"; // if you prefer <Image /> for icons
 
@@ -316,14 +318,29 @@ export default function ConsultationsPage() {
   }, []);
 
   /* 8) Companion bar actions */
+  // const toggleCompanion = useCallback(() => {
+  //   setCompanionOn((prev) => {
+  //     const next = !prev;
+  //     setFormOpenSplit(false); // reset
+  //     setDigitalRxOpen(false); // reset
+  //     if (next) {
+  //       applySidebarCollapsed(true);
+  //       setTabIndex(0); // ensure we’re on “+ New Record”
+  //     } else {
+  //       applySidebarCollapsed(false);
+  //     }
+  //     return next;
+  //   });
+  // }, [applySidebarCollapsed]);
   const toggleCompanion = useCallback(() => {
     setCompanionOn((prev) => {
       const next = !prev;
       setFormOpenSplit(false); // reset
       setDigitalRxOpen(false); // reset
+      setVoiceOpen(false); // NEW: reset voice
       if (next) {
         applySidebarCollapsed(true);
-        setTabIndex(0); // ensure we’re on “+ New Record”
+        setTabIndex(0); // ensure “+ New Record”
       } else {
         applySidebarCollapsed(false);
       }
@@ -337,6 +354,49 @@ export default function ConsultationsPage() {
     setFormOpenSplit(true);
     setTabIndex(0);
   }, [companionOn]);
+
+  //-------------Voice Toggle ---------------//
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const openVoiceSplit = useCallback(() => {
+    if (!companionOn) return; // same guard you use for form split
+    setFormOpenSplit(false); // close form split if it was open
+    setDigitalRxOpen(false); // close other panels if any
+    setVoiceOpen(true); // open voice panel
+    setTabIndex(0); // keep preview on “New Record”
+    applySidebarCollapsed(true); // collapse sidebar like form behavior
+  }, [companionOn, applySidebarCollapsed]);
+
+  const handleToggleVoice = useCallback(() => {
+    if (!companionOn) {
+      // Turn on companion (collapses sidebar & sets +New)
+      toggleCompanion();
+      // Then open overlay
+      setTimeout(() => setVoiceOpen(true), 0);
+      return;
+    }
+
+    setVoiceOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setFormOpenSplit(false); // ensure form split is closed
+        setDigitalRxOpen(false); // ensure others are closed
+        setTabIndex(0); // stay on +New preview
+        applySidebarCollapsed(true); // only collapse sidebar; no split
+      }
+      return next;
+    });
+  }, [companionOn, toggleCompanion, applySidebarCollapsed, setTabIndex]);
+
+  // ---------- NEW: Voice toggle ----------
+
+  // Ensure the left app sidebar collapses (syncs with /doctor layout)
+  const ensureSidebarCollapsed = useCallback(() => {
+    applySidebarCollapsed(true);
+    try {
+      localStorage.setItem("aran:sidebarCollapsed", "1");
+      window.dispatchEvent(new Event("aran:sidebar"));
+    } catch {}
+  }, []);
 
   /* 9) Right toolbar actions */
   const [toast, setToast] = useState<{
@@ -597,11 +657,8 @@ export default function ConsultationsPage() {
                 <CompanionChip
                   label="Voice"
                   disabled={!companionOn}
-                  onClick={() =>
-                    companionOn
-                      ? setToast({ type: "info", message: "Voice started." })
-                      : undefined
-                  }
+                  onClick={handleToggleVoice}
+                  active={companionOn && voiceOpen}
                   icon={
                     <img
                       src="/icons/microphone.png"
@@ -610,6 +667,7 @@ export default function ConsultationsPage() {
                     />
                   }
                 />
+
                 <CompanionChip
                   label="Scribe"
                   disabled={!companionOn}
@@ -635,13 +693,17 @@ export default function ConsultationsPage() {
       {/* MAIN LAYOUT: Paper + (optional) Split Form + Right Sticky Toolbar */}
       <div className="mt-6 px-3 md:px-6 lg:px-8">
         <div
-          className={
-            "grid gap-4 items-start min-h-[calc(100vh-120px)] " +
-            (formOpenSplit
-              ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]"
-              : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_64px]")
-          }
+          className="grid gap-4 items-start"
+          style={{
+            gridTemplateColumns:
+              companionOn && formOpenSplit
+                ? "minmax(0,1fr) minmax(0,1fr) 64px" // 50/50 + dock (Form)
+                : "minmax(0,1fr) 64px", // Preview + dock
+          }}
         >
+          {companionOn && voiceOpen && (
+            <VoiceOverlay onClose={() => setVoiceOpen(false)} />
+          )}
           {/* LEFT: Paper (preview / digital rx in-paper) */}
           <div className="min-w-0 sticky top-20 self-start">
             <div
@@ -1033,24 +1095,33 @@ function CompanionChip({
   disabled,
   onClick,
   icon,
+  active = false, // NEW
 }: {
   label: string;
   disabled?: boolean;
   onClick?: () => void;
   icon: React.ReactNode;
+  active?: boolean; // NEW
 }) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition";
+  const disabledCls =
+    "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
+  const idleCls = "bg-white hover:bg-gray-50 text-gray-800 border-gray-300";
+  const activeCls = "bg-gray-900 text-white border-gray-900";
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={[
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
-        disabled
-          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-          : "bg-white hover:bg-gray-50 text-gray-800 border-gray-300",
-      ].join(" ")}
+      aria-pressed={active && !disabled} // NEW: pressed semantics
+      data-state={active ? "on" : "off"} // NEW: hook if you need CSS
       title={label}
+      className={[
+        base,
+        disabled ? disabledCls : active ? activeCls : idleCls,
+      ].join(" ")}
     >
       {icon}
       <span className="font-medium">{label}</span>
@@ -1098,7 +1169,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
   // ----- Mini-cards: read TOP-LEVEL first; fallback to vitals.* if present -----
   const wh =
     form.womensHealth ??
-    ((form as any).vitals?.womensHealth as FormState["womensHealth"] | undefined);
+    ((form as any).vitals?.womensHealth as
+      | FormState["womensHealth"]
+      | undefined);
 
   const ls =
     form.lifestyle ??
@@ -1106,7 +1179,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
 
   const bm =
     form.bodyMeasurement ??
-    ((form as any).vitals?.bodyMeasurement as FormState["bodyMeasurement"] | undefined);
+    ((form as any).vitals?.bodyMeasurement as
+      | FormState["bodyMeasurement"]
+      | undefined);
 
   type PARow = {
     activity?: string;
@@ -1117,10 +1192,12 @@ function NewRecordPreview({ form }: { form: FormState }) {
 
   const paLogs: PARow[] =
     (form.physicalActivity?.logs as PARow[] | undefined) ??
-    (((form as any).vitals?.physicalActivity?.logs as PARow[] | undefined) ?? []);
+    ((form as any).vitals?.physicalActivity?.logs as PARow[] | undefined) ??
+    [];
 
   const paRows: PARow[] = paLogs.filter(
-    (r: PARow) => r.activity || r.durationMin || r.intensity || r.frequencyPerWeek
+    (r: PARow) =>
+      r.activity || r.durationMin || r.intensity || r.frequencyPerWeek
   );
 
   // Presence checks
@@ -1146,7 +1223,11 @@ function NewRecordPreview({ form }: { form: FormState }) {
 
   // Show Vitals section if any vitals OR any mini-card present
   const hasVitals =
-    hasVitalsBasic || hasWomensHealth || hasLifestyle || hasBodyMeasurement || hasPhysicalActivity;
+    hasVitalsBasic ||
+    hasWomensHealth ||
+    hasLifestyle ||
+    hasBodyMeasurement ||
+    hasPhysicalActivity;
 
   // ----- Existing sections (unchanged) -----
   const hasClinical =
@@ -1183,7 +1264,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
 
           {/* Basic vitals */}
           <div className="grid gap-2 text-sm md:grid-cols-3">
-            <KV label="Temperature" value={fmt(form.vitals.temperature, "°C")} />
+            <KV
+              label="Temperature"
+              value={fmt(form.vitals.temperature, "°C")}
+            />
             <KV label="Blood Pressure" value={form.vitals.bp} />
             <KV label="Weight" value={fmt(form.vitals.weight, "kg")} />
             <KV label="Height" value={fmt(form.vitals.height, "cm")} />
@@ -1193,7 +1277,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
           {/* Lifestyle */}
           {hasLifestyle && (
             <div className="mt-2">
-              <div className="text-xs font-medium text-gray-600 mb-1">Lifestyle</div>
+              <div className="text-xs font-medium text-gray-600 mb-1">
+                Lifestyle
+              </div>
               <div className="grid gap-2 text-sm md:grid-cols-3">
                 <KV label="Smoking" value={ls?.smokingStatus} />
                 <KV label="Alcohol" value={ls?.alcoholIntake} />
@@ -1207,7 +1293,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
           {/* Women’s Health */}
           {hasWomensHealth && (
             <div className="mt-2">
-              <div className="text-xs font-medium text-gray-600 mb-1">Women’s Health</div>
+              <div className="text-xs font-medium text-gray-600 mb-1">
+                Women’s Health
+              </div>
               <div className="grid gap-2 text-sm md:grid-cols-3">
                 <KV label="LMP" value={wh?.lmpDate} />
                 <KV label="Cycle (days)" value={wh?.cycleLengthDays} />
@@ -1222,7 +1310,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
           {/* Body Measurement */}
           {hasBodyMeasurement && (
             <div className="mt-2">
-              <div className="text-xs font-medium text-gray-600 mb-1">Body Measurements</div>
+              <div className="text-xs font-medium text-gray-600 mb-1">
+                Body Measurements
+              </div>
               <div className="grid gap-2 text-sm md:grid-cols-3">
                 <KV label="Waist" value={fmt(bm?.waist, "cm")} />
                 <KV label="Hip" value={fmt(bm?.hip, "cm")} />
@@ -1235,7 +1325,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
           {/* Physical Activity */}
           {hasPhysicalActivity && (
             <div className="mt-2">
-              <div className="text-xs font-medium text-gray-600 mb-1">Physical Activity</div>
+              <div className="text-xs font-medium text-gray-600 mb-1">
+                Physical Activity
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-gray-600">
@@ -1252,7 +1344,9 @@ function NewRecordPreview({ form }: { form: FormState }) {
                         <td className="px-2 py-1.5">{r.activity || "-"}</td>
                         <td className="px-2 py-1.5">{r.durationMin || "-"}</td>
                         <td className="px-2 py-1.5">{r.intensity || "-"}</td>
-                        <td className="px-2 py-1.5">{r.frequencyPerWeek || "-"}</td>
+                        <td className="px-2 py-1.5">
+                          {r.frequencyPerWeek || "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1268,15 +1362,23 @@ function NewRecordPreview({ form }: { form: FormState }) {
           <h4 className="text-sm font-semibold">Clinical Details</h4>
           <div className="grid gap-1 text-sm">
             {form.clinical.chiefComplaints && (
-              <KV label="Chief Complaints" value={form.clinical.chiefComplaints} />
+              <KV
+                label="Chief Complaints"
+                value={form.clinical.chiefComplaints}
+              />
             )}
             {form.clinical.pastHistory && (
-              <KV label="Past Medical History" value={form.clinical.pastHistory} />
+              <KV
+                label="Past Medical History"
+                value={form.clinical.pastHistory}
+              />
             )}
             {form.clinical.familyHistory && (
               <KV label="Family History" value={form.clinical.familyHistory} />
             )}
-            {form.clinical.allergy && <KV label="Allergy" value={form.clinical.allergy} />}
+            {form.clinical.allergy && (
+              <KV label="Allergy" value={form.clinical.allergy} />
+            )}
           </div>
         </section>
       )}
@@ -1297,7 +1399,14 @@ function NewRecordPreview({ form }: { form: FormState }) {
               </thead>
               <tbody>
                 {form.prescription
-                  .filter((r) => r.medicine || r.frequency || r.instruction || r.duration || r.dosage)
+                  .filter(
+                    (r) =>
+                      r.medicine ||
+                      r.frequency ||
+                      r.instruction ||
+                      r.duration ||
+                      r.dosage
+                  )
                   .map((r, i) => (
                     <tr key={i} className="border-t">
                       <Td>{r.medicine || "-"}</Td>
@@ -1317,10 +1426,14 @@ function NewRecordPreview({ form }: { form: FormState }) {
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Investigations &amp; Advice</h4>
           <div className="grid gap-1 text-sm">
-            {form.plan.investigations && <KV label="Investigations" value={form.plan.investigations} />}
+            {form.plan.investigations && (
+              <KV label="Investigations" value={form.plan.investigations} />
+            )}
             {form.plan.note && <KV label="Note" value={form.plan.note} />}
             {form.plan.advice && <KV label="Advice" value={form.plan.advice} />}
-            {form.plan.doctorNote && <KV label="Doctor Note" value={form.plan.doctorNote} />}
+            {form.plan.doctorNote && (
+              <KV label="Doctor Note" value={form.plan.doctorNote} />
+            )}
             {(form.plan.followUpInstructions || form.plan.followUpDate) && (
               <KV
                 label="Follow-up"
@@ -1338,7 +1451,6 @@ function NewRecordPreview({ form }: { form: FormState }) {
     </div>
   );
 }
-
 
 /* ────────────────────────────────────────────────────────────────────────────
    New Record Live Preview (blank panel content) ends
