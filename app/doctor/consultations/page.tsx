@@ -22,7 +22,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import DigitalRxForm from "@/components/doctor/DigitalRxForm"; // your file
+
+//---------------- Imports from components/doctor
+import DigitalRxForm from "@/components/doctor/DigitalRxForm";
+import QueueQuickView from "@/components/doctor/QueueQuickView";
+
 // import Image from "next/image"; // if you prefer <Image /> for icons
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -535,6 +539,11 @@ export default function ConsultationsPage() {
           >
             OPD Queue
           </TopMenuButton>
+          
+          {/* Display Queueu */}
+          {active === "queue" && (
+            <QueueQuickView onClose={() => setActive("consultation")} />
+          )}
 
           {/* Companion Mode cluster (right) */}
           <div className="ml-auto rounded-xl border bg-white shadow-sm px-3 py-1.5">
@@ -562,7 +571,11 @@ export default function ConsultationsPage() {
                       : undefined
                   }
                   icon={
-                    <img src="/icons/microphone.png" alt="" className="w-3.5 h-3.5" />
+                    <img
+                      src="/icons/microphone.png"
+                      alt=""
+                      className="w-3.5 h-3.5"
+                    />
                   }
                 />
                 <CompanionChip
@@ -637,7 +650,9 @@ export default function ConsultationsPage() {
                         outline: "none",
                       }}
                     >
-                      <span className="relative -middle-[7px]">+ New Record</span>
+                      <span className="relative -middle-[7px]">
+                        + New Record
+                      </span>
                     </button>
                   );
                 })()}
@@ -670,7 +685,9 @@ export default function ConsultationsPage() {
                         outline: "none",
                       }}
                     >
-                      <span className="relative -middle-[7px]">{d.dateLabel}</span>
+                      <span className="relative -middle-[7px]">
+                        {d.dateLabel}
+                      </span>
                     </button>
                   );
                 })}
@@ -681,24 +698,19 @@ export default function ConsultationsPage() {
                 <div className="grid grid-cols-[1fr_auto_1fr] items-start">
                   {/* Left: demographics */}
                   <div className="min-w-0 pr-3">
-                    <div className="text-xs text-gray-500 mb-1 flex items-center gap-2">
+                    <div className="text-sm font-semibold text-gray-500 mb-1 flex items-center gap-2">
                       <img
-                        src="/icons/profile.png"
+                        src="/icons/profile-user.png"
                         alt=""
                         className="w-4 h-4"
                       />
-                      <span>Patient</span>
+                      {patient.name} | {patient.gender} • {patient.age} 
                     </div>
-                    <div className="text-sm font-semibold">{patient.name}</div>
-                    <div className="text-xs text-gray-700 mt-0.5">
-                      {patient.gender} • {patient.age}
-                    </div>
+                                
                     <div className="text-xs text-gray-600 mt-1">
-                      ABHA No: {patient.abhaNumber}
+                      ABHA No: {patient.abhaNumber} |  ABHA Address: {patient.abhaAddress}
                     </div>
-                    <div className="text-xs text-gray-600">
-                      ABHA Address: {patient.abhaAddress}
-                    </div>
+                   
                   </div>
 
                   {/* Center: logo */}
