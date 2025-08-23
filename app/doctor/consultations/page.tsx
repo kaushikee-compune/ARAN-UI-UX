@@ -643,7 +643,7 @@ export default function ConsultationsPage() {
           }
         >
           {/* LEFT: Paper (preview / digital rx in-paper) */}
-          <div className="min-w-0 mt-2">
+          <div className="min-w-0 sticky top-20 self-start">
             <div
               className="relative mx-auto bg-white border rounded-xl shadow-sm overflow-visible"
               style={{

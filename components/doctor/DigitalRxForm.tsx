@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
    PUBLIC TYPES (extend gently for new UI fields)
 ----------------------------------------------*/
 export type DigitalRxFormState = {
+  // Vitals formstate
   vitals: {
     temperature?: string;
     bp?: string; // stays for backward compatibility (systolic/diastolic compose into this)
@@ -65,14 +66,13 @@ export type DigitalRxFormState = {
     vitalsNotes?: string;
     vitalsUploads?: { name: string; size?: number }[];
   };
-
+  // Clinical details formstate
   clinical: {
     chiefComplaints?: string;
     pastHistory?: string;
     familyHistory?: string; // keep this if you were using a single free-text field
     allergy?: string;
 
-    // NEW: structured tables
     currentMedications?: {
       medicine?: string;
       dosage?: string;
@@ -83,6 +83,7 @@ export type DigitalRxFormState = {
     investigationsDone?: { name?: string; date?: string }[];
   };
 
+  //Prescription Formstate
   prescription: {
     medicine: string;
     frequency: string;
@@ -90,15 +91,21 @@ export type DigitalRxFormState = {
     dosage: string;
     instruction: string;
   }[];
+
+  // Investigation & Advice
   plan: {
-    // repurpose “Investigations” from earlier if you like; here we keep uploads separate
     investigations?: string;
-    uploads?: { name: string; size?: number }[];
-    note?: string;
+    investigationInstructions?: string;
     advice?: string;
     doctorNote?: string;
     followUpInstructions?: string;
-    followUpDate?: string; // yyyy-mm-dd
+    followUpDate?: string;
+    investigationNote?: string;
+    patientNote?: string;
+    attachments?: {
+      files?: File[];
+      note?: string;
+    };
   };
 };
 
@@ -185,6 +192,9 @@ export default function DigitalRxForm({
 
   const [openMeds, setOpenMeds] = useState(false);
   const [openInvestigations, setOpenInvestigations] = useState(false);
+
+  const [openPlan, setOpenPlan] = useState(false);
+  const [openPlanMore, setOpenPlanMore] = useState(false);
 
   /* --------------------- Helpers --------------------- */
   function patch<K extends keyof DigitalRxFormState>(
@@ -1002,62 +1012,217 @@ export default function DigitalRxForm({
 
         {/* ========== Section: Investigation & Uploads (collapsed card) ========== */}
         <CardShell
-          title="Investigation & Uploads"
-          moreLabel={openInvestigations ? "Less" : "More"}
-          onMore={() => setOpenInvestigations((s) => !s)}
+          title="Investigations & Advice"
+          moreLabel={openPlan ? "Less" : "More"}
+          onMore={() => setOpenPlan((s) => !s)}
         >
-          {openInvestigations && (
-            <div className="grid gap-3">
-              <LabeledTextarea
-                label="Investigations (notes)"
-                value={value.plan.investigations || ""}
-                onChange={(v) => patch("plan", { investigations: v })}
-              />
+          {openPlan && (
+            <div className="grid gap-4">
+              {/* ================= Row 1 — Investigations + Instructions ================= */}
+              <div className="grid lg:grid-cols-2 gap-3">
+                <MiniCard title="Investigations">
+                  <LabeledCombo
+                    label="Investigation"
+                    value={value.plan.investigations ?? ""}
+                    options={[
+                      "CBC",
+                      "LFT",
+                      "KFT",
+                      "HbA1c",
+                      "Lipid Profile",
+                      "TSH",
+                      "Urine Routine",
+                      "X-Ray Chest",
+                      "ECG",
+                      "CRP",
+                      "ESR",
+                    ]}
+                    placeholder="Pick or type a test"
+                    onChange={(v) => patch("plan", { investigations: v })}
+                  />
+                </MiniCard>
 
-              {/* Simple upload stub (keeps UI minimal; wire your uploader later) */}
-              <div className="grid gap-1">
-                <label className="text-[11px] text-gray-600">
-                  Attach files (PDF / PNG / JPG)
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  className="ui-input w-full"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []).map((f) => ({
-                      name: f.name,
-                      size: f.size,
-                    }));
-                    const prev = value.plan.uploads || [];
-                    patch("plan", { uploads: [...prev, ...files] });
-                  }}
-                />
-                {(value.plan.uploads || []).length > 0 && (
-                  <ul className="mt-1 text-xs text-gray-700 space-y-1">
-                    {(value.plan.uploads || []).map((f, i) => (
-                      <li
-                        key={`${f.name}-${i}`}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="truncate">{f.name}</span>
-                        <button
-                          className="text-gray-500 hover:text-gray-700"
-                          type="button"
-                          onClick={() => {
-                            const next = (value.plan.uploads || []).slice();
-                            next.splice(i, 1);
-                            patch("plan", { uploads: next });
-                          }}
-                          title="Remove"
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <MiniCard title="Instructions">
+                  <LabeledTextarea
+                    label="Instructions (for investigation)"
+                    value={value.plan.investigationInstructions ?? ""}
+                    onChange={(v) =>
+                      patch("plan", { investigationInstructions: v })
+                    }
+                    placeholder="e.g., Fasting 8–10 hours; bring previous reports…"
+                  />
+                </MiniCard>
               </div>
+
+              {/* Inner More / Less to reveal MiniCards */}
+              <div className="text-right">
+                <button
+                  type="button"
+                  className="text-xs text-gray-700 hover:text-gray-900"
+                  onClick={() => setOpenPlanMore((s) => !s)}
+                >
+                  {openPlanMore ? "Less" : "More"}
+                </button>
+              </div>
+
+              {openPlanMore && (
+                <div className="grid gap-3">
+                  {/* ================= Row 2 — Advice + General Assessment ================= */}
+                  <div className="grid lg:grid-cols-2 gap-3">
+                    <MiniCard title="Advice">
+                      <LabeledTextarea
+                        label="Advice"
+                        value={value.plan.advice ?? ""}
+                        onChange={(v) => patch("plan", { advice: v })}
+                        placeholder="Diet, activity, medicines, red-flag symptoms…"
+                      />
+                    </MiniCard>
+
+                    <MiniCard title="General Assessment">
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <LabeledTextarea
+                          label="Patient Note"
+                          value={value.plan.patientNote ?? ""}
+                          onChange={(v) => patch("plan", { patientNote: v })}
+                          placeholder="Patient’s concerns / expectations…"
+                        />
+                        <LabeledTextarea
+                          label="Doctor Note"
+                          value={value.plan.doctorNote ?? ""}
+                          onChange={(v) => patch("plan", { doctorNote: v })}
+                          placeholder="Differential, plan, watch-outs…"
+                        />
+                      </div>
+                    </MiniCard>
+                  </div>
+
+                  {/* ============== Row 3 — Follow-Up Advice + Document Upload ============== */}
+                  <div className="grid lg:grid-cols-2 gap-3">
+                    <MiniCard title="Follow-Up Advice">
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {/* Date + Book */}
+                        <div className="grid gap-1">
+                          <label className="text-[11px] text-gray-600">
+                            Follow-up Date
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="date"
+                              className="ui-input w-full"
+                              value={value.plan.followUpDate ?? ""}
+                              onChange={(e) =>
+                                patch("plan", { followUpDate: e.target.value })
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="px-3 rounded-lg text-xs bg-white shadow-sm ring-1 ring-gray-200/70 hover:bg-gray-50"
+                              onClick={() => {
+                                // hook into your scheduler if/when available
+                                console.log("Book appointment clicked");
+                              }}
+                            >
+                              Book
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Instructions */}
+                        <LabeledTextarea
+                          label="Follow-up Instructions"
+                          value={value.plan.followUpInstructions ?? ""}
+                          onChange={(v) =>
+                            patch("plan", { followUpInstructions: v })
+                          }
+                          placeholder="When to return, tests to bring, warning signs…"
+                        />
+                      </div>
+                    </MiniCard>
+
+                    {/* --------- Document Upload (files + note) --------- */}
+                    <MiniCard title="Documents">
+                      <div className="grid gap-2">
+                        <div className="grid gap-1">
+                          <label className="text-[11px] text-gray-600">
+                            Upload files
+                          </label>
+                          <input
+                            type="file"
+                            multiple
+                            className="ui-input w-full"
+                            onChange={(e) => {
+                              const picked = Array.from(
+                                e.currentTarget.files ?? []
+                              );
+                              const prev = value.plan.attachments?.files ?? [];
+                              patch("plan", {
+                                attachments: {
+                                  ...(value.plan.attachments || {}),
+                                  files: [...prev, ...picked],
+                                },
+                              });
+                              // clear input so same files can be re-picked if needed
+                              e.currentTarget.value = "";
+                            }}
+                          />
+                        </div>
+
+                        {/* Show selected files as small chips with a remove */}
+                        {(value.plan.attachments?.files ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(value.plan.attachments?.files ?? []).map(
+                              (f, i) => (
+                                <div
+                                  key={i}
+                                  className="inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs bg-white shadow-sm ring-1 ring-gray-200/70"
+                                >
+                                  <span className="truncate max-w-[180px]">
+                                    {f.name}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    title="Remove file"
+                                    className="leading-none text-gray-700 hover:text-gray-900"
+                                    onClick={() => {
+                                      const prev =
+                                        value.plan.attachments?.files ?? [];
+                                      const next = prev.filter(
+                                        (_, idx) => idx !== i
+                                      );
+                                      patch("plan", {
+                                        attachments: {
+                                          ...(value.plan.attachments || {}),
+                                          files: next,
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+
+                        <LabeledTextarea
+                          label="Document Note"
+                          value={value.plan.attachments?.note ?? ""}
+                          onChange={(v) =>
+                            patch("plan", {
+                              attachments: {
+                                ...(value.plan.attachments || {}),
+                                note: v,
+                              },
+                            })
+                          }
+                          placeholder="Any remarks about the uploaded documents…"
+                        />
+                      </div>
+                    </MiniCard>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardShell>
