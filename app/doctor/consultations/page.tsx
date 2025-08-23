@@ -145,8 +145,8 @@ function rxToForm(rx: any): FormState {
     },
     clinical: {
       chiefComplaints: rx?.chiefComplaints ?? "",
-      pastHistory: rx?.pmh ?? "",
-      familyHistory: rx?.fhx ?? "",
+      pastHistory: rx?.pastHistory ?? "",
+      familyHistory: rx?.familyHistoryRows ?? "",
       allergy: rx?.allergy ?? "",
     },
     prescription: Array.isArray(rx?.meds)
@@ -1087,7 +1087,7 @@ function ToolBtn({
    New Record Live Preview (blank panel content)
 ──────────────────────────────────────────────────────────────────────────── */
 function NewRecordPreview({ form }: { form: FormState }) {
-  // basic vitals (existing)
+  // ----- Basic vitals (existing) -----
   const hasVitalsBasic =
     !!form.vitals.temperature ||
     !!form.vitals.bp ||
@@ -1095,16 +1095,35 @@ function NewRecordPreview({ form }: { form: FormState }) {
     !!form.vitals.height ||
     !!form.vitals.bmi;
 
-  // NEW: mini-card presence checks (nested under vitals)
-  const ls = form.lifestyle;
-  const hasLifestyle =
-    !!ls?.smokingStatus ||
-    !!ls?.alcoholIntake ||
-    !!ls?.dietType ||
-    !!ls?.sleepHours ||
-    !!ls?.stressLevel;
+  // ----- Mini-cards: read TOP-LEVEL first; fallback to vitals.* if present -----
+  const wh =
+    form.womensHealth ??
+    ((form as any).vitals?.womensHealth as FormState["womensHealth"] | undefined);
 
-  const wh = form.womensHealth;
+  const ls =
+    form.lifestyle ??
+    ((form as any).vitals?.lifestyle as FormState["lifestyle"] | undefined);
+
+  const bm =
+    form.bodyMeasurement ??
+    ((form as any).vitals?.bodyMeasurement as FormState["bodyMeasurement"] | undefined);
+
+  type PARow = {
+    activity?: string;
+    durationMin?: string;
+    intensity?: "Low" | "Moderate" | "High";
+    frequencyPerWeek?: string;
+  };
+
+  const paLogs: PARow[] =
+    (form.physicalActivity?.logs as PARow[] | undefined) ??
+    (((form as any).vitals?.physicalActivity?.logs as PARow[] | undefined) ?? []);
+
+  const paRows: PARow[] = paLogs.filter(
+    (r: PARow) => r.activity || r.durationMin || r.intensity || r.frequencyPerWeek
+  );
+
+  // Presence checks
   const hasWomensHealth =
     !!wh?.lmpDate ||
     !!wh?.cycleLengthDays ||
@@ -1113,9 +1132,23 @@ function NewRecordPreview({ form }: { form: FormState }) {
     !!wh?.parity ||
     !!wh?.abortions;
 
-  // show Vitals section if any vitals OR either mini-card present
-  const hasVitals = hasVitalsBasic || hasLifestyle || hasWomensHealth;
+  const hasLifestyle =
+    !!ls?.smokingStatus ||
+    !!ls?.alcoholIntake ||
+    !!ls?.dietType ||
+    !!ls?.sleepHours ||
+    !!ls?.stressLevel;
 
+  const hasBodyMeasurement =
+    !!bm?.waist || !!bm?.hip || !!bm?.neck || !!bm?.chest;
+
+  const hasPhysicalActivity = paRows.length > 0;
+
+  // Show Vitals section if any vitals OR any mini-card present
+  const hasVitals =
+    hasVitalsBasic || hasWomensHealth || hasLifestyle || hasBodyMeasurement || hasPhysicalActivity;
+
+  // ----- Existing sections (unchanged) -----
   const hasClinical =
     !!form.clinical.chiefComplaints ||
     !!form.clinical.pastHistory ||
@@ -1148,7 +1181,7 @@ function NewRecordPreview({ form }: { form: FormState }) {
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Vitals</h4>
 
-          {/* Basic vitals grid (only renders values if present) */}
+          {/* Basic vitals */}
           <div className="grid gap-2 text-sm md:grid-cols-3">
             <KV label="Temperature" value={fmt(form.vitals.temperature, "°C")} />
             <KV label="Blood Pressure" value={form.vitals.bp} />
@@ -1157,7 +1190,7 @@ function NewRecordPreview({ form }: { form: FormState }) {
             <KV label="BMI" value={form.vitals.bmi} />
           </div>
 
-          {/* Lifestyle (if any field present) */}
+          {/* Lifestyle */}
           {hasLifestyle && (
             <div className="mt-2">
               <div className="text-xs font-medium text-gray-600 mb-1">Lifestyle</div>
@@ -1171,7 +1204,7 @@ function NewRecordPreview({ form }: { form: FormState }) {
             </div>
           )}
 
-          {/* Women’s Health (if any field present) */}
+          {/* Women’s Health */}
           {hasWomensHealth && (
             <div className="mt-2">
               <div className="text-xs font-medium text-gray-600 mb-1">Women’s Health</div>
@@ -1182,6 +1215,48 @@ function NewRecordPreview({ form }: { form: FormState }) {
                 <KV label="Gravida (G)" value={wh?.gravidity} />
                 <KV label="Para (P)" value={wh?.parity} />
                 <KV label="Abortions (A)" value={wh?.abortions} />
+              </div>
+            </div>
+          )}
+
+          {/* Body Measurement */}
+          {hasBodyMeasurement && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-gray-600 mb-1">Body Measurements</div>
+              <div className="grid gap-2 text-sm md:grid-cols-3">
+                <KV label="Waist" value={fmt(bm?.waist, "cm")} />
+                <KV label="Hip" value={fmt(bm?.hip, "cm")} />
+                <KV label="Neck" value={fmt(bm?.neck, "cm")} />
+                <KV label="Chest" value={fmt(bm?.chest, "cm")} />
+              </div>
+            </div>
+          )}
+
+          {/* Physical Activity */}
+          {hasPhysicalActivity && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-gray-600 mb-1">Physical Activity</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-600">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left">Activity</th>
+                      <th className="px-2 py-1.5 text-left">Duration (min)</th>
+                      <th className="px-2 py-1.5 text-left">Intensity</th>
+                      <th className="px-2 py-1.5 text-left">Freq/wk</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paRows.map((r: PARow, i: number) => (
+                      <tr key={i} className="align-top">
+                        <td className="px-2 py-1.5">{r.activity || "-"}</td>
+                        <td className="px-2 py-1.5">{r.durationMin || "-"}</td>
+                        <td className="px-2 py-1.5">{r.intensity || "-"}</td>
+                        <td className="px-2 py-1.5">{r.frequencyPerWeek || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1249,7 +1324,10 @@ function NewRecordPreview({ form }: { form: FormState }) {
             {(form.plan.followUpInstructions || form.plan.followUpDate) && (
               <KV
                 label="Follow-up"
-                value={[form.plan.followUpInstructions, form.plan.followUpDate ? `on ${form.plan.followUpDate}` : ""]
+                value={[
+                  form.plan.followUpInstructions,
+                  form.plan.followUpDate ? `on ${form.plan.followUpDate}` : "",
+                ]
                   .filter(Boolean)
                   .join(" ")}
               />
@@ -1260,6 +1338,11 @@ function NewRecordPreview({ form }: { form: FormState }) {
     </div>
   );
 }
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   New Record Live Preview (blank panel content) ends
+──────────────────────────────────────────────────────────────────────────── */
 
 /* Helpers for preview tables/labels */
 function fmt(v?: string, unit?: string) {

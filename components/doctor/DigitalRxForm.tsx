@@ -68,23 +68,27 @@ export type DigitalRxFormState = {
 
   clinical: {
     chiefComplaints?: string;
-    // Clinical “Current Medications” (simple tabular)
-    currentMeds?: { medicine: string; dosage: string; since?: string }[];
-    // Show-more items
-    procedures?: { name: string; date?: string }[];
-    investigationsDone?: { name: string; date?: string }[];
+    pastHistory?: string;
+    familyHistory?: string; // keep this if you were using a single free-text field
     allergy?: string;
 
-    // Older fields remain (for previews already in page.tsx)
-    pastHistory?: string;
-    familyHistory?: string;
+    // NEW: structured tables
+    currentMedications?: {
+      medicine?: string;
+      dosage?: string;
+      since?: string;
+    }[];
+    familyHistoryRows?: { relation?: string; ailment?: string }[];
+    proceduresDone?: { name?: string; date?: string }[];
+    investigationsDone?: { name?: string; date?: string }[];
   };
+
   prescription: {
     medicine: string;
     frequency: string;
-    instruction: string;
     duration: string;
     dosage: string;
+    instruction: string;
   }[];
   plan: {
     // repurpose “Investigations” from earlier if you like; here we keep uploads separate
@@ -190,11 +194,15 @@ export default function DigitalRxForm({
     onChange({ ...value, [key]: { ...(value[key] as any), ...partial } });
   }
 
-  function setCurrentMeds(next: DigitalRxFormState["clinical"]["currentMeds"]) {
-    patch("clinical", { currentMeds: next });
+  function setCurrentMeds(
+    next: DigitalRxFormState["clinical"]["currentMedications"]
+  ) {
+    patch("clinical", { currentMedications: next });
   }
-  function setProcedures(next: DigitalRxFormState["clinical"]["procedures"]) {
-    patch("clinical", { procedures: next });
+  function setProcedures(
+    next: DigitalRxFormState["clinical"]["proceduresDone"]
+  ) {
+    patch("clinical", { proceduresDone: next });
   }
   function setInvestigationsDone(
     next: DigitalRxFormState["clinical"]["investigationsDone"]
@@ -204,22 +212,22 @@ export default function DigitalRxForm({
 
   const addCurrentMed = () =>
     setCurrentMeds([
-      ...(value.clinical.currentMeds || []),
+      ...(value.clinical.currentMedications || []),
       { medicine: "", dosage: "", since: "" },
     ]);
   const removeCurrentMed = (i: number) =>
     setCurrentMeds(
-      (value.clinical.currentMeds || []).filter((_, idx) => idx !== i)
+      (value.clinical.currentMedications || []).filter((_, idx) => idx !== i)
     );
 
   const addProcedure = () =>
     setProcedures([
-      ...(value.clinical.procedures || []),
+      ...(value.clinical.proceduresDone || []),
       { name: "", date: "" },
     ]);
   const removeProcedure = (i: number) =>
     setProcedures(
-      (value.clinical.procedures || []).filter((_, idx) => idx !== i)
+      (value.clinical.proceduresDone || []).filter((_, idx) => idx !== i)
     );
 
   const addInvestigationDone = () =>
@@ -696,100 +704,46 @@ export default function DigitalRxForm({
         >
           {openClinical && (
             <div className="grid gap-4">
-              {/* Row 1 — Chief complaints & Current Medications table */}
+              {/* Row 1 — Chief Complaints & Current Medications */}
               <div className="grid lg:grid-cols-2 gap-3">
                 <LabeledTextarea
                   label="Chief Complaints"
                   value={value.clinical.chiefComplaints || ""}
                   onChange={(v) => patch("clinical", { chiefComplaints: v })}
+                  placeholder="e.g., Fever since 3 days; cough worse at night…"
                 />
 
                 <div className="grid gap-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] text-gray-600">
-                      Current Medications
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <RailMini
-                        onAdd={addCurrentMed}
-                        onRemove={() =>
-                          removeCurrentMed(
-                            (value.clinical.currentMeds || []).length - 1
-                          )
-                        }
-                        canRemove={
-                          (value.clinical.currentMeds || []).length > 0
-                        }
-                      />
-                    </div>
-                  </div>
-                  <BorderlessTable
-                    headers={["Medicine", "Dosage", "Since When", ""]}
-                    rows={(value.clinical.currentMeds || []).map((r, idx) => ({
-                      key: `cm-${idx}`,
-                      cells: [
-                        <input
-                          key="med"
-                          className="ui-input w-full"
-                          value={r.medicine}
-                          onChange={(e) => {
-                            const next = [
-                              ...(value.clinical.currentMeds || []),
-                            ];
-                            next[idx] = {
-                              ...next[idx],
-                              medicine: e.target.value,
-                            };
-                            setCurrentMeds(next);
-                          }}
-                          placeholder="e.g., Metformin 500 mg"
-                        />,
-                        <input
-                          key="dos"
-                          className="ui-input w-full"
-                          value={r.dosage}
-                          onChange={(e) => {
-                            const next = [
-                              ...(value.clinical.currentMeds || []),
-                            ];
-                            next[idx] = {
-                              ...next[idx],
-                              dosage: e.target.value,
-                            };
-                            setCurrentMeds(next);
-                          }}
-                          placeholder="1-0-1"
-                        />,
-                        <input
-                          key="since"
-                          className="ui-input w-full"
-                          value={r.since || ""}
-                          onChange={(e) => {
-                            const next = [
-                              ...(value.clinical.currentMeds || []),
-                            ];
-                            next[idx] = { ...next[idx], since: e.target.value };
-                            setCurrentMeds(next);
-                          }}
-                          placeholder="e.g., 2 months"
-                        />,
-                        <button
-                          key="del"
-                          type="button"
-                          title="Delete"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50"
-                          onClick={() => removeCurrentMed(idx)}
-                        >
-                          ×
-                        </button>,
-                      ],
-                    }))}
+                  <LabeledTable
+                    label="Current Medications"
+                    columns={[
+                      {
+                        key: "medicine",
+                        header: "Medicine",
+                        placeholder: "e.g., Metformin 500 mg",
+                      },
+                      { key: "dosage", header: "Dosage", placeholder: "1-0-1" },
+                      {
+                        key: "since",
+                        header: "Since When",
+                        placeholder: "e.g., 2 months",
+                      },
+                    ]}
+                    value={value.clinical.currentMedications ?? []}
+                    onChange={(rows) =>
+                      patch("clinical", { currentMedications: rows })
+                    }
+                    getDefaultRow={() => ({
+                      medicine: "",
+                      dosage: "",
+                      since: "",
+                    })}
                     emptyText="No current medications."
                   />
                 </div>
               </div>
 
-              {/* Show More → Row 3: Procedures, Investigations done, Allergy */}
+              {/* Show More / Less for mini-cards */}
               <div className="text-right">
                 <button
                   type="button"
@@ -801,154 +755,108 @@ export default function DigitalRxForm({
               </div>
 
               {openClinicalMore && (
-                <div className="grid lg:grid-cols-2 gap-3">
-                  {/* Procedures */}
-                  <div className="grid gap-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] text-gray-600">
-                        Procedure(s)
-                      </label>
-                      <RailMini
-                        onAdd={addProcedure}
-                        onRemove={() =>
-                          removeProcedure(
-                            (value.clinical.procedures || []).length - 1
-                          )
-                        }
-                        canRemove={(value.clinical.procedures || []).length > 0}
+                <div className="grid gap-3">
+                  {/* Row A — Allergy + Family History */}
+                  <div className="grid lg:grid-cols-2 gap-3">
+                    {/* Allergy */}
+                    <MiniCard title="Allergy">
+                      <LabeledTextarea
+                        label="Allergy"
+                        value={value.clinical.allergy || ""}
+                        onChange={(v) => patch("clinical", { allergy: v })}
+                        placeholder="e.g., Penicillin / NSAIDs / Seafood…"
                       />
-                    </div>
-                    <BorderlessTable
-                      headers={["Name", "Date", ""]}
-                      rows={(value.clinical.procedures || []).map((r, idx) => ({
-                        key: `proc-${idx}`,
-                        cells: [
-                          <input
-                            key="pname"
-                            className="ui-input w-full"
-                            value={r.name}
-                            onChange={(e) => {
-                              const next = [
-                                ...(value.clinical.procedures || []),
-                              ];
-                              next[idx] = {
-                                ...next[idx],
-                                name: e.target.value,
-                              };
-                              setProcedures(next);
-                            }}
-                            placeholder="e.g., Appendectomy"
-                          />,
-                          <input
-                            key="pdate"
-                            type="date"
-                            className="ui-input w-full"
-                            value={r.date || ""}
-                            onChange={(e) => {
-                              const next = [
-                                ...(value.clinical.procedures || []),
-                              ];
-                              next[idx] = {
-                                ...next[idx],
-                                date: e.target.value,
-                              };
-                              setProcedures(next);
-                            }}
-                          />,
-                          <button
-                            key="del"
-                            type="button"
-                            title="Delete"
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50"
-                            onClick={() => removeProcedure(idx)}
-                          >
-                            ×
-                          </button>,
-                        ],
-                      }))}
-                      emptyText="No procedures added."
-                    />
+                    </MiniCard>
+
+                    {/* Family History (Relation, Ailment) */}
+                    <MiniCard title="Family History">
+                      <LabeledTable
+                        label="Family History"
+                        columns={[
+                          {
+                            key: "relation",
+                            header: "Relation",
+                            placeholder: "Father / Mother / Sibling…",
+                          },
+                          {
+                            key: "ailment",
+                            header: "Ailment",
+                            placeholder: "e.g., Type 2 Diabetes",
+                          },
+                        ]}
+                        value={value.clinical.familyHistoryRows ?? []}
+                        onChange={(rows) =>
+                          patch("clinical", { familyHistoryRows: rows })
+                        }
+                        getDefaultRow={() => ({ relation: "", ailment: "" })}
+                        emptyText="No family history recorded."
+                      />
+                    </MiniCard>
                   </div>
 
-                  {/* Investigations done */}
-                  <div className="grid gap-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] text-gray-600">
-                        Investigations Done
-                      </label>
-                      <RailMini
-                        onAdd={addInvestigationDone}
-                        onRemove={() =>
-                          removeInvestigationDone(
-                            (value.clinical.investigationsDone || []).length - 1
-                          )
-                        }
-                        canRemove={
-                          (value.clinical.investigationsDone || []).length > 0
-                        }
-                      />
-                    </div>
-                    <BorderlessTable
-                      headers={["Name", "Date", ""]}
-                      rows={(value.clinical.investigationsDone || []).map(
-                        (r, idx) => ({
-                          key: `inv-${idx}`,
-                          cells: [
-                            <input
-                              key="iname"
-                              className="ui-input w-full"
-                              value={r.name}
-                              onChange={(e) => {
-                                const next = [
-                                  ...(value.clinical.investigationsDone || []),
-                                ];
-                                next[idx] = {
-                                  ...next[idx],
-                                  name: e.target.value,
-                                };
-                                setInvestigationsDone(next);
-                              }}
-                              placeholder="e.g., CBC"
-                            />,
-                            <input
-                              key="idate"
-                              type="date"
-                              className="ui-input w-full"
-                              value={r.date || ""}
-                              onChange={(e) => {
-                                const next = [
-                                  ...(value.clinical.investigationsDone || []),
-                                ];
-                                next[idx] = {
-                                  ...next[idx],
-                                  date: e.target.value,
-                                };
-                                setInvestigationsDone(next);
-                              }}
-                            />,
-                            <button
-                              key="del"
-                              type="button"
-                              title="Delete"
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-full border hover:bg-gray-50"
-                              onClick={() => removeInvestigationDone(idx)}
-                            >
-                              ×
-                            </button>,
-                          ],
-                        })
-                      )}
-                      emptyText="No investigations recorded."
-                    />
-                  </div>
+                  {/* Row B — Procedures Done + Investigations Done */}
+                  <div className="grid lg:grid-cols-2 gap-3">
+                    {/* Procedures Done (notes + table) */}
+                    <MiniCard title="Procedures Done">
+                      <div className="grid gap-2">
+                        {/* <LabeledTextarea
+                          label="Procedure Notes"
+                          value={value.clinical.proceduresDone || ""}
+                          onChange={(v) =>
+                            patch("clinical", { proceduresDone: v })
+                          }
+                          placeholder="Summary / remarks…"
+                        /> */}
+                        <LabeledTable
+                          label="Procedures"
+                          columns={[
+                            {
+                              key: "name",
+                              header: "Name",
+                              placeholder: "e.g., Appendectomy",
+                            },
+                            { key: "date", header: "Date", type: "date" },
+                          ]}
+                          value={value.clinical.proceduresDone ?? []}
+                          onChange={(rows) =>
+                            patch("clinical", { proceduresDone: rows })
+                          }
+                          getDefaultRow={() => ({ name: "", date: "" })}
+                          emptyText="No procedures added."
+                        />
+                      </div>
+                    </MiniCard>
 
-                  {/* Allergy (full width on next row for readability) */}
-                  <div className="lg:col-span-2">
-                    <LabeledTextarea
-                      label="Allergy"
-                      value={value.clinical.allergy || ""}
-                      onChange={(v) => patch("clinical", { allergy: v })}
-                    />
+                    {/* Investigations Done (notes + table) */}
+                    <MiniCard title="Investigations Done">
+                      <div className="grid gap-2">
+                        {/* <LabeledTextarea
+                          label="Investigation Notes"
+                          value={value.clinical.investigationsNote || ""}
+                          onChange={(v) =>
+                            patch("clinical", { investigationsNote: v })
+                          }
+                          placeholder="Summary / key results…"
+                        /> */}
+                        <LabeledTable
+                          label="Investigations"
+                          columns={[
+                            {
+                              key: "name",
+                              header: "Name",
+                              placeholder: "e.g., CBC",
+                            },
+                            { key: "date", header: "Date", type: "date" },
+                          ]}
+                          value={value.clinical.investigationsDone ?? []}
+                          onChange={(rows) =>
+                            patch("clinical", { investigationsDone: rows })
+                          }
+                          getDefaultRow={() => ({ name: "", date: "" })}
+                          emptyText="No investigations recorded."
+                        />
+                      </div>
+                    </MiniCard>
                   </div>
                 </div>
               )}
@@ -964,36 +872,8 @@ export default function DigitalRxForm({
         >
           {openMeds && (
             <div className="relative">
-              {/* Right-side +/- rail (outside edge) */}
-              <div className="absolute -right-3 top-0 flex flex-col gap-2">
-                <button
-                  type="button"
-                  title="Add row"
-                  onClick={addRxRow}
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-full border bg-white shadow hover:bg-gray-50 text-gray-700"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  title="Remove last row"
-                  onClick={() =>
-                    value.prescription.length > 0 &&
-                    removeRxRow(value.prescription.length - 1)
-                  }
-                  disabled={value.prescription.length === 0}
-                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full border bg-white shadow ${
-                    value.prescription.length
-                      ? "hover:bg-gray-50 text-gray-700"
-                      : "opacity-40 cursor-not-allowed text-gray-400"
-                  }`}
-                >
-                  –
-                </button>
-              </div>
-
               {/* Sleek, borderless rows */}
-              <div className="rounded-md border divide-y overflow-hidden bg-white">
+              <div className="rounded-md divide-y overflow-hidden bg-white">
                 {/* Header strip */}
                 <div className="grid grid-cols-12 text-xs sm:text-sm bg-gray-50">
                   <CellHead className="col-span-3">Medicine</CellHead>
@@ -1001,82 +881,117 @@ export default function DigitalRxForm({
                   <CellHead className="col-span-2">Instruction</CellHead>
                   <CellHead className="col-span-2">Duration</CellHead>
                   <CellHead className="col-span-2">Dosage</CellHead>
-                  <CellHead className="col-span-1 text-right pr-2">
-                    Actions
-                  </CellHead>
                 </div>
 
                 <div className="max-h-[46vh] overflow-auto">
-                  {value.prescription.map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-12 items-start gap-2 px-2 py-2"
-                    >
-                      <div className="col-span-3 min-w-0">
-                        <input
-                          className="ui-input w-full"
-                          value={row.medicine}
-                          onChange={(e) =>
-                            updateRx(idx, { medicine: e.target.value })
-                          }
-                          placeholder="e.g., Paracetamol 500 mg"
-                        />
+                  {value.prescription.map((row, idx) => {
+                    const isLast = idx === value.prescription.length - 1;
+                    return (
+                      <div
+                        key={idx}
+                        className="relative grid grid-cols-12 items-start gap-2 px-3 py-2 rounded-md bg-white shadow-sm ring-1 ring-gray-200/70 hover:shadow md:hover:shadow-md hover:bg-gray-50/50 transition"
+                      >
+                        <div className="col-span-3 min-w-0">
+                          <input
+                            className="ui-input w-full"
+                            value={row.medicine}
+                            onChange={(e) =>
+                              updateRx(idx, { medicine: e.target.value })
+                            }
+                            placeholder="e.g., Paracetamol 500 mg"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            className="ui-input w-full"
+                            value={row.frequency}
+                            onChange={(e) =>
+                              updateRx(idx, { frequency: e.target.value })
+                            }
+                            placeholder="1-0-1"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            className="ui-input w-full"
+                            value={row.instruction}
+                            onChange={(e) =>
+                              updateRx(idx, { instruction: e.target.value })
+                            }
+                            placeholder="After food"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            className="ui-input w-full"
+                            value={row.duration}
+                            onChange={(e) =>
+                              updateRx(idx, { duration: e.target.value })
+                            }
+                            placeholder="5 days"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            className="ui-input w-full"
+                            value={row.dosage}
+                            onChange={(e) =>
+                              updateRx(idx, { dosage: e.target.value })
+                            }
+                            placeholder="500 mg"
+                          />
+                        </div>
+
+                        {/* Floating toggle at the end of EACH row:
+                    - last row: "+"
+                    - previous rows: "−" (delete that row) */}
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                          {isLast ? (
+                            <button
+                              type="button"
+                              title="Add row"
+                              onClick={addRxRow}
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
+                            >
+                              +
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Delete row"
+                              onClick={() => removeRxRow(idx)}
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
+                            >
+                              –
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <input
-                          className="ui-input w-full"
-                          value={row.frequency}
-                          onChange={(e) =>
-                            updateRx(idx, { frequency: e.target.value })
-                          }
-                          placeholder="1-0-1"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          className="ui-input w-full"
-                          value={row.instruction}
-                          onChange={(e) =>
-                            updateRx(idx, { instruction: e.target.value })
-                          }
-                          placeholder="After food"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          className="ui-input w-full"
-                          value={row.duration}
-                          onChange={(e) =>
-                            updateRx(idx, { duration: e.target.value })
-                          }
-                          placeholder="5 days"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          className="ui-input w-full"
-                          value={row.dosage}
-                          onChange={(e) =>
-                            updateRx(idx, { dosage: e.target.value })
-                          }
-                          placeholder="500 mg"
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end pr-1">
+                    );
+                  })}
+
+                  {/* Empty state with floating controls */}
+                  {value.prescription.length === 0 && (
+                    <div className="relative px-3 py-6 text-xs text-gray-500">
+                      No medicines added yet.
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-2">
                         <button
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-full border text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          title="Delete row"
                           type="button"
-                          onClick={() => removeRxRow(idx)}
+                          title="Add row"
+                          onClick={addRxRow}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
                         >
-                          ×
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          title="Remove last row"
+                          disabled
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow opacity-40 cursor-not-allowed text-gray-400"
+                        >
+                          –
                         </button>
                       </div>
-                    </div>
-                  ))}
-                  {value.prescription.length === 0 && (
-                    <div className="px-3 py-4 text-xs text-gray-500">
-                      No medicines added yet.
                     </div>
                   )}
                 </div>
@@ -1272,7 +1187,7 @@ function LabeledTextarea({
     <div className="grid gap-1 min-w-0">
       <label className="text-[11px] text-gray-600">{label}</label>
       <textarea
-        className="ui-textarea w-full min-h-[70px] focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+        className="ui-input w-full min-h-[50px] shadow-md focus:shadow-md focus:ring-2 focus:ring-emerald-500 focus:outline-none"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
@@ -1630,6 +1545,186 @@ function LabeledTable({
 }
 
 //------------- Labeled Table ends ---------------------//
+
+//---------------Prescription Table -----------------//
+
+export type RxRow = {
+  medicine: string;
+  frequency: string;
+  instruction: string;
+  duration: string;
+  dosage: string;
+};
+
+export function PrescriptionTable({
+  value,
+  onChange,
+  className = "",
+  maxHeight = "max-h-[46vh]",
+}: {
+  value: RxRow[];
+  onChange: (rows: RxRow[]) => void;
+  className?: string;
+  /** Tailwind max-height for the scroll area */
+  maxHeight?: string;
+}) {
+  const addRow = () =>
+    onChange([
+      ...value,
+      {
+        medicine: "",
+        frequency: "",
+        instruction: "",
+        duration: "",
+        dosage: "",
+      },
+    ]);
+
+  const removeRow = (idx: number) =>
+    onChange(value.filter((_, i) => i !== idx));
+
+  const updateRow = (idx: number, patch: Partial<RxRow>) => {
+    const next = value.slice();
+    next[idx] = { ...next[idx], ...patch };
+    onChange(next);
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <div className="rounded-md divide-y overflow-hidden bg-white">
+        {/* Header strip */}
+        <div className="grid grid-cols-12 text-xs sm:text-sm bg-gray-50">
+          <div className="col-span-3 px-2 py-1.5 font-medium text-gray-600">
+            Medicine
+          </div>
+          <div className="col-span-2 px-2 py-1.5 font-medium text-gray-600">
+            Frequency
+          </div>
+          <div className="col-span-2 px-2 py-1.5 font-medium text-gray-600">
+            Instruction
+          </div>
+          <div className="col-span-2 px-2 py-1.5 font-medium text-gray-600">
+            Duration
+          </div>
+          <div className="col-span-2 px-2 py-1.5 font-medium text-gray-600">
+            Dosage
+          </div>
+        </div>
+
+        <div className={`${maxHeight} overflow-auto`}>
+          {value.map((row, idx) => {
+            const isLast = idx === value.length - 1;
+            return (
+              <div
+                key={idx}
+                className="relative grid grid-cols-12 items-start gap-2 px-3 py-2 rounded-md bg-white shadow-sm ring-1 ring-gray-200/70 hover:shadow md:hover:shadow-md hover:bg-gray-50/50 transition"
+              >
+                <div className="col-span-3 min-w-0">
+                  <input
+                    className="ui-input w-full"
+                    value={row.medicine}
+                    onChange={(e) =>
+                      updateRow(idx, { medicine: e.target.value })
+                    }
+                    placeholder="e.g., Paracetamol 500 mg"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <input
+                    className="ui-input w-full"
+                    value={row.frequency}
+                    onChange={(e) =>
+                      updateRow(idx, { frequency: e.target.value })
+                    }
+                    placeholder="1-0-1"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <input
+                    className="ui-input w-full"
+                    value={row.instruction}
+                    onChange={(e) =>
+                      updateRow(idx, { instruction: e.target.value })
+                    }
+                    placeholder="After food"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <input
+                    className="ui-input w-full"
+                    value={row.duration}
+                    onChange={(e) =>
+                      updateRow(idx, { duration: e.target.value })
+                    }
+                    placeholder="5 days"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <input
+                    className="ui-input w-full"
+                    value={row.dosage}
+                    onChange={(e) => updateRow(idx, { dosage: e.target.value })}
+                    placeholder="500 mg"
+                  />
+                </div>
+
+                {/* Per-row toggle at end:
+                    - last row: "+"
+                    - previous rows: "−" (delete that row) */}
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  {isLast ? (
+                    <button
+                      type="button"
+                      title="Add row"
+                      onClick={addRow}
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
+                    >
+                      +
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Delete row"
+                      onClick={() => removeRow(idx)}
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
+                    >
+                      –
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Empty state with floating controls */}
+          {value.length === 0 && (
+            <div className="relative px-3 py-6 text-xs text-gray-500">
+              No medicines added yet.
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-2">
+                <button
+                  type="button"
+                  title="Add row"
+                  onClick={addRow}
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow hover:bg-gray-50 text-gray-700"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  title="Remove last row"
+                  disabled
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white shadow opacity-40 cursor-not-allowed text-gray-400"
+                >
+                  –
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Reusable: input + datalist (combobox-like)
 import { useId } from "react";
