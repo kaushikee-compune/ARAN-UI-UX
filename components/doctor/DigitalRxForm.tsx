@@ -16,6 +16,7 @@ export type DigitalRxFormState = {
     weight?: string; // kg
     height?: string; // cm
     bmi?: string; // auto
+    lmpDate?: string;
 
     bodyMeasurement?: {
       waist?: string;
@@ -24,13 +25,13 @@ export type DigitalRxFormState = {
       chest?: string;
     };
 
-    womenHealth?: {
+    womensHealth?: {
       lmpDate?: string;
-      pregnant?: "Yes" | "No" | "Unknown";
+      cycleLengthDays?: string;
+      cycleRegularity?: string;
       gravidity?: string;
       parity?: string;
-      breastfeeding?: "Yes" | "No";
-      menopausalStatus?: "Premenopausal" | "Perimenopausal" | "Postmenopausal";
+      abortions?: string;
     };
 
     lifestyle?: {
@@ -96,6 +97,8 @@ export type DigitalRxFormState = {
     followUpDate?: string; // yyyy-mm-dd
   };
 };
+
+const toUnion = <T extends string>(v: string) => v as T;
 
 export type DigitalRxFormProps = {
   value: DigitalRxFormState;
@@ -355,12 +358,234 @@ export default function DigitalRxForm({
                 <div className="grid sm:grid-cols-2 gap-3">
                   <MiniCard title="Women Health">
                     {/* Placeholders; wire fields later as needed */}
-                    <TinyHint>
-                      e.g., LMP, pregnancy status, cycle details…
-                    </TinyHint>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* LMP Date */}
+                      <div className="grid gap-1">
+                        <label className="text-[11px] text-gray-600">
+                          LMP Date
+                        </label>
+                        <input
+                          type="date"
+                          className="ui-input w-full"
+                          value={value.vitals.womensHealth?.lmpDate ?? ""}
+                          onChange={(e) =>
+                            patch("vitals", {
+                              womensHealth: {
+                                ...(value.vitals.womensHealth || {}),
+                                lmpDate: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+
+                      {/* Cycle Length (days) — combo */}
+                      <LabeledCombo
+                        label="Cycle Length (days)"
+                        value={value.vitals.womensHealth?.cycleLengthDays ?? ""}
+                        options={["21", "24", "26", "28", "30", "32", "35"]}
+                        placeholder="e.g., 28"
+                        inputMode="numeric"
+                        onChange={(v) =>
+                          patch("vitals", {
+                            womensHealth: {
+                              ...(value.vitals.womensHealth || {}),
+                              cycleLengthDays: v,
+                            },
+                          })
+                        }
+                      />
+
+                      {/* Cycle Regularity — combo */}
+                      <LabeledCombo
+                        label="Cycle Regularity"
+                        value={
+                          value.vitals.womensHealth?.cycleRegularity ??
+                          "Regular"
+                        }
+                        options={["Regular", "Irregular"]}
+                        onChange={(v) =>
+                          patch("vitals", {
+                            womensHealth: {
+                              ...(value.vitals.womensHealth || {}),
+                              cycleRegularity: v,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+
+                    {/* Row 2 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                      <LabeledCombo
+                        label="Gravida (G)"
+                        value={value.vitals.womensHealth?.gravidity ?? ""}
+                        options={[
+                          "0",
+                          "1",
+                          "2",
+                          "3",
+                          "4",
+                          "5",
+                          "6",
+                          "7",
+                          "8",
+                          "9",
+                        ]}
+                        inputMode="numeric"
+                        onChange={(v) =>
+                          patch("vitals", {
+                            womensHealth: {
+                              ...(value.vitals.womensHealth || {}),
+                              gravidity: v,
+                            },
+                          })
+                        }
+                      />
+                      <LabeledCombo
+                        label="Para (P)"
+                        value={value.vitals.womensHealth?.parity ?? ""}
+                        options={[
+                          "0",
+                          "1",
+                          "2",
+                          "3",
+                          "4",
+                          "5",
+                          "6",
+                          "7",
+                          "8",
+                          "9",
+                        ]}
+                        inputMode="numeric"
+                        onChange={(v) =>
+                          patch("vitals", {
+                            womensHealth: {
+                              ...(value.vitals.womensHealth || {}),
+                              parity: v,
+                            },
+                          })
+                        }
+                      />
+                      <LabeledCombo
+                        label="Abortions (A)"
+                        value={value.vitals.womensHealth?.abortions ?? ""}
+                        options={["0", "1", "2", "3", "4", "5"]}
+                        inputMode="numeric"
+                        onChange={(v) =>
+                          patch("vitals", {
+                            womensHealth: {
+                              ...(value.vitals.womensHealth || {}),
+                              abortions: v,
+                            },
+                          })
+                        }
+                      />
+                    </div>
                   </MiniCard>
+
                   <MiniCard title="Lifestyle">
-                    <TinyHint>e.g., smoking, alcohol, sleep, diet…</TinyHint>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* Smoking Status — combo */}
+                      <LabeledCombo
+                        label="Smoking Status"
+                        value={value.vitals.lifestyle?.smokingStatus ?? "Never"}
+                        options={["Never", "Former", "Current"]}
+                        onChange={(v) =>
+                          patch("vitals", {
+                            lifestyle: {
+                              ...(value.vitals.lifestyle || {}),
+                              smokingStatus: toUnion<
+                                "Never" | "Former" | "Current"
+                              >(v),
+                            },
+                          })
+                        }
+                      />
+
+                      {/* Alcohol Intake — combo */}
+                      <LabeledCombo
+                        label="Alcohol Intake"
+                        value={value.vitals.lifestyle?.alcoholIntake ?? "None"}
+                        options={["None", "Occasional", "Moderate", "Heavy"]}
+                        onChange={(v) =>
+                          patch("vitals", {
+                            lifestyle: {
+                              ...(value.vitals.lifestyle || {}),
+                              alcoholIntake: toUnion<
+                                "None" | "Occasional" | "Moderate" | "Heavy"
+                              >(v),
+                            },
+                          })
+                        }
+                      />
+
+                      {/* Diet Type — combo */}
+                      <LabeledCombo
+                        label="Diet Type"
+                        value={value.vitals.lifestyle?.dietType ?? "Mixed"}
+                        options={[
+                          "Mixed",
+                          "Vegetarian",
+                          "Vegan",
+                          "Keto",
+                          "Other",
+                        ]}
+                        onChange={(v) =>
+                          patch("vitals", {
+                            lifestyle: {
+                              ...(value.vitals.lifestyle || {}),
+                              dietType: toUnion<
+                                | "Mixed"
+                                | "Vegetarian"
+                                | "Vegan"
+                                | "Keto"
+                                | "Other"
+                              >(v),
+                            },
+                          })
+                        }
+                      />
+                    </div>
+
+                    {/* Row 2 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {/* Sleep hours — combo (free text or pick) */}
+                      <LabeledCombo
+                        label="Sleep (hrs/night)"
+                        value={value.vitals.lifestyle?.sleepHours ?? ""}
+                        options={["4", "5", "6", "7", "8", "9", "10"]}
+                        inputMode="numeric"
+                        placeholder="e.g., 7"
+                        onChange={(v) =>
+                          patch("vitals", {
+                            lifestyle: {
+                              ...(value.vitals.lifestyle || {}),
+                              sleepHours: v,
+                            },
+                          })
+                        }
+                      />
+
+                      {/* Stress Level — combo */}
+                      <LabeledCombo
+                        label="Stress Level"
+                        value={
+                          value.vitals.lifestyle?.stressLevel ?? "Moderate"
+                        }
+                        options={["Low", "Moderate", "High"]}
+                        onChange={(v) =>
+                          patch("vitals", {
+                            lifestyle: {
+                              ...(value.vitals.lifestyle || {}),
+                              stressLevel: toUnion<"Low" | "Moderate" | "High">(
+                                v
+                              ),
+                            },
+                          })
+                        }
+                      />
+                    </div>
                   </MiniCard>
                   <MiniCard title="Body Measurement">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1194,8 +1419,9 @@ function LabeledTable({
   showAddRemove?: boolean;
 }) {
   // Optimistic rendering in case parent state updates are async/laggy
-  const [optimisticRows, setOptimisticRows] =
-    useState<Record<string, string | undefined>[] | null>(null);
+  const [optimisticRows, setOptimisticRows] = useState<
+    Record<string, string | undefined>[] | null
+  >(null);
 
   const rows = optimisticRows ?? value;
 
@@ -1205,7 +1431,9 @@ function LabeledTable({
   }, [value]);
 
   // Ensure clean row (no undefined)
-  const sanitizeRow = (row?: Record<string, string | undefined>): Record<string, string> => {
+  const sanitizeRow = (
+    row?: Record<string, string | undefined>
+  ): Record<string, string> => {
     const base: Record<string, string> = {};
     columns.forEach((col) => {
       const v = row?.[col.key];
@@ -1214,10 +1442,13 @@ function LabeledTable({
     return base;
   };
 
-  const makeDefaultRow = (): Record<string, string> => sanitizeRow(getDefaultRow?.());
+  const makeDefaultRow = (): Record<string, string> =>
+    sanitizeRow(getDefaultRow?.());
 
   // Default editable row when table is empty
-  const [stagedRow, setStagedRow] = useState<Record<string, string>>(() => makeDefaultRow());
+  const [stagedRow, setStagedRow] = useState<Record<string, string>>(() =>
+    makeDefaultRow()
+  );
 
   // If columns change or rows cleared, rebuild staged row
   useEffect(() => {
@@ -1283,7 +1514,9 @@ function LabeledTable({
             // Default editable row with floating + toggle
             <div
               className="relative grid items-center gap-2 px-2 py-2"
-              style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0,1fr))` }}
+              style={{
+                gridTemplateColumns: `repeat(${colCount}, minmax(0,1fr))`,
+              }}
             >
               {columns.map((col) => (
                 <div key={`default-c-${col.key}`} className="min-w-0">
@@ -1292,7 +1525,10 @@ function LabeledTable({
                       className="ui-input w-full"
                       value={stagedRow[col.key] ?? ""}
                       onChange={(e) =>
-                        setStagedRow((s) => ({ ...s, [col.key]: e.target.value }))
+                        setStagedRow((s) => ({
+                          ...s,
+                          [col.key]: e.target.value,
+                        }))
                       }
                     >
                       {col.options.map((opt) => (
@@ -1308,7 +1544,10 @@ function LabeledTable({
                       placeholder={col.placeholder}
                       value={stagedRow[col.key] ?? ""}
                       onChange={(e) =>
-                        setStagedRow((s) => ({ ...s, [col.key]: e.target.value }))
+                        setStagedRow((s) => ({
+                          ...s,
+                          [col.key]: e.target.value,
+                        }))
                       }
                     />
                   )}
@@ -1334,7 +1573,9 @@ function LabeledTable({
               <div
                 key={`r-${rowIdx}`}
                 className="relative grid items-center gap-2 px-2 py-2"
-                style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0,1fr))` }}
+                style={{
+                  gridTemplateColumns: `repeat(${colCount}, minmax(0,1fr))`,
+                }}
               >
                 {columns.map((col) => (
                   <div key={`r-${rowIdx}-c-${col.key}`} className="min-w-0">
@@ -1342,7 +1583,9 @@ function LabeledTable({
                       <select
                         className="ui-input w-full"
                         value={(row[col.key] as string) ?? ""}
-                        onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
+                        onChange={(e) =>
+                          updateCell(rowIdx, col.key, e.target.value)
+                        }
                       >
                         {col.options.map((opt) => (
                           <option key={opt} value={opt}>
@@ -1356,7 +1599,9 @@ function LabeledTable({
                         type={col.type || "text"}
                         placeholder={col.placeholder}
                         value={(row[col.key] as string) ?? ""}
-                        onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
+                        onChange={(e) =>
+                          updateCell(rowIdx, col.key, e.target.value)
+                        }
                       />
                     )}
                   </div>
@@ -1384,8 +1629,49 @@ function LabeledTable({
   );
 }
 
-
 //------------- Labeled Table ends ---------------------//
+
+// Reusable: input + datalist (combobox-like)
+import { useId } from "react";
+
+function LabeledCombo({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  inputMode,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange?: (v: string) => void;
+  options: string[]; // suggestions for dropdown
+  placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: string; // "text" | "number" etc. (defaults to text)
+}) {
+  const listId = useId();
+  return (
+    <div className="grid gap-1 min-w-0">
+      <label className="text-[11px] text-gray-600">{label}</label>
+      <input
+        className="ui-input w-full min-w-0 shadow-sm focus:shadow-md focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+        type={type}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder={placeholder}
+        list={listId}
+        inputMode={inputMode}
+      />
+      <datalist id={listId}>
+        {options.map((opt) => (
+          <option key={opt} value={opt} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
 
 function RailMini({
   onAdd,

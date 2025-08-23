@@ -66,6 +66,38 @@ export type FormState = {
     height?: string; // cm
     bmi?: string; // auto-calc
   };
+
+  womensHealth?: {
+    lmpDate?: string;
+    cycleLengthDays?: string;
+    cycleRegularity?: string;
+    gravidity?: string;
+    parity?: string;
+    abortions?: string;
+  };
+
+  lifestyle?: {
+    smokingStatus?: "Never" | "Former" | "Current";
+    alcoholIntake?: "None" | "Occasional" | "Moderate" | "Heavy";
+    dietType?: "Mixed" | "Vegetarian" | "Vegan" | "Keto" | "Other";
+    sleepHours?: string;
+    stressLevel?: "Low" | "Moderate" | "High";
+  };
+  bodyMeasurement?: {
+    waist?: string;
+    hip?: string;
+    neck?: string;
+    chest?: string;
+  };
+  physicalActivity?: {
+    logs?: {
+      activity?: string;
+      durationMin?: string;
+      intensity?: "Low" | "Moderate" | "High";
+      frequencyPerWeek?: string;
+    }[];
+  };
+
   clinical: {
     chiefComplaints?: string;
     pastHistory?: string;
@@ -539,7 +571,7 @@ export default function ConsultationsPage() {
           >
             OPD Queue
           </TopMenuButton>
-          
+
           {/* Display Queueu */}
           {active === "queue" && (
             <QueueQuickView onClose={() => setActive("consultation")} />
@@ -704,13 +736,13 @@ export default function ConsultationsPage() {
                         alt=""
                         className="w-4 h-4"
                       />
-                      {patient.name} | {patient.gender} • {patient.age} 
+                      {patient.name} | {patient.gender} • {patient.age}
                     </div>
-                                
+
                     <div className="text-xs text-gray-600 mt-1">
-                      ABHA No: {patient.abhaNumber} |  ABHA Address: {patient.abhaAddress}
+                      ABHA No: {patient.abhaNumber} | ABHA Address:{" "}
+                      {patient.abhaAddress}
                     </div>
-                   
                   </div>
 
                   {/* Center: logo */}
@@ -1055,20 +1087,45 @@ function ToolBtn({
    New Record Live Preview (blank panel content)
 ──────────────────────────────────────────────────────────────────────────── */
 function NewRecordPreview({ form }: { form: FormState }) {
-  const hasVitals =
+  // basic vitals (existing)
+  const hasVitalsBasic =
     !!form.vitals.temperature ||
     !!form.vitals.bp ||
     !!form.vitals.weight ||
     !!form.vitals.height ||
     !!form.vitals.bmi;
+
+  // NEW: mini-card presence checks (nested under vitals)
+  const ls = form.lifestyle;
+  const hasLifestyle =
+    !!ls?.smokingStatus ||
+    !!ls?.alcoholIntake ||
+    !!ls?.dietType ||
+    !!ls?.sleepHours ||
+    !!ls?.stressLevel;
+
+  const wh = form.womensHealth;
+  const hasWomensHealth =
+    !!wh?.lmpDate ||
+    !!wh?.cycleLengthDays ||
+    !!wh?.cycleRegularity ||
+    !!wh?.gravidity ||
+    !!wh?.parity ||
+    !!wh?.abortions;
+
+  // show Vitals section if any vitals OR either mini-card present
+  const hasVitals = hasVitalsBasic || hasLifestyle || hasWomensHealth;
+
   const hasClinical =
     !!form.clinical.chiefComplaints ||
     !!form.clinical.pastHistory ||
     !!form.clinical.familyHistory ||
     !!form.clinical.allergy;
+
   const hasAnyRx = form.prescription.some(
     (r) => r.medicine || r.frequency || r.instruction || r.duration || r.dosage
   );
+
   const hasPlan =
     !!form.plan.investigations ||
     !!form.plan.note ||
@@ -1090,16 +1147,44 @@ function NewRecordPreview({ form }: { form: FormState }) {
       {hasVitals && (
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Vitals</h4>
+
+          {/* Basic vitals grid (only renders values if present) */}
           <div className="grid gap-2 text-sm md:grid-cols-3">
-            <KV
-              label="Temperature"
-              value={fmt(form.vitals.temperature, "°C")}
-            />
+            <KV label="Temperature" value={fmt(form.vitals.temperature, "°C")} />
             <KV label="Blood Pressure" value={form.vitals.bp} />
             <KV label="Weight" value={fmt(form.vitals.weight, "kg")} />
             <KV label="Height" value={fmt(form.vitals.height, "cm")} />
             <KV label="BMI" value={form.vitals.bmi} />
           </div>
+
+          {/* Lifestyle (if any field present) */}
+          {hasLifestyle && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-gray-600 mb-1">Lifestyle</div>
+              <div className="grid gap-2 text-sm md:grid-cols-3">
+                <KV label="Smoking" value={ls?.smokingStatus} />
+                <KV label="Alcohol" value={ls?.alcoholIntake} />
+                <KV label="Diet" value={ls?.dietType} />
+                <KV label="Sleep (hrs)" value={ls?.sleepHours} />
+                <KV label="Stress" value={ls?.stressLevel} />
+              </div>
+            </div>
+          )}
+
+          {/* Women’s Health (if any field present) */}
+          {hasWomensHealth && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-gray-600 mb-1">Women’s Health</div>
+              <div className="grid gap-2 text-sm md:grid-cols-3">
+                <KV label="LMP" value={wh?.lmpDate} />
+                <KV label="Cycle (days)" value={wh?.cycleLengthDays} />
+                <KV label="Regularity" value={wh?.cycleRegularity} />
+                <KV label="Gravida (G)" value={wh?.gravidity} />
+                <KV label="Para (P)" value={wh?.parity} />
+                <KV label="Abortions (A)" value={wh?.abortions} />
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -1108,23 +1193,15 @@ function NewRecordPreview({ form }: { form: FormState }) {
           <h4 className="text-sm font-semibold">Clinical Details</h4>
           <div className="grid gap-1 text-sm">
             {form.clinical.chiefComplaints && (
-              <KV
-                label="Chief Complaints"
-                value={form.clinical.chiefComplaints}
-              />
+              <KV label="Chief Complaints" value={form.clinical.chiefComplaints} />
             )}
             {form.clinical.pastHistory && (
-              <KV
-                label="Past Medical History"
-                value={form.clinical.pastHistory}
-              />
+              <KV label="Past Medical History" value={form.clinical.pastHistory} />
             )}
             {form.clinical.familyHistory && (
               <KV label="Family History" value={form.clinical.familyHistory} />
             )}
-            {form.clinical.allergy && (
-              <KV label="Allergy" value={form.clinical.allergy} />
-            )}
+            {form.clinical.allergy && <KV label="Allergy" value={form.clinical.allergy} />}
           </div>
         </section>
       )}
@@ -1145,14 +1222,7 @@ function NewRecordPreview({ form }: { form: FormState }) {
               </thead>
               <tbody>
                 {form.prescription
-                  .filter(
-                    (r) =>
-                      r.medicine ||
-                      r.frequency ||
-                      r.instruction ||
-                      r.duration ||
-                      r.dosage
-                  )
+                  .filter((r) => r.medicine || r.frequency || r.instruction || r.duration || r.dosage)
                   .map((r, i) => (
                     <tr key={i} className="border-t">
                       <Td>{r.medicine || "-"}</Td>
@@ -1172,21 +1242,14 @@ function NewRecordPreview({ form }: { form: FormState }) {
         <section className="space-y-2">
           <h4 className="text-sm font-semibold">Investigations &amp; Advice</h4>
           <div className="grid gap-1 text-sm">
-            {form.plan.investigations && (
-              <KV label="Investigations" value={form.plan.investigations} />
-            )}
+            {form.plan.investigations && <KV label="Investigations" value={form.plan.investigations} />}
             {form.plan.note && <KV label="Note" value={form.plan.note} />}
             {form.plan.advice && <KV label="Advice" value={form.plan.advice} />}
-            {form.plan.doctorNote && (
-              <KV label="Doctor Note" value={form.plan.doctorNote} />
-            )}
+            {form.plan.doctorNote && <KV label="Doctor Note" value={form.plan.doctorNote} />}
             {(form.plan.followUpInstructions || form.plan.followUpDate) && (
               <KV
                 label="Follow-up"
-                value={[
-                  form.plan.followUpInstructions,
-                  form.plan.followUpDate ? `on ${form.plan.followUpDate}` : "",
-                ]
+                value={[form.plan.followUpInstructions, form.plan.followUpDate ? `on ${form.plan.followUpDate}` : ""]
                   .filter(Boolean)
                   .join(" ")}
               />
