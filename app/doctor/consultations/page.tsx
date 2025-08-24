@@ -325,9 +325,9 @@ export default function ConsultationsPage() {
                {/* Divider with extra breathing room */}
                 <div className="my-10 h-px w-full bg-gray-300" />
                 {/* Group B */}
-                <TinyIcon1 label="Save" tone="info" onClick={onSave}>
+                <TinyIcon label="Save" tone="info" onClick={onSave}>
                   <SaveIcon className="w-4 h-4" />
-                </TinyIcon1>
+                </TinyIcon>
                 <TinyIcon label="Send" tone="success" onClick={onSend}>
                   <TickIcon className="w-4 h-4" />
                 </TinyIcon>
@@ -917,33 +917,7 @@ function RoundPill({ img, label, onClick }: { img: string; label: string; onClic
     </button>
   );
 }
-//----------------- Kaushikee -----------//
-function TinyIcon1({
-  label,
-  onClick,
-  tone = "neutral",
-  children,
-}: {
-  label: string;
-  onClick?: () => void;
-  tone?: "neutral" | "info" | "success";
-  children: React.ReactNode;
-}) {
-  const styles =
-    tone === "success"
-      ? "border-5 border-sky-300 hover:bg-sky-50 text-sky-700 focus-visible:ring-sky-500"
-      : tone === "info"
-      ? "border-5 border-sky-300 hover:bg-sky-50 text-sky-700 focus-visible:ring-sky-500"
-      : "border-5 border-sky-300 hover:bg-sky-50 text-sky-700 focus-visible:ring-sky-500";
-  return (
-    <button onClick={onClick} className={`border-sky-300 hover:bg-sky-50 text-sky-700 focus-visible:ring-sky-500 ${styles}`} title={label} aria-label={label}>
-      {children}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
-        {label}
-      </span>
-    </button>
-  );
-}
+
 
 //----------------- Kaushikee -----------//
 function TinyIcon({

@@ -1,49 +1,101 @@
+// components/doctor/DoctorSidebar.tsx
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  CalendarDays,
+  FlaskConical,
+  ListChecks,
+  Users,
+  ChartLine,
+  CreditCard,
+  Settings,
+  UserCog,
+} from "lucide-react";
 
-const items = [
-  { href: "/doctor", label: "Dashboard" },
-  { href: "/doctor/consultations", label: "Consultations" }, // Wellness, OPConsult, Prescription, Immunization, Lab
-  { href: "/doctor/appointments", label: "Appointments" },   // give appointment
-  { href: "/doctor/queue", label: "OPD Queue" },             // see OPD queue
-  { href: "/doctor/payments", label: "Payments" },           // take payment
-  { href: "/doctor/patients", label: "Patients" },
-  { href: "/doctor/settings", label: "Settings" },
+type Item = {
+  label: string;
+  href: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  color: string; // tailwind text-* color for the icon
+};
+
+const NAV: Item[] = [
+  { label: "Dashboard",           href: "/doctor",               icon: LayoutDashboard, color: "text-indigo-600" },
+  { label: "Appointments",        href: "/doctor/appointments",  icon: CalendarDays,    color: "text-emerald-600" },
+  { label: "Lab Reports",         href: "/doctor/labs",          icon: FlaskConical,    color: "text-violet-600" },
+  { label: "Queues",              href: "/doctor/queues",        icon: ListChecks,      color: "text-amber-600" },
+  { label: "Patients",            href: "/doctor/patients",      icon: Users,           color: "text-sky-600" },
+  { label: "Analytics",           href: "/doctor/analytics",     icon: ChartLine,       color: "text-rose-600" },
+  { label: "Payments",            href: "/doctor/payments",      icon: CreditCard,      color: "text-teal-600" },
+  { label: "Settings",            href: "/doctor/settings",      icon: Settings,        color: "text-gray-700" },
+  { label: "Profile Management",  href: "/doctor/profile",       icon: UserCog,         color: "text-fuchsia-600" },
 ];
 
 export default function DoctorSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
+  const [hidden, setHidden] = React.useState(false);
+
+  // Honor your existing collapse flag
+  React.useEffect(() => {
+    const apply = () => setHidden(localStorage.getItem("aran:sidebarCollapsed") === "1");
+    apply();
+    const on = () => apply();
+    window.addEventListener("aran:sidebar", on);
+    return () => window.removeEventListener("aran:sidebar", on);
+  }, []);
+
+  if (hidden) return null;
 
   return (
-    <div className="ui-card p-3">
-      <div className="mb-3">
-        <div className="text-sm font-semibold">ARAN • Doctor</div>
-        <div className="text-[11px] text-gray-500">Role-based access</div>
-      </div>
-
-      <nav className="space-y-1">
-        {items.map((it) => {
-          const active = pathname === it.href;
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={[
-                "block px-3 py-2 rounded-lg text-sm transition",
-                active
-                  ? "bg-gray-900 text-white"
-                  : "hover:bg-gray-100 text-gray-800",
-              ].join(" ")}
-            >
-              {it.label}
-            </Link>
-          );
-        })}
+    <aside className="sticky top-16 z-30 w-14 min-w-14 select-none">
+      <nav className="flex flex-col items-center py-3 gap-3 bg-white border-r rounded-r-xl shadow-sm h-[calc(100vh-4rem)]">
+        {NAV.map((item) => (
+          <NavIcon
+            key={item.href}
+            {...item}
+            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+          />
+        ))}
       </nav>
+    </aside>
+  );
+}
 
-      <div className="mt-4 text-xs text-gray-400">© {new Date().getFullYear()} ARAN</div>
-    </div>
+function NavIcon({
+  label,
+  href,
+  icon: Icon,
+  color,
+  active,
+}: Item & { active: boolean }) {
+  return (
+    <Link
+      href={href}
+      title={label}
+      aria-label={label}
+      className={[
+        "group relative grid place-items-center",
+        "w-10 h-10 rounded-xl border-2 bg-white transition",
+        active ? "border-gray-900" : "border-gray-200 hover:border-gray-300",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900",
+      ].join(" ")}
+    >
+      <Icon
+        className={["w-5 h-5", color, active ? "scale-110" : "opacity-90 group-hover:opacity-100"].join(" ")}
+        strokeWidth={2}
+      />
+      {/* slim active indicator */}
+      <span
+        className={[
+          "pointer-events-none absolute -left-[6px] w-1 rounded-full",
+          active ? "h-6 bg-gray-900" : "h-0",
+          "transition-all",
+        ].join(" ")}
+      />
+    </Link>
   );
 }
