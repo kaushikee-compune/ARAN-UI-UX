@@ -1,14 +1,13 @@
 // components/doctor/CompanionToggle.tsx
 "use client";
-
 import * as React from "react";
 
 type Props = {
-  checked?: boolean;                 // controlled
-  defaultChecked?: boolean;          // uncontrolled
+  checked?: boolean;
+  defaultChecked?: boolean;
   disabled?: boolean;
   onCheckedChange?: (next: boolean) => void;
-  onChange?: (next: boolean) => void; // compat with your page.tsx
+  onChange?: (next: boolean) => void;
   className?: string;
   size?: "sm" | "md";
   "aria-label"?: string;
@@ -37,10 +36,13 @@ export default function CompanionToggle({
     onChange?.(next);
   }, [disabled, isOn, isControlled, onCheckedChange, onChange]);
 
+  // track: 2.5rem x 1rem (w-10 h-4)
+  // thumb: 1rem x 1rem (w-4 h-4)
+  // OFF left offset 0.125rem (left-0.5), ON translate 1.25rem (translate-x-5)
   const dims =
-    size === "sm"
-      ? { track: "w-14 h-7", thumb: "w-5 h-5", translate: "translate-x-7" }
-      : { track: "w-16 h-8", thumb: "w-6 h-6", translate: "translate-x-8" };
+    size === "md"
+      ? { track: "w-10 h-4", thumb: "w-3 h-3", offLeft: "left-0.5", onTranslate: "translate-x-5" }
+      : { track: "w-9 h-4", thumb: "w-3 h-3", offLeft: "left-0.5", onTranslate: "translate-x-4" };
 
   return (
     <button
@@ -53,14 +55,14 @@ export default function CompanionToggle({
         "relative inline-flex items-center rounded-full border transition",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500",
         dims.track,
-        isOn ? "bg-emerald-600 border-emerald-700" : "bg-gray-200 border-gray-300",
+        isOn ? "bg-emerald-600 border-emerald-700" : "bg-gray-400 border-gray-400",
         disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:brightness-105",
         className,
       ].join(" ")}
       {...aria}
       title={isOn ? "Turn off Companion Mode" : "Turn on Companion Mode"}
     >
-      {/* OFF label (left) */}
+      {/* OFF label */}
       <span
         className={[
           "absolute left-2 text-[10px] font-semibold tracking-wide transition-opacity select-none",
@@ -70,7 +72,7 @@ export default function CompanionToggle({
         OFF
       </span>
 
-      {/* ON label (right) */}
+      {/* ON label */}
       <span
         className={[
           "absolute right-2 text-[10px] font-semibold tracking-wide transition-opacity select-none",
@@ -80,12 +82,13 @@ export default function CompanionToggle({
         ON
       </span>
 
-      {/* Thumb */}
+      {/* Thumb (centered vertically) */}
       <span
         className={[
-          "absolute left-1 top-1 rounded-full bg-white shadow transform transition-transform",
+          "absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-transform",
           dims.thumb,
-          isOn ? dims.translate : "translate-x-0",
+          dims.offLeft, // 0.125rem inset when OFF
+          isOn ? dims.onTranslate : "translate-x-0", // slide to the right when ON
         ].join(" ")}
       />
     </button>
