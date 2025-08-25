@@ -3,6 +3,48 @@
 
 import React, { useMemo, useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+
+import Image from "next/image";
+
+function SectionHeader({
+  icon,
+  title,
+  right,
+}: {
+  icon: string; // e.g. "/icons/heart.svg"
+  title: string; // e.g. "Vitals"
+  right?: React.ReactNode; // optional action area on the right
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Image
+          src={icon}
+          alt=""
+          width={18}
+          height={18}
+          aria-hidden
+          className="opacity-80"
+        />
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      {right ? <div className="shrink-0">{right}</div> : null}
+    </div>
+  );
+}
+
+type CardShellProps = {
+  title: string | React.ReactNode;
+  children?: React.ReactNode;
+  moreLabel?: string;
+  borderless?: boolean;
+  onMore?: () => void;
+  /** NEW: tiny, borderless icon in header (e.g. "/icons/pill.svg") */
+  icon?: string;
+  /** NEW: optional right-side actions (tiny icon buttons, etc.) */
+  actionsRight?: React.ReactNode;
+};
+
 /* ---------------------------------------------
    PUBLIC TYPES (extend gently for new UI fields)
 ----------------------------------------------*/
@@ -139,6 +181,8 @@ export default function DigitalRxForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.vitals.bpSys, value.vitals.bpDia]);
 
+  
+
   // Auto BMI
   useEffect(() => {
     if (!autoBMI) return;
@@ -155,6 +199,8 @@ export default function DigitalRxForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.vitals.height, value.vitals.weight, autoBMI]);
+
+  
 
   /* --------------------- Vitals additional fields --------------------- */
   const setPhysicalActivityLogs = (
@@ -273,27 +319,13 @@ export default function DigitalRxForm({
   /* --------------------- UI --------------------- */
   return (
     <div className="ui-card p-4">
-      {/* Header actions (unchanged contracts) */}
-      {/* <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Digital Prescription Form</h3>
-        <div className="flex items-center gap-2">
-          <button type="button" className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50" onClick={onSave}>
-            Save
-          </button>
-          <button
-            type="button"
-            className="px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
-            onClick={onSubmit}
-          >
-            Submit
-          </button>
-        </div>
-      </div> */}
+      
 
       <div className="mt-4 grid gap-3">
         {/* ====================== Section: Vitals ====================== */}
-        <CardShell
+        <CardShell          
           title="Vitals"
+          icon="/icons/lifeline-in-a-heart-outline.png" 
           moreLabel={openVitals ? "Less" : "More"}
           onMore={() => setOpenVitals((s) => !s)}
         >
@@ -709,6 +741,7 @@ export default function DigitalRxForm({
         {/* ================== Section: Clinical Details ================= */}
         <CardShell
           title="Clinical Details"
+          icon="/icons/patient.png" 
           moreLabel={openClinical ? "Less" : "More"}
           onMore={() => setOpenClinical((s) => !s)}
         >
@@ -877,6 +910,7 @@ export default function DigitalRxForm({
         {/* ================== Section: Medications (Prescription) ================= */}
         <CardShell
           title="Medications"
+          icon="/icons/medicine.png" 
           moreLabel={openMeds ? "Less" : "More"}
           onMore={() => setOpenMeds((s) => !s)}
         >
@@ -1013,6 +1047,7 @@ export default function DigitalRxForm({
         {/* ========== Section: Investigation & Uploads (collapsed card) ========== */}
         <CardShell
           title="Investigations & Advice"
+          icon="/icons/lab-request.png" 
           moreLabel={openPlan ? "Less" : "More"}
           onMore={() => setOpenPlan((s) => !s)}
         >
@@ -1242,38 +1277,85 @@ export default function DigitalRxForm({
 }
 
 /* --------------------- Small UI primitives --------------------- */
-function CardShell({
+export  function CardShell({
   title,
   children,
   moreLabel,
   borderless = false,
   onMore,
-}: {
-  title: string;
-  children?: React.ReactNode;
-  moreLabel: string;
-  borderless?: boolean;
-  onMore: () => void;
-}) {
+  icon,
+  actionsRight,
+}: CardShellProps) {
   return (
-    <section className="bg-white shadow-md p-3">
+    <section className={borderless ? "bg-transparent shadow-none p-0" : "bg-white shadow-md p-3"}>
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold">{title}</div>
-        <button
-          type="button"
-          className="text-sm text-gray-700 hover:text-gray-900"
-          onClick={onMore}
-          // “More” renders like text; no border
-          style={{ border: "none", background: "transparent", padding: 0 }}
-        >
-          {moreLabel}
-        </button>
+        <div className="min-w-0 flex items-center gap-2">
+          {icon ? (
+            <Image
+              src={icon}
+              alt=""
+              width={18}
+              height={18}
+              aria-hidden
+              className="opacity-80"
+            />
+          ) : null}
+          <div className="text-sm font-semibold truncate">{title}</div>
+        </div>
+
+        <div className="shrink-0 flex items-center gap-2">
+          {actionsRight ? <div className="flex items-center gap-1.5">{actionsRight}</div> : null}
+          {moreLabel ? (
+            <button
+              type="button"
+              className="text-sm text-gray-700 hover:text-gray-900"
+              onClick={onMore}
+              // “More” renders like text; no border
+              style={{ border: "none", background: "transparent", padding: 0 }}
+            >
+              {moreLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
+
       {children ? <div className="mt-3">{children}</div> : null}
     </section>
   );
 }
 
+/** Optional: tiny, borderless header icon button for actionsRight */
+export function HeaderIcon({
+  img,
+  label,
+  onClick,
+  disabled,
+}: {
+  img: string;        // e.g., "/icons/download.svg"
+  label: string;      // tooltip text
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={[
+        "relative inline-grid place-items-center",
+        "w-7 h-7 rounded-md transition",
+        "bg-transparent hover:bg-gray-100", // borderless
+        disabled ? "opacity-40 cursor-not-allowed" : "",
+      ].join(" ")}
+    >
+      <Image src={img} alt="" width={16} height={16} className="pointer-events-none opacity-80" />
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
 function MiniCard({
   title,
   children,
