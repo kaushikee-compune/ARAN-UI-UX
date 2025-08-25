@@ -1,0 +1,337 @@
+{
+  "patient": {
+    "id": "patient-001",
+    "name": "Ms Shampa Goswami",
+    "gender": "Female",
+    "age": "52",
+    "abhaNumber": "91-5510-2061-4469",
+    "abhaAddress": "shampa.go@sbx"
+  },
+  "records": [
+    {
+      "id": "2025-08-25-vitals",
+      "dateISO": "2025-08-25",
+      "type": "Vitals",
+      "data": {
+        "vitals": {
+          "temperature": "37.1",
+          "bpSys": "122",
+          "bpDia": "78",
+          "spo2": "98",
+          "weight": "64",
+          "height": "162",
+          "bmi": "24.4",
+          "lmpDate": "",
+          "lifestyle": {
+            "smokingStatus": "Never",
+            "alcoholIntake": "Occasional",
+            "dietType": "Mixed",
+            "sleepHours": "7",
+            "stressLevel": "Moderate"
+          },
+          "physicalActivity": {
+            "logs": [
+              { "activity": "Walking", "durationMin": "30", "intensity": "Moderate", "frequencyPerWeek": "5" }
+            ]
+          },
+          "GeneralAssessment": {
+            "painScore": "1",
+            "temperatureSite": "Oral",
+            "posture": "Normal",
+            "edema": "None",
+            "pallor": "Absent"
+          },
+          "vitalsNotes": "Mild fatigue. Hydration adequate.",
+          "vitalsUploads": []
+        },
+        "clinical": {
+          "chiefComplaints": "Dysuria, mild lower abdominal discomfort",
+          "pastHistory": "No diabetes, no HTN",
+          "familyHistory": "Father: HTN",
+          "allergy": "No known drug allergies",
+          "currentMedications": [],
+          "familyHistoryRows": [ { "relation": "Father", "ailment": "Hypertension" } ],
+          "proceduresDone": [],
+          "investigationsDone": []
+        },
+        "prescription": [],
+        "plan": {
+          "investigations": "Urine R/M, Urine Culture & Sensitivity",
+          "investigationInstructions": "Mid-stream clean catch sample",
+          "advice": "Increase water intake (2.5–3 L/day)",
+          "doctorNote": "Likely uncomplicated UTI; hold antibiotics till C/S unless symptoms worsen",
+          "followUpInstructions": "Review with reports or earlier if fever",
+          "followUpDate": "2025-08-27",
+          "investigationNote": "",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-25-rx",
+      "dateISO": "2025-08-25",
+      "type": "Prescription",
+      "data": {
+        "vitals": {},
+        "clinical": {
+          "chiefComplaints": "Burning micturition",
+          "pastHistory": "",
+          "familyHistory": "",
+          "allergy": "NKDA",
+          "currentMedications": [],
+          "familyHistoryRows": [],
+          "proceduresDone": [],
+          "investigationsDone": [ { "name": "Urine R/M ordered", "date": "2025-08-25" } ]
+        },
+        "prescription": [
+          { "medicine": "Nitrofurantoin 100 mg", "frequency": "1-0-1", "duration": "5 days", "dosage": "100 mg", "instruction": "After food" },
+          { "medicine": "Phenazopyridine 200 mg", "frequency": "1-1-1 (PRN)", "duration": "3 days", "dosage": "200 mg", "instruction": "For burning, max 3 days" }
+        ],
+        "plan": {
+          "investigations": "Urine Culture & Sensitivity",
+          "investigationInstructions": "Before starting antibiotic if possible",
+          "advice": "ORS after each loose stool; avoid bladder irritants",
+          "doctorNote": "Start if symptoms moderate; stop if culture sensitive to other agent",
+          "followUpInstructions": "Tele-review in 48–72 hrs",
+          "followUpDate": "2025-08-27",
+          "investigationNote": "",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-24-lab",
+      "dateISO": "2025-08-24",
+      "type": "Lab",
+      "data": {
+        "vitals": {},
+        "clinical": {
+          "chiefComplaints": "",
+          "pastHistory": "",
+          "familyHistory": "",
+          "allergy": "",
+          "currentMedications": [],
+          "familyHistoryRows": [],
+          "proceduresDone": [],
+          "investigationsDone": [
+            { "name": "CBC", "date": "2025-08-24" },
+            { "name": "Urine R/M", "date": "2025-08-24" }
+          ]
+        },
+        "prescription": [],
+        "plan": {
+          "investigations": "CBC, Urine R/M",
+          "investigationInstructions": "Fasting not required",
+          "advice": "",
+          "doctorNote": "",
+          "followUpInstructions": "Review with physician",
+          "followUpDate": "2025-08-25",
+          "investigationNote": "CBC: Hb 13.4, TLC 7.2, Platelets 2.1L. Urine: leukocyte esterase +, nitrite +",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-24-rx",
+      "dateISO": "2025-08-24",
+      "type": "Prescription",
+      "data": {
+        "vitals": {},
+        "clinical": {
+          "chiefComplaints": "Loose stools, mild cramps",
+          "pastHistory": "",
+          "familyHistory": "",
+          "allergy": "",
+          "currentMedications": [],
+          "familyHistoryRows": [],
+          "proceduresDone": [],
+          "investigationsDone": []
+        },
+        "prescription": [
+          { "medicine": "ORS sachet", "frequency": "As needed", "duration": "2 days", "dosage": "200 mL per episode", "instruction": "Sip slowly" },
+          { "medicine": "Saccharomyces boulardii 250 mg", "frequency": "1-0-1", "duration": "3 days", "dosage": "250 mg", "instruction": "After meals" }
+        ],
+        "plan": {
+          "investigations": "None",
+          "investigationInstructions": "",
+          "advice": "BRAT diet for 24–48 hrs",
+          "doctorNote": "Likely viral gastroenteritis",
+          "followUpInstructions": "Return if blood in stool or high fever",
+          "followUpDate": "2025-08-26",
+          "investigationNote": "",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-23-imm",
+      "dateISO": "2025-08-23",
+      "type": "Immunization",
+      "data": {
+        "vitals": {
+          "temperature": "36.8",
+          "bpSys": "120",
+          "bpDia": "76",
+          "spo2": "99",
+          "weight": "63.8"
+        },
+        "clinical": {
+          "chiefComplaints": "",
+          "pastHistory": "Tdap due",
+          "familyHistory": "",
+          "allergy": "",
+          "currentMedications": [],
+          "familyHistoryRows": [],
+          "proceduresDone": [ { "name": "Tdap vaccine (0.5 mL IM left deltoid)", "date": "2025-08-23" } ],
+          "investigationsDone": []
+        },
+        "prescription": [],
+        "plan": {
+          "investigations": "",
+          "investigationInstructions": "",
+          "advice": "Cold compress if soreness; observe for 30 min",
+          "doctorNote": "Next booster after 10 years",
+          "followUpInstructions": "Return if fever >38.5°C or severe pain",
+          "followUpDate": "2035-08-23",
+          "investigationNote": "",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-23-vitals",
+      "dateISO": "2025-08-23",
+      "type": "Vitals",
+      "data": {
+        "vitals": {
+          "temperature": "36.7",
+          "bpSys": "118",
+          "bpDia": "74",
+          "spo2": "99",
+          "weight": "63.8",
+          "height": "162",
+          "bmi": "24.3"
+        },
+        "clinical": { "chiefComplaints": "Pre-immunization check", "pastHistory": "", "familyHistory": "", "allergy": "", "currentMedications": [], "familyHistoryRows": [], "proceduresDone": [], "investigationsDone": [] },
+        "prescription": [],
+        "plan": { "investigations": "", "investigationInstructions": "", "advice": "", "doctorNote": "", "followUpInstructions": "", "followUpDate": "", "investigationNote": "", "patientNote": "", "attachments": { "files": [], "note": "" } }
+      }
+    },
+
+    {
+      "id": "2025-08-22-discharge",
+      "dateISO": "2025-08-22",
+      "type": "Discharge",
+      "data": {
+        "vitals": {},
+        "clinical": {
+          "chiefComplaints": "Fever subsided; appetite improving",
+          "pastHistory": "Admitted 2 days for viral fever hydration",
+          "familyHistory": "",
+          "allergy": "",
+          "currentMedications": [],
+          "familyHistoryRows": [],
+          "proceduresDone": [],
+          "investigationsDone": [ { "name": "CBC", "date": "2025-08-21" } ]
+        },
+        "prescription": [
+          { "medicine": "Paracetamol 650 mg", "frequency": "1-1-1 (PRN)", "duration": "3 days", "dosage": "650 mg", "instruction": "If fever >38°C" }
+        ],
+        "plan": {
+          "investigations": "",
+          "investigationInstructions": "",
+          "advice": "Hydration, light diet, rest for 3 days",
+          "doctorNote": "Discharged in stable condition",
+          "followUpInstructions": "OPD visit in 1 week",
+          "followUpDate": "2025-08-29",
+          "investigationNote": "",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-22-rx",
+      "dateISO": "2025-08-22",
+      "type": "Prescription",
+      "data": {
+        "vitals": {},
+        "clinical": { "chiefComplaints": "Residual cough at night", "pastHistory": "", "familyHistory": "", "allergy": "", "currentMedications": [], "familyHistoryRows": [], "proceduresDone": [], "investigationsDone": [] },
+        "prescription": [
+          { "medicine": "Dextromethorphan 15 mg/5mL", "frequency": "5 mL HS", "duration": "5 days", "dosage": "5 mL", "instruction": "At bedtime" },
+          { "medicine": "Cetirizine 10 mg", "frequency": "0-0-1", "duration": "5 days", "dosage": "10 mg", "instruction": "Night" }
+        ],
+        "plan": { "investigations": "", "investigationInstructions": "", "advice": "Steam inhalation bid", "doctorNote": "Likely post-viral cough", "followUpInstructions": "Review if persists >2 wks", "followUpDate": "2025-08-29", "investigationNote": "", "patientNote": "", "attachments": { "files": [], "note": "" } }
+      }
+    },
+
+    {
+      "id": "2025-08-21-lab",
+      "dateISO": "2025-08-21",
+      "type": "Lab",
+      "data": {
+        "vitals": {},
+        "clinical": {
+          "chiefComplaints": "Annual screening",
+          "pastHistory": "",
+          "familyHistory": "Mother: T2DM",
+          "allergy": "",
+          "currentMedications": [],
+          "familyHistoryRows": [ { "relation": "Mother", "ailment": "Type 2 Diabetes" } ],
+          "proceduresDone": [],
+          "investigationsDone": [ { "name": "FBS", "date": "2025-08-21" }, { "name": "HbA1c", "date": "2025-08-21" } ]
+        },
+        "prescription": [],
+        "plan": {
+          "investigations": "FBS, HbA1c",
+          "investigationInstructions": "10–12 hr fasting",
+          "advice": "",
+          "doctorNote": "",
+          "followUpInstructions": "Review in clinic",
+          "followUpDate": "2025-08-22",
+          "investigationNote": "FBS 92 mg/dL, HbA1c 5.5%",
+          "patientNote": "",
+          "attachments": { "files": [], "note": "" }
+        }
+      }
+    },
+
+    {
+      "id": "2025-08-21-rx",
+      "dateISO": "2025-08-21",
+      "type": "Prescription",
+      "data": {
+        "vitals": { "weight": "64", "height": "162", "bmi": "24.4" },
+        "clinical": { "chiefComplaints": "Vitamin D deficiency follow-up", "pastHistory": "Deficiency noted last year", "familyHistory": "", "allergy": "", "currentMedications": [], "familyHistoryRows": [], "proceduresDone": [], "investigationsDone": [] },
+        "prescription": [
+          { "medicine": "Vitamin D3 60,000 IU", "frequency": "1/week", "duration": "8 weeks", "dosage": "1 cap", "instruction": "With milk" },
+          { "medicine": "Calcium 500 mg", "frequency": "1-0-1", "duration": "8 weeks", "dosage": "500 mg", "instruction": "After meals" }
+        ],
+        "plan": { "investigations": "Serum 25(OH)D after 8 weeks", "investigationInstructions": "", "advice": "Morning sunlight 15–20 min/day", "doctorNote": "", "followUpInstructions": "Repeat levels in 8 weeks", "followUpDate": "2025-10-16", "investigationNote": "", "patientNote": "", "attachments": { "files": [], "note": "" } }
+      }
+    },
+
+    {
+      "id": "2025-08-21-vitals",
+      "dateISO": "2025-08-21",
+      "type": "Vitals",
+      "data": {
+        "vitals": { "temperature": "36.9", "bpSys": "118", "bpDia": "76", "spo2": "99", "weight": "64.2", "height": "162", "bmi": "24.5" },
+        "clinical": { "chiefComplaints": "Baseline vitals before labs", "pastHistory": "", "familyHistory": "", "allergy": "", "currentMedications": [], "familyHistoryRows": [], "proceduresDone": [], "investigationsDone": [] },
+        "prescription": [],
+        "plan": { "investigations": "", "investigationInstructions": "", "advice": "", "doctorNote": "", "followUpInstructions": "", "followUpDate": "", "investigationNote": "", "patientNote": "", "attachments": { "files": [], "note": "" } }
+      }
+    }
+  ]
+}
