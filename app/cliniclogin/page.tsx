@@ -69,7 +69,7 @@ export default function LoginPage() {
       // --- Doctor login path → set role=doctor and land on /doctor ---
       if (email.trim() === "doctor@tempr.email" && password === "Aran@123") {
         setRole("doctor");
-        router.push("/doctor");
+        router.push("/doctor/console");
         return;
       }
       // --- Existing admin/default path → clear role and go to / ---
