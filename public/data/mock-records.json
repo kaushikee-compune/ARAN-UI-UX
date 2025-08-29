@@ -83,13 +83,41 @@
     "source": "digital-rx",
     "canonical": {
       "vitals": {
-        "temperature": "98.4",
-        "bpSys": "120",
-        "bpDia": "78",
-        "spo2": "99",
-        "weight": "64.5",
+        "temperature": "100.7",
+        "bpSys": "118",
+        "bpDia": "76",
+        "spo2": "98",
+        "weight": "64",
         "height": "162",
-        "bmi": "24.6"
+        "bmi": "24.4",
+        "womensHealth": {
+          "lmpDate": "28-07-2025",
+          "cycleLengthDays": "28",
+          "cycleRegularity": "Regular",
+          "gravidity": "2",
+          "parity": "1",
+          "abortions": "0"
+        },
+        "lifestyle": {
+          "smokingStatus": "Never",
+          "alcoholIntake": "Occasional",
+          "dietType": "Mixed",
+          "sleepHours": "7",
+          "stressLevel": "Moderate"
+        },
+        "physicalActivity": {
+          "logs": [
+            { "activity": "Walking", "durationMin": "30", "intensity": "Moderate", "frequencyPerWeek": "5" }
+          ]
+        },
+        "GeneralAssessment": {
+          "painScore": "3",
+          "temperatureSite": "Oral",
+          "posture": "Normal",
+          "edema": "None",
+          "pallor": "Absent"
+        },
+        "vitalsNotes": "Stable vitals."
       },
       "clinical": {},
       "prescription": [],
@@ -107,7 +135,13 @@
     "type": "Lab",
     "source": "digital-rx",
     "canonical": {
-      "vitals": {},
+      "vitals": {"temperature": "98.4",
+        "bpSys": "120",
+        "bpDia": "78",
+        "spo2": "99",
+        "weight": "64.5",
+        "height": "162",
+        "bmi": "24.6"},
       "clinical": {},
       "prescription": [],
       "plan": { "investigations": "CBC", "investigationNote": "Within normal limits" }
@@ -117,43 +151,7 @@
       "doctor": { "name": "Dr. Kavya Rao", "specialty": "Pathology" },
       "labPanel": { "hb": "13.4 g/dL", "tlc": "7.2 x10^3/µL", "platelets": "2.1 L/µL" }
     }
-  },
-  {
-    "id": "rec_2025_07_03_immun1",
-    "patientId": "pat_001",
-    "dateISO": "03-07-2025",
-    "type": "Immunization",
-    "source": "digital-rx",
-    "canonical": {
-      "vitals": {},
-      "clinical": {},
-      "prescription": [],
-      "plan": { "advice": "Observe for 30 mins post-vaccination" }
-    },
-    "meta": {
-      "hospital": "Sushila Mathrutva Clinic",
-      "doctor": { "name": "Dr. A. Banerjee" },
-      "immunization": { "vaccine": "Tdap", "lot": "TD-8821", "site": "Left deltoid", "nextDose": "03-07-2035" }
-    }
-  },
-  {
-    "id": "rec_2025_06_18_discharge1",
-    "patientId": "pat_001",
-    "dateISO": "18-06-2025",
-    "type": "DischargeSummary",
-    "source": "digital-rx",
-    "canonical": {
-      "vitals": {},
-      "clinical": {},
-      "prescription": [
-        { "medicine": "Amoxicillin 500 mg", "frequency": "1-1-1", "duration": "7 days", "dosage": "500 mg", "instruction": "After meals" }
-      ],
-      "plan": { "advice": "Follow up in OPD after 1 week", "doctorNote": "Uncomplicated course" }
-    },
-    "meta": {
-      "hospital": "City Hospital",
-      "doctor": { "name": "Dr. Meera Iyer", "specialty": "General Medicine" },
-      "discharge": { "diagnosis": "Acute tonsillitis", "course": "Responded to antibiotics" }
-    }
   }
+  
+  
 ]
