@@ -1,40 +1,76 @@
-// app/doctor/console/page.tsx
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import CompanionToggle from "@/components/doctor/CompanionToggle";
-import PastRecordButton from "@/components/doctor/PastRecordButton";
 
-/* --------------------------- External doctor forms --------------------------- */
+/* External forms */
 import DigitalRxForm, {
   type DigitalRxFormState as RxState,
 } from "@/components/doctor/DigitalRxForm";
 
-/* --------------------------------- Types --------------------------------- */
+/* New: tiny controller shown bottom-right inside the preview */
+import PastRecordButton from "@/components/doctor/PastRecordButton";
+
+/* ------------------------------ Canonical types ------------------------------ */
 type DigitalRxFormState = RxState;
+
+type CanonicalRecord = {
+  id: string;
+  patientId: string;
+  dateISO: string; // dd-mm-yyyy
+  type: "Prescription" | "Vitals" | "Immunization" | "Lab" | "DischargeSummary";
+  source: "digital-rx";
+  canonical: DigitalRxFormState;
+};
+
+type DayRecords = {
+  dateISO: string;
+  items: CanonicalRecord[];
+};
+
+/* --------------------------------- Helpers --------------------------------- */
+const nonEmpty = (v: unknown) =>
+  v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "");
+const safe = (s?: string) => (nonEmpty(s) ? String(s) : "");
+
+const anyRowHas = <T extends Record<string, any>>(
+  rows?: T[],
+  keys: (keyof T)[] = []
+) => !!rows?.some((r) => keys.some((k) => nonEmpty(r?.[k as string])));
+
+const compactRows = <T extends Record<string, any>>(
+  rows?: T[],
+  keys: (keyof T)[] = []
+) => (rows ?? []).filter((r) => keys.some((k) => nonEmpty(r?.[k as string])));
+
+function parseDDMMYYYY(s: string) {
+  const [dd, mm, yyyy] = s.split("-").map((n) => parseInt(n, 10));
+  return new Date(yyyy, (mm || 1) - 1, dd || 1).getTime();
+}
+
+async function loadMockRecords(patientId?: string): Promise<CanonicalRecord[]> {
+  if (typeof window === "undefined") return [];
+  const res = await fetch("/data/mock-records.json", { cache: "no-store" });
+  if (!res.ok) throw new Error("Mock JSON not found at /public/data/mock-records.json");
+  const all = (await res.json()) as CanonicalRecord[];
+  return patientId ? all.filter((r) => r.patientId === patientId) : all;
+}
+
+function groupByDate<T extends { dateISO: string }>(rows: T[]) {
+  const map = new Map<string, T[]>();
+  rows.forEach((r) => map.set(r.dateISO, [...(map.get(r.dateISO) || []), r]));
+  return Array.from(map.entries())
+    .sort((a, b) => parseDDMMYYYY(b[0]) - parseDDMMYYYY(a[0]))
+    .map(([dateISO, items]) => ({ dateISO, items }));
+}
+
+/* -------------------------------- Constants -------------------------------- */
 type TopMenuKey = "consultation" | "consent" | "queue";
 type CompanionMode = "off" | "form" | "voice" | "scribe";
 type ActiveTool = "none" | "digitalrx" | "immunization" | "discharge" | "lab";
 
-/** Past records */
-type HealthRecordType = "Vitals" | "Prescription" | "Immunization" | "Lab" | "DischargeSummary" | string;
-
-type RecordEntry = {
-  id: string;
-  type: HealthRecordType;
-  hospital: string;
-  doctor: { name: string; regNo?: string; specialty?: string };
-  data: Record<string, any>;
-};
-
-type DayRecords = {
-  dateLabel: string; // e.g., "12 Aug 2025"
-  dateISO: string;   // e.g., "2025-08-12"
-  items: RecordEntry[];
-};
-
-/* ------------------------------ Sidebar toggle ------------------------------ */
+/* Sidebar collapse broadcast (from your base) */
 const collapseSidebar = (collapse: boolean) => {
   try {
     localStorage.setItem("aran:sidebarCollapsed", collapse ? "1" : "0");
@@ -46,9 +82,7 @@ const collapseSidebar = (collapse: boolean) => {
 const INITIAL_RX: DigitalRxFormState = {
   vitals: {},
   clinical: {},
-  prescription: [
-    { medicine: "", frequency: "", duration: "", dosage: "", instruction: "" },
-  ],
+  prescription: [{ medicine: "", frequency: "", duration: "", dosage: "", instruction: "" }],
   plan: {},
 };
 
@@ -78,6 +112,38 @@ export default function DoctorConsolePage() {
   /* Digital Rx form (live) */
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
 
+  /* Past records */
+  const [pastDays, setPastDays] = useState<DayRecords[]>([]);
+  const [loadingPast, setLoadingPast] = useState(false);
+  const [errorPast, setErrorPast] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
+  const [dayIdx, setDayIdx] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    setLoadingPast(true);
+    loadMockRecords("pat_001")
+      .then((canon) => {
+        if (!alive) return;
+        setPastDays(groupByDate(canon));
+        setErrorPast(null);
+      })
+      .catch((e: any) => {
+        if (!alive) return;
+        setErrorPast(e?.message ?? "Failed to load mock data");
+      })
+      .finally(() => alive && setLoadingPast(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const totalDays = pastDays.length;
+  const clampIdx = (i: number) =>
+    totalDays === 0 ? 0 : Math.min(Math.max(i, 0), totalDays - 1);
+  const prevDay = () => setDayIdx((i) => clampIdx(i - 1));
+  const nextDay = () => setDayIdx((i) => clampIdx(i + 1));
+
   /* Actions */
   const onSave = useCallback(() => {
     console.log("Saved (no-op here)");
@@ -92,6 +158,7 @@ export default function DoctorConsolePage() {
       setCompanionMode("form"); // default ON → Form
       setActiveTool("none");
       collapseSidebar(true);
+      setShowPast(false);
     } else {
       setCompanionMode("off");
       setActiveTool("none");
@@ -104,96 +171,42 @@ export default function DoctorConsolePage() {
       if (!companionOn) return;
       setCompanionMode(mode);
       setActiveTool("none");
+      setShowPast(false); // leave past mode when changing companion view
       collapseSidebar(true);
     },
     [companionOn]
   );
 
-  /* Tool open */
+  /* Tool open — clicking DigitalRx must return to form-in-preview */
   const openTool = useCallback((tool: ActiveTool) => {
     setCompanionMode("off");
     setActiveTool(tool);
+    setShowPast(false); // ALWAYS leave past view
     collapseSidebar(true);
   }, []);
 
-  /* ======================= Past records wiring ======================= */
-  const [showPast, setShowPast] = useState(false);
-  const [pastDays, setPastDays] = useState<DayRecords[]>([]);
-  const [loadingPast, setLoadingPast] = useState(false);
-  const [errorPast, setErrorPast] = useState<string | null>(null);
-  const [dayIdx, setDayIdx] = useState(0);
-
-  const totalDays = pastDays.length;
-  const clampIdx = (i: number) => Math.max(0, Math.min(i, Math.max(0, totalDays - 1)));
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoadingPast(true);
-        setErrorPast(null);
-        /** NOTE: In Next.js, files in /public are served from the site root.
-         *  Windows path given: D:\ARAN Care\ARAN UI\aran-ux\public\data\mock-records.json
-         *  Web path to fetch: /data/mock-records.json
-         */
-        const res = await fetch("/data/mock-records.json", { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw = await res.json();
-        const days: DayRecords[] = Array.isArray(raw?.days) ? raw.days : Array.isArray(raw) ? raw : [];
-        if (!cancelled) {
-          setPastDays(days);
-          setDayIdx(0);
-        }
-      } catch (e: any) {
-        if (!cancelled) setErrorPast(e?.message || "Failed to load past records.");
-      } finally {
-        if (!cancelled) setLoadingPast(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const prevDay = useCallback(() => {
-    setDayIdx((i) => (i > 0 ? i - 1 : i));
-  }, []);
-  const nextDay = useCallback(() => {
-    setDayIdx((i) => (i < totalDays - 1 ? i + 1 : i));
-  }, [totalDays]);
-
-  /* Layout */
+  /* Layout (kept from your base file, but simplified for no tabs/filters) */
   const layout =
     companionMode === "scribe"
       ? "grid-cols-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)_72px]"
       : companionMode === "form"
       ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px]"
       : activeTool !== "none"
-      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]" // form embedded in left; no right split
+      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"
       : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]";
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="space-y-3">
       {/* ------------------------------- Header Panel ------------------------------- */}
-      {/* <div className="ui-card px-3 py-1"> */}
-      <div className="ui-card px-3 py-1 shrink-0">
+      <div className="ui-card px-3 py-1">
         <div className="flex items-center gap-2">
-          <TopMenuButton
-            active={activeTop === "consultation"}
-            onClick={() => setActiveTop("consultation")}
-          >
+          <TopMenuButton active={activeTop === "consultation"} onClick={() => setActiveTop("consultation")}>
             Consultation
           </TopMenuButton>
-          <TopMenuButton
-            active={activeTop === "consent"}
-            onClick={() => setActiveTop("consent")}
-          >
+          <TopMenuButton active={activeTop === "consent"} onClick={() => setActiveTop("consent")}>
             Consent
           </TopMenuButton>
-          <TopMenuButton
-            active={activeTop === "queue"}
-            onClick={() => setActiveTop("queue")}
-          >
+          <TopMenuButton active={activeTop === "queue"} onClick={() => setActiveTop("queue")}>
             OPD Queue
           </TopMenuButton>
 
@@ -205,28 +218,13 @@ export default function DoctorConsolePage() {
               onChange={(v) => handleCompanionSwitch(!!v)}
               onCheckedChange={(v) => handleCompanionSwitch(!!v)}
             />
-            <IconButton
-              label="Form"
-              disabled={!companionOn}
-              pressed={companionMode === "form"}
-              onClick={() => pickCompanion("form")}
-            >
+            <IconButton label="Form" disabled={!companionOn} pressed={companionMode === "form"} onClick={() => pickCompanion("form")}>
               <FormIcon className="w-4 h-4" />
             </IconButton>
-            <IconButton
-              label="Voice"
-              disabled={!companionOn}
-              pressed={companionMode === "voice"}
-              onClick={() => pickCompanion("voice")}
-            >
+            <IconButton label="Voice" disabled={!companionOn} pressed={companionMode === "voice"} onClick={() => pickCompanion("voice")}>
               <MicIcon className="w-4 h-4" />
             </IconButton>
-            <IconButton
-              label="Scribe"
-              disabled={!companionOn}
-              pressed={companionMode === "scribe"}
-              onClick={() => pickCompanion("scribe")}
-            >
+            <IconButton label="Scribe" disabled={!companionOn} pressed={companionMode === "scribe"} onClick={() => pickCompanion("scribe")}>
               <ScribeIcon className="w-4 h-4" />
             </IconButton>
           </div>
@@ -236,7 +234,7 @@ export default function DoctorConsolePage() {
       {/* --------------------- Main Area & Sticky Right Toolbar --------------------- */}
       <div className="mt-10 px-3 md:px-6 lg:px-8">
         <div className={`grid gap-4 items-start ${layout}`}>
-          {/* LEFT: Preview paper */}
+          {/* LEFT: Preview paper (NO tabs, NO filter) */}
           <PreviewPaper
             patient={patient}
             /* If DigitalRx tool is chosen while companion is OFF, embed the form in the paper body */
@@ -245,19 +243,20 @@ export default function DoctorConsolePage() {
                 <DigitalRxForm value={rxForm} onChange={setRxForm} onSave={onSave} />
               ) : undefined
             }
-            /* When not embedding, show a live preview of the current Rx state */
-            payload={rxForm}
-            /* Past records props */
+            /* When not embedding, show a live preview of the current Rx state (blank by default) */
+            payload={showPast ? undefined : rxForm}
+            /* Past records control & data */
             past={{
               active: showPast,
-              total: totalDays,
               index: clampIdx(dayIdx),
+              total: totalDays,
               loading: loadingPast,
               error: errorPast ?? undefined,
+              day: pastDays[clampIdx(dayIdx)],
               onOpen: () => setShowPast(true),
+              onClose: () => setShowPast(false),
               onPrev: prevDay,
               onNext: nextDay,
-              day: pastDays[clampIdx(dayIdx)],
             }}
           />
 
@@ -272,7 +271,7 @@ export default function DoctorConsolePage() {
             <SectionCard ariaLabel="Scribe editor">
               <ScribePanel
                 onPayload={(p) => {
-                  // write scribe note into preview
+                  // write scribe note into preview (doctor note)
                   setRxForm((prev) => ({
                     ...prev,
                     plan: { ...prev.plan, doctorNote: p.doctorNote ?? "" },
@@ -284,33 +283,13 @@ export default function DoctorConsolePage() {
 
           {/* RIGHT: Sticky toolbar (always on md+) */}
           <aside className="hidden md:block sticky top-20 self-start w-[72px]">
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-4">
               <div className="ui-card p-1.5 w-[58px] flex flex-col items-center gap-2">
                 {/* Group A */}
-                <RoundPill
-                  label="Digital Rx"
-                  img="/icons/digitalrx.png"
-                  onClick={() => openTool("digitalrx")}
-                  borderColor="blue-500"
-                />
-                <RoundPill
-                  label="Immunization"
-                  img="/icons/syringe.png"
-                  onClick={() => openTool("immunization")}
-                  borderColor="amber-500"
-                />
-                <RoundPill
-                  label="Discharge"
-                  img="/icons/discharge-summary.png"
-                  onClick={() => openTool("discharge")}
-                  borderColor="green-500"
-                />
-                <RoundPill
-                  label="Lab"
-                  img="/icons/lab-request.png"
-                  onClick={() => openTool("lab")}
-                  borderColor="pink-500"
-                />
+                <RoundPill label="" img="/icons/digitalrx.png" onClick={() => openTool("digitalrx")} borderColor="blue-500" />
+                <RoundPill label="" img="/icons/syringe.png" onClick={() => openTool("immunization")} borderColor="amber-500" />
+                <RoundPill label="" img="/icons/discharge-summary.png" onClick={() => openTool("discharge")} borderColor="green-500" />
+                <RoundPill label="" img="/icons/lab-request.png" onClick={() => openTool("lab")} borderColor="pink-500" />
                 {/* Divider */}
                 <div className="my-10 h-px w-full bg-gray-300" />
                 {/* Group B */}
@@ -345,16 +324,19 @@ function PreviewPaper({
   bodyOverride?: React.ReactNode;
   past: {
     active: boolean;
-    total: number;
     index: number;
+    total: number;
     loading: boolean;
     error?: string;
+    day?: DayRecords;
     onOpen: () => void;
+    onClose: () => void;
     onPrev: () => void;
     onNext: () => void;
-    day?: DayRecords;
   };
 }) {
+  const showingPast = past.active;
+
   return (
     <div className="min-w-0 md:sticky md:top-20 self-start">
       <div
@@ -394,7 +376,7 @@ function PreviewPaper({
 
           {/* Record body */}
           <div className="mt-2">
-            {past.active ? (
+            {showingPast ? (
               past.loading ? (
                 <div className="ui-card p-4 text-sm text-gray-500">Loading past records…</div>
               ) : past.error ? (
@@ -402,7 +384,7 @@ function PreviewPaper({
               ) : past.total === 0 || !past.day ? (
                 <div className="ui-card p-4 text-sm text-gray-500">No past records available.</div>
               ) : (
-                <PastRecordsPanel key={past.day.dateISO} day={past.day} />
+                <PastRecordsPanel day={past.day} />
               )
             ) : (
               bodyOverride ?? <LivePreview payload={payload} />
@@ -416,7 +398,7 @@ function PreviewPaper({
                 active={past.active}
                 index={past.index}
                 total={past.total}
-                onOpen={past.onOpen}
+                onOpen={past.active ? past.onClose : past.onOpen}
                 onPrev={past.onPrev}
                 onNext={past.onNext}
               />
@@ -430,124 +412,10 @@ function PreviewPaper({
 
 /* -------------------- Past Records (per selected day) -------------------- */
 function PastRecordsPanel({ day }: { day: DayRecords }) {
-  const [itemIdx, setItemIdx] = useState(0);
-  const item = day.items[itemIdx];
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">{day.dateLabel}</div>
-        <div className="text-xs text-gray-500">
-          {itemIdx + 1} / {day.items.length}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {day.items.map((it, i) => (
-          <button
-            key={it.id}
-            onClick={() => setItemIdx(i)}
-            aria-pressed={itemIdx === i}
-            className={[
-              "px-2.5 py-1 rounded-full text-xs border transition",
-              itemIdx === i
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-800 hover:bg-gray-50 border-gray-300",
-            ].join(" ")}
-            title={`${it.type} • ${it.doctor.name}`}
-          >
-            {it.type}
-          </button>
-        ))}
-      </div>
-
-      <div className="ui-card p-4">
-        <PastRecordRenderer record={item} />
-      </div>
-    </div>
-  );
-}
-
-function PastRecordRenderer({ record }: { record: RecordEntry }) {
-  const KV = ({ k, v }: { k: string; v?: string }) => (
-    <div className="flex gap-2 text-sm">
-      <span className="text-gray-500 w-36">{k}</span>
-      <span className="font-medium">{v || "-"}</span>
-    </div>
-  );
-
-  switch (record.type) {
-    case "Vitals":
-      return (
-        <div className="grid gap-2 md:grid-cols-3">
-          <KV k="Height" v={record.data.height} />
-          <KV k="Weight" v={record.data.weight} />
-          <KV k="Blood Pressure" v={record.data.bp} />
-          <KV k="Pulse" v={record.data.pulse} />
-          <KV k="SpO₂" v={record.data.spo2} />
-        </div>
-      );
-    case "Prescription":
-      return (
-        <div className="space-y-2 text-sm">
-          <div className="font-medium">Medications</div>
-          <div className="overflow-x-auto">
-            <table className="min-w-[520px] w-full border text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-2 py-1.5 text-left border text-xs">Medicine</th>
-                  <th className="px-2 py-1.5 text-left border text-xs">Dose</th>
-                  <th className="px-2 py-1.5 text-left border text-xs">Duration</th>
-                  <th className="px-2 py-1.5 text-left border text-xs">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(record.data.medications || []).map((m: any, i: number) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5">{m.name}</td>
-                    <td className="px-2 py-1.5">{m.dose}</td>
-                    <td className="px-2 py-1.5">{m.duration}</td>
-                    <td className="px-2 py-1.5">{m.notes || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    case "Immunization":
-      return (
-        <div className="grid gap-2 md:grid-cols-3">
-          <KV k="Vaccine" v={record.data.vaccine} />
-          <KV k="Lot/Batch" v={record.data.lot} />
-          <KV k="Site" v={record.data.site} />
-          <KV k="Next Dose" v={record.data.nextDose} />
-        </div>
-      );
-    case "Lab":
-      return (
-        <div className="grid gap-2 md:grid-cols-2">
-          <KV k="Panel" v={record.data.panel} />
-          <KV k="Hb" v={record.data.hb} />
-          <KV k="TLC" v={record.data.tlc} />
-          <KV k="Platelets" v={record.data.platelets} />
-          <div className="md:col-span-2">
-            <span className="text-gray-700 font-medium">Comment: </span>
-            <span className="text-sm">{record.data.comment}</span>
-          </div>
-        </div>
-      );
-    case "DischargeSummary":
-      return (
-        <div className="space-y-2 text-sm">
-          <KV k="Diagnosis" v={record.data.diagnosis} />
-          <KV k="Course" v={record.data.course} />
-          <KV k="Advice" v={record.data.advice} />
-        </div>
-      );
-    default:
-      return <div className="text-sm text-gray-500">No renderer for {record.type}.</div>;
-  }
+  // Show the canonical DigitalRx-mapped preview for this date
+  const first = day?.items?.[0];
+  const payload = first?.canonical;
+  return <LivePreview payload={payload} />;
 }
 
 /* ------------------------------ Live Preview ------------------------------ */
@@ -556,25 +424,13 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     return (
       <div className="ui-card p-4 text-sm text-gray-700 min-h-[320px]">
         <div className="text-gray-400">
-          (Blank preview — start typing in the form.)
+          (Blank preview — start typing in the form or select a past record.)
         </div>
       </div>
     );
   }
 
   const { vitals = {}, clinical = {}, prescription = [], plan = {} } = payload;
-
-  const nonEmpty = (v: unknown) =>
-    v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "");
-  const safe = (s?: string) => (nonEmpty(s) ? String(s) : "");
-  const anyRowHas = <T extends Record<string, any>>(
-    rows?: T[],
-    keys: (keyof T)[] = []
-  ) => !!rows?.some((r) => keys.some((k) => nonEmpty(r?.[k as string])));
-  const compactRows = <T extends Record<string, any>>(
-    rows?: T[],
-    keys: (keyof T)[] = []
-  ) => (rows ?? []).filter((r) => keys.some((k) => nonEmpty(r?.[k as string])));
 
   const rxRows = compactRows(prescription, [
     "medicine",
@@ -584,7 +440,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     "instruction",
   ]);
 
-  const showVitals =
+  const hasVitals =
     nonEmpty(vitals.temperature) ||
     nonEmpty(vitals.bp) ||
     (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
@@ -616,7 +472,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     nonEmpty(vitals.GeneralAssessment?.edema) ||
     nonEmpty(vitals.GeneralAssessment?.pallor);
 
-  const showClinical =
+  const hasClinical =
     nonEmpty(clinical.chiefComplaints) ||
     nonEmpty(clinical.pastHistory) ||
     nonEmpty(clinical.familyHistory) ||
@@ -626,9 +482,9 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     anyRowHas(clinical.proceduresDone, ["name", "date"]) ||
     anyRowHas(clinical.investigationsDone, ["name", "date"]);
 
-  const showRx = rxRows.length > 0;
+  const hasRx = rxRows.length > 0;
 
-  const showPlan =
+  const hasPlan =
     nonEmpty(plan.investigations) ||
     nonEmpty(plan.investigationInstructions) ||
     nonEmpty(plan.advice) ||
@@ -640,12 +496,18 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     (plan.attachments?.files && plan.attachments.files.length > 0) ||
     nonEmpty(plan.attachments?.note);
 
-  const nothing = !showVitals && !showClinical && !showRx && !showPlan;
+  const showVitals = hasVitals;
+  const showClinical = hasClinical;
+  const showRx = hasRx;
+  const showPlan = hasPlan;
 
+  const nothing = !showVitals && !showClinical && !showRx && !showPlan;
   if (nothing) {
     return (
       <div className="ui-card p-4 text-sm text-gray-700 min-h-[320px]">
-        <div className="text-gray-400">(Nothing to preview.)</div>
+        <div className="text-gray-400">
+          (Nothing to preview for the current record.)
+        </div>
       </div>
     );
   }
@@ -657,11 +519,8 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Vitals</h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-            {nonEmpty(vitals.temperature) && (
-              <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
-            )}
-            {(nonEmpty(vitals.bp) ||
-              (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
+            {nonEmpty(vitals.temperature) && <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />}
+            {(nonEmpty(vitals.bp) || (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
               <KV
                 k="Blood Pressure"
                 v={
@@ -672,12 +531,8 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
               />
             )}
             {nonEmpty(vitals.spo2) && <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />}
-            {nonEmpty(vitals.weight) && (
-              <KV k="Weight" v={`${safe(vitals.weight)} kg`} />
-            )}
-            {nonEmpty(vitals.height) && (
-              <KV k="Height" v={`${safe(vitals.height)} cm`} />
-            )}
+            {nonEmpty(vitals.weight) && <KV k="Weight" v={`${safe(vitals.weight)} kg`} />}
+            {nonEmpty(vitals.height) && <KV k="Height" v={`${safe(vitals.height)} cm`} />}
             {nonEmpty(vitals.bmi) && <KV k="BMI" v={safe(vitals.bmi)} />}
             {nonEmpty(vitals.lmpDate) && <KV k="LMP" v={safe(vitals.lmpDate)} />}
           </div>
@@ -689,18 +544,10 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             <div className="mt-3">
               <h4 className="text-xs font-medium text-gray-600 mb-2">Body Measurements</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                {nonEmpty(vitals.bodyMeasurement?.waist) && (
-                  <KV k="Waist" v={`${safe(vitals.bodyMeasurement?.waist)} cm`} />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.hip) && (
-                  <KV k="Hip" v={`${safe(vitals.bodyMeasurement?.hip)} cm`} />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.neck) && (
-                  <KV k="Neck" v={`${safe(vitals.bodyMeasurement?.neck)} cm`} />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.chest) && (
-                  <KV k="Chest" v={`${safe(vitals.bodyMeasurement?.chest)} cm`} />
-                )}
+                {nonEmpty(vitals.bodyMeasurement?.waist) && <KV k="Waist" v={`${safe(vitals.bodyMeasurement?.waist)} cm`} />}
+                {nonEmpty(vitals.bodyMeasurement?.hip) && <KV k="Hip" v={`${safe(vitals.bodyMeasurement?.hip)} cm`} />}
+                {nonEmpty(vitals.bodyMeasurement?.neck) && <KV k="Neck" v={`${safe(vitals.bodyMeasurement?.neck)} cm`} />}
+                {nonEmpty(vitals.bodyMeasurement?.chest) && <KV k="Chest" v={`${safe(vitals.bodyMeasurement?.chest)} cm`} />}
               </div>
             </div>
           )}
@@ -714,24 +561,12 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             <div className="mt-3">
               <h4 className="text-xs font-medium text-gray-600 mb-2">Women’s Health</h4>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.womensHealth?.lmpDate) && (
-                  <KV k="LMP" v={safe(vitals.womensHealth?.lmpDate)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.cycleLengthDays) && (
-                  <KV k="Cycle (days)" v={safe(vitals.womensHealth?.cycleLengthDays)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.cycleRegularity) && (
-                  <KV k="Regularity" v={safe(vitals.womensHealth?.cycleRegularity)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.gravidity) && (
-                  <KV k="Gravidity" v={safe(vitals.womensHealth?.gravidity)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.parity) && (
-                  <KV k="Parity" v={safe(vitals.womensHealth?.parity)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.abortions) && (
-                  <KV k="Abortions" v={safe(vitals.womensHealth?.abortions)} />
-                )}
+                {nonEmpty(vitals.womensHealth?.lmpDate) && <KV k="LMP" v={safe(vitals.womensHealth?.lmpDate)} />}
+                {nonEmpty(vitals.womensHealth?.cycleLengthDays) && <KV k="Cycle (days)" v={safe(vitals.womensHealth?.cycleLengthDays)} />}
+                {nonEmpty(vitals.womensHealth?.cycleRegularity) && <KV k="Regularity" v={safe(vitals.womensHealth?.cycleRegularity)} />}
+                {nonEmpty(vitals.womensHealth?.gravidity) && <KV k="Gravidity" v={safe(vitals.womensHealth?.gravidity)} />}
+                {nonEmpty(vitals.womensHealth?.parity) && <KV k="Parity" v={safe(vitals.womensHealth?.parity)} />}
+                {nonEmpty(vitals.womensHealth?.abortions) && <KV k="Abortions" v={safe(vitals.womensHealth?.abortions)} />}
               </div>
             </div>
           )}
@@ -744,81 +579,12 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             <div className="mt-3">
               <h4 className="text-xs font-medium text-gray-600 mb-2">Lifestyle</h4>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.lifestyle?.smokingStatus) && (
-                  <KV k="Smoking" v={safe(vitals.lifestyle?.smokingStatus)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.alcoholIntake) && (
-                  <KV k="Alcohol" v={safe(vitals.lifestyle?.alcoholIntake)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.dietType) && (
-                  <KV k="Diet" v={safe(vitals.lifestyle?.dietType)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.sleepHours) && (
-                  <KV k="Sleep (hrs)" v={safe(vitals.lifestyle?.sleepHours)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.stressLevel) && (
-                  <KV k="Stress level" v={safe(vitals.lifestyle?.stressLevel)} />
-                )}
+                {nonEmpty(vitals.lifestyle?.smokingStatus) && <KV k="Smoking" v={safe(vitals.lifestyle?.smokingStatus)} />}
+                {nonEmpty(vitals.lifestyle?.alcoholIntake) && <KV k="Alcohol" v={safe(vitals.lifestyle?.alcoholIntake)} />}
+                {nonEmpty(vitals.lifestyle?.dietType) && <KV k="Diet" v={safe(vitals.lifestyle?.dietType)} />}
+                {nonEmpty(vitals.lifestyle?.sleepHours) && <KV k="Sleep (hrs)" v={safe(vitals.lifestyle?.sleepHours)} />}
+                {nonEmpty(vitals.lifestyle?.stressLevel) && <KV k="Stress" v={safe(vitals.lifestyle?.stressLevel)} />}
               </div>
-            </div>
-          )}
-
-          {anyRowHas(vitals.physicalActivity?.logs, [
-            "activity",
-            "durationMin",
-            "intensity",
-            "frequencyPerWeek",
-          ]) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Physical Activity</h4>
-              <ul className="list-disc ml-5 space-y-1 text-sm">
-                {compactRows(vitals.physicalActivity?.logs, [
-                  "activity",
-                  "durationMin",
-                  "intensity",
-                  "frequencyPerWeek",
-                ]).map((r, i) => (
-                  <li key={i}>
-                    {[r.activity, r.durationMin && `${r.durationMin} min`, r.intensity, r.frequencyPerWeek && `${r.frequencyPerWeek}/wk`]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {(nonEmpty(vitals.GeneralAssessment?.painScore) ||
-            nonEmpty(vitals.GeneralAssessment?.temperatureSite) ||
-            nonEmpty(vitals.GeneralAssessment?.posture) ||
-            nonEmpty(vitals.GeneralAssessment?.edema) ||
-            nonEmpty(vitals.GeneralAssessment?.pallor)) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">General Assessment</h4>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.GeneralAssessment?.painScore) && (
-                  <KV k="Pain score" v={safe(vitals.GeneralAssessment?.painScore)} />
-                )}
-                {nonEmpty(vitals.GeneralAssessment?.temperatureSite) && (
-                  <KV k="Temp site" v={safe(vitals.GeneralAssessment?.temperatureSite)} />
-                )}
-                {nonEmpty(vitals.GeneralAssessment?.posture) && (
-                  <KV k="Posture" v={safe(vitals.GeneralAssessment?.posture)} />
-                )}
-                {nonEmpty(vitals.GeneralAssessment?.edema) && (
-                  <KV k="Edema" v={safe(vitals.GeneralAssessment?.edema)} />
-                )}
-                {nonEmpty(vitals.GeneralAssessment?.pallor) && (
-                  <KV k="Pallor" v={safe(vitals.GeneralAssessment?.pallor)} />
-                )}
-              </div>
-            </div>
-          )}
-
-          {nonEmpty(vitals.vitalsNotes) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-1">Notes</h4>
-              <p className="text-sm">{safe(vitals.vitalsNotes)}</p>
             </div>
           )}
         </section>
@@ -827,75 +593,27 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
       {/* Clinical */}
       {showClinical && (
         <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Clinical Details</h3>
-          <div className="space-y-3 text-sm">
-            {nonEmpty(clinical.chiefComplaints) && (
-              <Block k="Chief complaints" v={safe(clinical.chiefComplaints)} />
-            )}
-            {nonEmpty(clinical.pastHistory) && (
-              <Block k="Past history" v={safe(clinical.pastHistory)} />
-            )}
-            {nonEmpty(clinical.familyHistory) && (
-              <Block k="Family history" v={safe(clinical.familyHistory)} />
-            )}
+          <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
+          <div className="space-y-2 text-sm">
+            {nonEmpty(clinical.chiefComplaints) && <Block k="Chief Complaints" v={safe(clinical.chiefComplaints)} />}
+            {nonEmpty(clinical.pastHistory) && <Block k="Past History" v={safe(clinical.pastHistory)} />}
+            {nonEmpty(clinical.familyHistory) && <Block k="Family History" v={safe(clinical.familyHistory)} />}
             {nonEmpty(clinical.allergy) && <Block k="Allergy" v={safe(clinical.allergy)} />}
-
-            {anyRowHas(clinical.currentMedications, ["medicine", "dosage", "since"]) && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">Current Medications</h4>
-                <ul className="list-disc ml-5 space-y-1">
-                  {compactRows(clinical.currentMedications, ["medicine", "dosage", "since"]).map(
-                    (r, i) => (
-                      <li key={i} className="text-sm">
-                        {[r.medicine, r.dosage, r.since && `since ${r.since}`]
-                          .filter(Boolean)
-                          .join(" • ")}
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-
-            {anyRowHas(clinical.familyHistoryRows, ["relation", "ailment"]) && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">Family History (rows)</h4>
-                <ul className="list-disc ml-5 space-y-1">
-                  {compactRows(clinical.familyHistoryRows, ["relation", "ailment"]).map((r, i) => (
-                    <li key={i} className="text-sm">
-                      {[r.relation, r.ailment].filter(Boolean).join(" — ")}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {anyRowHas(clinical.proceduresDone, ["name", "date"]) && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">Procedures Done</h4>
-                <ul className="list-disc ml-5 space-y-1">
-                  {compactRows(clinical.proceduresDone, ["name", "date"]).map((r, i) => (
-                    <li key={i} className="text-sm">
-                      {[r.name, r.date].filter(Boolean).join(" — ")}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {anyRowHas(clinical.investigationsDone, ["name", "date"]) && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">Investigations Done</h4>
-                <ul className="list-disc ml-5 space-y-1">
-                  {compactRows(clinical.investigationsDone, ["name", "date"]).map((r, i) => (
-                    <li key={i} className="text-sm">
-                      {[r.name, r.date].filter(Boolean).join(" — ")}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
+          {anyRowHas(clinical.currentMedications, ["medicine", "dosage", "since"]) && (
+            <div className="mt-3">
+              <h4 className="text-xs font-medium text-gray-600 mb-2">Current Medications</h4>
+              <div className="space-y-1.5">
+                {(clinical.currentMedications ?? []).map((m, i) => (
+                  <div key={i} className="text-sm">
+                    <span className="font-medium">{safe(m.medicine)}</span>{" "}
+                    <span className="text-gray-600">{safe(m.dosage)}</span>{" "}
+                    <span className="text-gray-600">{safe(m.since)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -903,25 +621,25 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
       {showRx && (
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Prescription</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="overflow-auto rounded border">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-600">
-                  <th className="py-1 pr-3">Medicine</th>
-                  <th className="py-1 pr-3">Dosage</th>
-                  <th className="py-1 pr-3">Frequency</th>
-                  <th className="py-1 pr-3">Duration</th>
-                  <th className="py-1 pr-3">Instruction</th>
+                <tr className="bg-gray-50 text-gray-600">
+                  <th className="px-2 py-1.5 text-left font-medium">Medicine</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Frequency</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Duration</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Instruction</th>
                 </tr>
               </thead>
               <tbody>
-                {rxRows.map((r, i) => (
-                  <tr key={i} className="border-t border-gray-100">
-                    <td className="py-2 pr-3">{safe(r.medicine)}</td>
-                    <td className="py-2 pr-3">{safe(r.dosage)}</td>
-                    <td className="py-2 pr-3">{safe(r.frequency)}</td>
-                    <td className="py-2 pr-3">{safe(r.duration)}</td>
-                    <td className="py-2 pr-3">{safe(r.instruction)}</td>
+                {rxRows.map((m, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="px-2 py-1.5 font-medium">{safe(m.medicine)}</td>
+                    <td className="px-2 py-1.5">{safe(m.frequency)}</td>
+                    <td className="px-2 py-1.5">{safe(m.dosage)}</td>
+                    <td className="px-2 py-1.5">{safe(m.duration)}</td>
+                    <td className="px-2 py-1.5">{safe(m.instruction)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -941,9 +659,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             )}
             {nonEmpty(plan.advice) && <Block k="Advice" v={safe(plan.advice)} />}
             {nonEmpty(plan.doctorNote) && <Block k="Doctor’s Note" v={safe(plan.doctorNote)} />}
-            {nonEmpty(plan.followUpInstructions) && (
-              <Block k="Follow-up Instructions" v={safe(plan.followUpInstructions)} />
-            )}
+            {nonEmpty(plan.followUpInstructions) && <Block k="Follow-up Instructions" v={safe(plan.followUpInstructions)} />}
             {nonEmpty(plan.followUpDate) && <KV k="Follow-up Date" v={safe(plan.followUpDate)} />}
             {nonEmpty(plan.investigationNote) && <Block k="Investigation Note" v={safe(plan.investigationNote)} />}
             {nonEmpty(plan.patientNote) && <Block k="Patient Note" v={safe(plan.patientNote)} />}
@@ -1066,33 +782,27 @@ function RoundPill({
   img,
   label,
   onClick,
-  borderColor = "gray-300", // default
+  borderColor = "gray-300",
 }: {
   img: string;
   label: string;
   onClick?: () => void;
-  borderColor?: string; // Tailwind border color suffix
+  borderColor?: string;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      className={[
+        "relative inline-flex flex-col items-center justify-center w-[38px] h-[38px] rounded-full border-1 bg-white hover:bg-gray-50 transition",
+        `border-${borderColor}`,
+      ].join(" ")}
       title={label}
       aria-label={label}
-      className={[
-        "group relative grid place-items-center",
-        "w-9 h-9 rounded-xl border bg-white shadow-sm transition",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        `border-${borderColor} hover:bg-gray-50 text-gray-700 focus-visible:ring-${borderColor}`,
-      ].join(" ")}
-      type="button"
     >
-      <Image
-        src={img}
-        alt={label}
-        width={18}
-        height={18}
-        className="pointer-events-none"
-      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={img} alt="" className="w-5 h-5 object-contain" />
+      <span className="absolute -bottom-5 text-[10px] text-gray-700">{label}</span>
     </button>
   );
 }
@@ -1101,135 +811,77 @@ function TinyIcon({
   img,
   label,
   onClick,
-  disabled,
-  children,
 }: {
-  img?: string;
+  img: string;
   label: string;
   onClick?: () => void;
-  disabled?: boolean;
-  children?: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-300 hover:bg-gray-50"
       title={label}
       aria-label={label}
-      className={[
-        "group relative grid place-items-center",
-        "w-9 h-9 rounded-xl border-1 bg-white shadow-sm transition",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        disabled
-          ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-gray-50 text-gray-700 focus-visible:ring-gray-400 border-gray-300",
-      ].join(" ")}
       type="button"
     >
-      {img ? (
-        <Image
-          src={img}
-          alt={label}
-          width={18}
-          height={18}
-          className="pointer-events-none"
-        />
-      ) : (
-        children
-      )}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
-        {label}
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={img} alt="" className="w-4 h-4" />
     </button>
   );
 }
 
-/* ---------------------------------- Icons --------------------------------- */
-function SummaryIcon({ className = "" }: { className?: string }) {
+/* --------------------------------- Icons --------------------------------- */
+function FormIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden
-    >
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <path d="M8 7h8M8 11h8M8 15h5" />
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M4 3h10l6 6v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm10 1v5h5" />
     </svg>
   );
 }
-function MicIcon({ className = "" }: { className?: string }) {
+function MicIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden
-    >
-      <rect x="9" y="3" width="6" height="10" rx="3" />
-      <path d="M5 11a7 7 0 0 0 14 0" />
-      <path d="M12 19v2" />
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm7-3a7 7 0 0 1-14 0H3a9 9 0 0 0 18 0h-2zM11 19h2v3h-2z" />
     </svg>
   );
 }
-function FormIcon({ className = "" }: { className?: string }) {
+function ScribeIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden
-    >
-      <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-      <path d="M8 8h8M8 12h8M8 16h5" />
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M4 4h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z" />
     </svg>
   );
 }
-function ScribeIcon({ className = "" }: { className?: string }) {
+function SummaryIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden
-    >
-      <path d="M4 20h12l4-4V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16Z" />
-      <path d="M14 2v6h6" />
-      <path d="M8 12h8M8 16h5" />
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M4 5h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z" />
     </svg>
   );
 }
 
-/* ------------------------------ Scribe panel ------------------------------ */
+/* ------------------------------- Scribe mock ------------------------------- */
 function ScribePanel({
   onPayload,
 }: {
   onPayload: (p: { doctorNote?: string }) => void;
 }) {
-  const [text, setText] = useState("");
-  useEffect(() => {
-    onPayload({ doctorNote: text.trim() });
-  }, [text, onPayload]);
+  const [note, setNote] = useState("");
   return (
     <div className="space-y-2">
-      <div className="text-sm text-gray-600">
-        Scribe notes (appears as Doctor’s Note in preview)
-      </div>
       <textarea
-        className="ui-textarea w-full min-h-[420px]"
-        placeholder="Free writing space…"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        className="w-full h-40 rounded border p-2 text-sm"
+        placeholder="Type scribe note here…"
       />
-      <div className="text-[11px] text-gray-500">{text.trim().length} characters</div>
+      <button
+        className="px-3 py-1.5 bg-gray-900 text-white rounded text-sm"
+        onClick={() => onPayload({ doctorNote: note })}
+        type="button"
+      >
+        Insert into Preview
+      </button>
     </div>
   );
 }
