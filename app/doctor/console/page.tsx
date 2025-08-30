@@ -98,12 +98,12 @@ const INITIAL_RX: DigitalRxFormState = {
 };
 
 type PreviewRecord = {
-    id: string;
-    dateISO: string; // accepts "yyyy-mm-dd" or "dd-mm-yyyy"
-    type: "Vitals" | "Clinical" | "Prescription" | "Plan" | string;
-    summary?: string;
-    canonical: DigitalRxFormState; // full canonical record used by LivePreview
-  };
+  id: string;
+  dateISO: string; // accepts "yyyy-mm-dd" or "dd-mm-yyyy"
+  type: "Vitals" | "Clinical" | "Prescription" | "Plan" | string;
+  summary?: string;
+  canonical: DigitalRxFormState; // full canonical record used by LivePreview
+};
 
 export default function DoctorConsolePage() {
   /* Header */
@@ -128,7 +128,6 @@ export default function DoctorConsolePage() {
     []
   );
   // Local fallback for preview items (remove if importing from domain/records/types)
-  
 
   /* Digital Rx form (live) */
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
@@ -216,14 +215,16 @@ export default function DoctorConsolePage() {
   /* Layout */
   const layout =
     companionMode === "scribe"
-      ? // 70/30 (left editor, right preview)
-        "grid-cols-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)_72px]"
-      : companionMode === "form" || activeTool !== "none"
-      ? // 50/50 when form is on or any tool is active
+      ? "grid-cols-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)_72px]"
+      : companionMode === "form"
+      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px]"
+      : companionMode === "off" && activeTool === "digitalrx"
+      ? // DigitalRx tool shows INSIDE the preview body; no split
+        "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"
+      : activeTool !== "none"
+      ? // other tools still split 50/50 if you want that behaviour
         "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px]"
-      : // preview-only + sticky bar
-        "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]";
-
+      : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"; // single main + bar
   if (error) {
     return (
       <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
@@ -231,6 +232,12 @@ export default function DoctorConsolePage() {
       </div>
     );
   }
+
+  // put this just before the return:
+  const effectiveLayout =
+    companionMode === "off" && activeTool !== "none"
+      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"
+      : layout;
 
   return (
     <div className="space-y-3">
@@ -295,7 +302,7 @@ export default function DoctorConsolePage() {
       {/* --------------------- Main Area & Sticky Right Toolbar --------------------- */}
       <div className="mt-10 px-3 md:px-6 lg:px-8">
         <div className={`grid gap-4 items-start ${layout}`}>
-          {/* Always keep PREVIEW on the LEFT */}
+          {/* ALWAYS keep Preview (with date tab rails) on the LEFT */}
           <PreviewPaper
             patient={patient}
             tabIndex={tabIndex}
@@ -303,14 +310,32 @@ export default function DoctorConsolePage() {
             byDate={byDate}
             selectedItemIdx={selectedItemIdx}
             setSelectedItemIdx={setSelectedItemIdx}
-            payloadOverride={
-              tabIndex === 0 ? rxForm : selectedRecord?.canonical
+            // When a tool is active & companion is OFF → embed the tool form in the preview body.
+            bodyOverride={
+              companionMode === "off" &&
+              activeTool === "digitalrx" &&
+              tabIndex === 0 ? (
+                <DigitalRxForm
+                  value={rxForm}
+                  onChange={setRxForm}
+                  onSave={onSave}
+                />
+              ) : undefined
             }
+
+            // If we’re embedding a tool, don’t also render preview payload.
+            payloadOverride={
+    companionMode === "off" && activeTool === "digitalrx" && tabIndex > 0
+      ? selectedRecord?.canonical
+      : tabIndex === 0
+      ? rxForm
+      : selectedRecord?.canonical
+  }
             sectionFilter={previewFilter}
             onChangeSectionFilter={setPreviewFilter}
           />
 
-          {/* RIGHT panel varies by mode */}
+          {/* RIGHT panel appears ONLY in Companion modes (splits the screen) */}
           {companionMode === "form" && (
             <SectionCard ariaLabel="Consultation form (Companion)">
               <DigitalRxForm
@@ -334,24 +359,6 @@ export default function DoctorConsolePage() {
               />
             </SectionCard>
           )}
-
-          {companionMode === "off" && activeTool !== "none" && (
-            <SectionCard ariaLabel="Active tool form">
-              {activeTool === "digitalrx" && (
-                <DigitalRxForm
-                  value={rxForm}
-                  onChange={setRxForm}
-                  onSave={onSave}
-                />
-              )}
-              {/* wire these when ready */}
-              {/* {activeTool === "immunization" && <ImmunizationForm />} */}
-              {/* {activeTool === "discharge" && <DischargeSummaryForm />} */}
-              {/* {activeTool === "lab" && <LabRequestForm />} */}
-            </SectionCard>
-          )}
-
-          {/* If neither companion nor a tool is active, there is no right panel (only preview + sticky bar) */}
 
           {/* RIGHT: Sticky toolbar (always on md+) */}
           <aside className="hidden md:block sticky top-20 self-start w-[72px]">
@@ -413,6 +420,7 @@ function PreviewPaper({
   payloadOverride,
   sectionFilter = "all",
   onChangeSectionFilter,
+  bodyOverride,
 }: {
   patient: {
     name: string;
@@ -431,7 +439,31 @@ function PreviewPaper({
   onChangeSectionFilter?: (
     next: "all" | "vitals" | "clinical" | "prescription" | "plan"
   ) => void;
+  bodyOverride?: React.ReactNode;
 }) {
+  // ---- NEW: windowed tabs paging (3 visible at a time) ----
+  const TABS_WINDOW = 3; // show 3 date tabs
+  const [page, setPage] = React.useState(0); // which "window" of date tabs
+
+  // Reset window when data changes
+  React.useEffect(() => {
+    setPage(0);
+  }, [byDate.length]);
+
+  // Keep window in sync if user navigates to a date tab outside current page
+  React.useEffect(() => {
+    if (tabIndex <= 0) return; // Current tab isn't in the paged list
+    const globalIdx = tabIndex - 1; // convert to 0-based index into byDate
+    const neededPage = Math.floor(globalIdx / TABS_WINDOW);
+    if (neededPage !== page) setPage(neededPage);
+  }, [tabIndex, page]);
+
+  const start = page * TABS_WINDOW;
+  const end = Math.min(start + TABS_WINDOW, byDate.length);
+  const visibleDates = byDate.slice(start, end);
+  const canPrev = page > 0;
+  const canNext = end < byDate.length;
+
   const effectivePayload = payloadOverride;
 
   return (
@@ -443,76 +475,114 @@ function PreviewPaper({
           background: "linear-gradient(180deg,#ffffff 0%,#fcfcfc 100%)",
         }}
       >
-        {/* Tabs rail (left top) */}
+        {/* ---------------- Tabs rail (top) ---------------- */}
         <div
-          className="absolute left-4 -top-5 flex flex-wrap gap-2 z-0"
+          className="absolute left-4 right-4 -top-5 flex items-center justify-between gap-2 z-0"
           aria-label="Health record tabs"
         >
-          {/* Tab 0: Current */}
-          <button
-            onClick={() => {
-              setTabIndex(0);
-              setSelectedItemIdx(0);
-            }}
-            aria-pressed={tabIndex === 0}
-            className={[
-              "px-4 py-2 text-sm font-semibold border-1 border-gray-300 shadow-lg rounded-tl-none rounded-tr-lg",
-              tabIndex === 0 ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
-            ].join(" ")}
-            style={{
-              background: "#E0F2FE",
-              color: "#0C4A6E",
-              borderColor: tabIndex === 0 ? "#1b1a1a" : "#b8b5b5",
-              boxShadow:
-                tabIndex === 0
-                  ? "0 2px 0 rgba(0,0,0,.04), 0 8px 16px rgba(0,0,0,.06)"
-                  : undefined,
-              transform: tabIndex === 0 ? "translateY(-4px)" : undefined,
-              outline: "none",
-            }}
-            title="Current Record"
-          >
-            <span className="relative -top-[7px]">Current Record</span>
-          </button>
-
-          {/* Date tabs */}
-          {byDate.map((day, i) => {
-            const active = tabIndex === i + 1;
-            return (
-              <button
-                key={day.dateISO}
-                onClick={() => {
-                  setTabIndex(i + 1);
-                  setSelectedItemIdx(0);
-                }}
-                aria-pressed={active}
-                className={[
-                  "px-4 py-2 text-sm font-semibold border-1 border-gray-300 shadow-lg rounded-tl-none rounded-tr-lg",
-                  active ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
-                ].join(" ")}
-                style={{
-                  background: "#FDE68A",
-                  color: "#92400E",
-                  borderColor: active ? "#1b1a1a" : "#b8b5b5",
-                  boxShadow: active
+          {/* Left: Current + paged date tabs with arrows */}
+          <div className="flex items-center gap-2">
+            {/* Tab 0: Current (always visible) */}
+            <button
+              onClick={() => {
+                setTabIndex(0);
+                setSelectedItemIdx(0);
+              }}
+              aria-pressed={tabIndex === 0}
+              className={[
+                "px-4 py-2 text-sm font-semibold border-1 border-gray-300 shadow-lg rounded-tl-none rounded-tr-lg",
+                tabIndex === 0 ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+              ].join(" ")}
+              style={{
+                background: "#E0F2FE",
+                color: "#0C4A6E",
+                borderColor: tabIndex === 0 ? "#1b1a1a" : "#b8b5b5",
+                boxShadow:
+                  tabIndex === 0
                     ? "0 2px 0 rgba(0,0,0,.04), 0 8px 16px rgba(0,0,0,.06)"
                     : undefined,
-                  transform: active ? "translateY(-4px)" : undefined,
-                  outline: "none",
-                }}
-                title={fmtDateLabel(day.dateISO)}
-              >
-                <span className="relative -top-[7px]">
-                  {fmtDateLabel(day.dateISO)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                transform: tabIndex === 0 ? "translateY(-4px)" : undefined,
+                outline: "none",
+              }}
+              title="Current Record"
+              type="button"
+            >
+              <span className="relative -top-[7px]">Current Record</span>
+            </button>
 
-        {/* Filter rail (right top) */}
-        <div className="absolute border-1 border-gray-300 right-4 -top-8 z-10">
-          <div className="ui-card border-2 px-2 py-1.5 flex items-center gap-1">
+            {/* Prev arrow (for date tabs) */}
+            {/* <button
+              type="button"
+              onClick={() => canPrev && setPage((p) => Math.max(0, p - 1))}
+              disabled={!canPrev}
+              className={[
+                "px-2 py-2 rounded-md border text-sm",
+                canPrev
+                  ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
+                  : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed",
+              ].join(" ")}
+              aria-label="Previous dates"
+              title="Previous dates"
+            >
+              ‹
+            </button> */}
+
+            {/* Visible date tabs (max 3) */}
+            {visibleDates.map((day, i) => {
+              const globalIdx = start + i; // 0-based into byDate
+              const active = tabIndex === globalIdx + 1; // +1 because tabIndex=1 maps to byDate[0]
+              return (
+                <button
+                  key={day.dateISO}
+                  onClick={() => {
+                    setTabIndex(globalIdx + 1);
+                    setSelectedItemIdx(0);
+                  }}
+                  aria-pressed={active}
+                  className={[
+                    "px-4 py-2 text-sm font-semibold border-1 border-gray-300 shadow-lg rounded-tl-none rounded-tr-lg",
+                    active ? "ring-2 z-20" : "hover:brightness-[.98] z-0",
+                  ].join(" ")}
+                  style={{
+                    background: "#FDE68A",
+                    color: "#92400E",
+                    borderColor: active ? "#1b1a1a" : "#b8b5b5",
+                    boxShadow: active
+                      ? "0 2px 0 rgba(0,0,0,.04), 0 8px 16px rgba(0,0,0,.06)"
+                      : undefined,
+                    transform: active ? "translateY(-4px)" : undefined,
+                    outline: "none",
+                  }}
+                  title={fmtDateLabel(day.dateISO)}
+                  type="button"
+                >
+                  <span className="relative -top-[7px]">
+                    {fmtDateLabel(day.dateISO)}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Next arrow (for date tabs) */}
+            {/* <button
+              type="button"
+              onClick={() => canNext && setPage((p) => p + 1)}
+              disabled={!canNext}
+              className={[
+                "px-2 py-2 rounded-md border text-sm",
+                canNext
+                  ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
+                  : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed",
+              ].join(" ")}
+              aria-label="Next dates"
+              title="Next dates"
+            >
+              ›
+            </button> */}
+          </div>
+
+          {/* Right: Section filter rail */}
+          <div className="ui-card px-2 py-1.5 flex items-center gap-1 relative -translate-y-2">
             <span className="text-[11px] text-gray-600 mr-1">Show:</span>
             <FilterPill
               label="All"
@@ -542,7 +612,7 @@ function PreviewPaper({
           </div>
         </div>
 
-        {/* top cover band under rails */}
+        {/* cover band under rails */}
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-10 rounded-t-xl z-10"
           style={{
@@ -578,6 +648,7 @@ function PreviewPaper({
               <button
                 className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
                 title="Open Patient Summary"
+                type="button"
               >
                 <SummaryIcon className="w-4 h-4" />
                 <span className="font-medium">Patient Summary</span>
@@ -589,10 +660,12 @@ function PreviewPaper({
 
           {/* Record body */}
           <div className="mt-2">
-            <LivePreview
-              payload={effectivePayload}
-              sectionFilter={sectionFilter}
-            />
+            {bodyOverride ?? (
+              <LivePreview
+                payload={effectivePayload}
+                sectionFilter={sectionFilter}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -616,8 +689,8 @@ function FilterPill({
       className={[
         "px-2 py-0.5 rounded-md text-[11px] border transition",
         active
-          ? "bg-gray-900 text-white border-gray-900"
-          : "bg-white text-gray-800 hover:bg-gray-50 border-gray-300",
+          ? "bg-gray-200 text-blue-800 border-gray-500"
+          : "bg-white text-green-800 hover:bg-gray-50 border-gray-300",
       ].join(" ")}
     >
       {label}
