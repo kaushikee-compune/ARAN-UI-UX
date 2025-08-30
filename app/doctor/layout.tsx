@@ -37,7 +37,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-md" aria-hidden>
-              <Image src="/whitelogopng.svg" alt="ARAN Logo" width={25} height={25} />
+              <Image src="/whitelogo.png" alt="ARAN Logo" width={25} height={25} />
             </span>
             <div className="font-semibold">ARAN Healthcare</div>
           </div>
