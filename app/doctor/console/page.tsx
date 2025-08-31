@@ -9,7 +9,7 @@ import DigitalRxForm, {
   type DigitalRxFormState as RxState,
 } from "@/components/doctor/DigitalRxForm";
 
-/* New: tiny controller shown bottom-right inside the preview */
+/* Past records tiny controller */
 import PastRecordButton from "@/components/doctor/PastRecordButton";
 
 /* ------------------------------ Canonical types ------------------------------ */
@@ -52,7 +52,8 @@ function parseDDMMYYYY(s: string) {
 async function loadMockRecords(patientId?: string): Promise<CanonicalRecord[]> {
   if (typeof window === "undefined") return [];
   const res = await fetch("/data/mock-records.json", { cache: "no-store" });
-  if (!res.ok) throw new Error("Mock JSON not found at /public/data/mock-records.json");
+  if (!res.ok)
+    throw new Error("Mock JSON not found at /public/data/mock-records.json");
   const all = (await res.json()) as CanonicalRecord[];
   return patientId ? all.filter((r) => r.patientId === patientId) : all;
 }
@@ -82,7 +83,9 @@ const collapseSidebar = (collapse: boolean) => {
 const INITIAL_RX: DigitalRxFormState = {
   vitals: {},
   clinical: {},
-  prescription: [{ medicine: "", frequency: "", duration: "", dosage: "", instruction: "" }],
+  prescription: [
+    { medicine: "", frequency: "", duration: "", dosage: "", instruction: "" },
+  ],
   plan: {},
 };
 
@@ -116,8 +119,13 @@ export default function DoctorConsolePage() {
   const [pastDays, setPastDays] = useState<DayRecords[]>([]);
   const [loadingPast, setLoadingPast] = useState(false);
   const [errorPast, setErrorPast] = useState<string | null>(null);
-  const [showPast, setShowPast] = useState(false);
-  const [dayIdx, setDayIdx] = useState(0);
+
+  /**
+   * VIRTUAL INDEX for PastRecordButton:
+   *   0 ............. = CURRENT (live / blank preview)
+   *   1..totalDays .. = pastDays[0..totalDays-1]
+   */
+  const [virtIdx, setVirtIdx] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -139,10 +147,17 @@ export default function DoctorConsolePage() {
   }, []);
 
   const totalDays = pastDays.length;
-  const clampIdx = (i: number) =>
+  const totalSlots = totalDays + 1; // include "0 = current"
+  const clampDayIdx = (i: number) =>
     totalDays === 0 ? 0 : Math.min(Math.max(i, 0), totalDays - 1);
-  const prevDay = () => setDayIdx((i) => clampIdx(i - 1));
-  const nextDay = () => setDayIdx((i) => clampIdx(i + 1));
+  const clampVirt = (i: number) =>
+    totalSlots === 0 ? 0 : Math.min(Math.max(i, 0), totalSlots - 1);
+
+  const showPast = virtIdx > 0;
+  const dayIdx = showPast ? clampDayIdx(virtIdx - 1) : 0;
+
+  const prevSlot = () => setVirtIdx((i) => Math.max(i - 1, 0));
+  const nextSlot = () => setVirtIdx((i) => Math.min(i + 1, totalDays));
 
   /* Actions */
   const onSave = useCallback(() => {
@@ -158,7 +173,7 @@ export default function DoctorConsolePage() {
       setCompanionMode("form"); // default ON → Form
       setActiveTool("none");
       collapseSidebar(true);
-      setShowPast(false);
+      setVirtIdx(0); // leave any past-view, back to current
     } else {
       setCompanionMode("off");
       setActiveTool("none");
@@ -171,7 +186,7 @@ export default function DoctorConsolePage() {
       if (!companionOn) return;
       setCompanionMode(mode);
       setActiveTool("none");
-      setShowPast(false); // leave past mode when changing companion view
+      setVirtIdx(0); // leave past when changing companion view
       collapseSidebar(true);
     },
     [companionOn]
@@ -181,7 +196,7 @@ export default function DoctorConsolePage() {
   const openTool = useCallback((tool: ActiveTool) => {
     setCompanionMode("off");
     setActiveTool(tool);
-    setShowPast(false); // ALWAYS leave past view
+    setVirtIdx(0); // ALWAYS leave past view
     collapseSidebar(true);
   }, []);
 
@@ -200,13 +215,22 @@ export default function DoctorConsolePage() {
       {/* ------------------------------- Header Panel ------------------------------- */}
       <div className="ui-card px-3 py-1">
         <div className="flex items-center gap-2">
-          <TopMenuButton active={activeTop === "consultation"} onClick={() => setActiveTop("consultation")}>
+          <TopMenuButton
+            active={activeTop === "consultation"}
+            onClick={() => setActiveTop("consultation")}
+          >
             Consultation
           </TopMenuButton>
-          <TopMenuButton active={activeTop === "consent"} onClick={() => setActiveTop("consent")}>
+          <TopMenuButton
+            active={activeTop === "consent"}
+            onClick={() => setActiveTop("consent")}
+          >
             Consent
           </TopMenuButton>
-          <TopMenuButton active={activeTop === "queue"} onClick={() => setActiveTop("queue")}>
+          <TopMenuButton
+            active={activeTop === "queue"}
+            onClick={() => setActiveTop("queue")}
+          >
             OPD Queue
           </TopMenuButton>
 
@@ -218,13 +242,28 @@ export default function DoctorConsolePage() {
               onChange={(v) => handleCompanionSwitch(!!v)}
               onCheckedChange={(v) => handleCompanionSwitch(!!v)}
             />
-            <IconButton label="Form" disabled={!companionOn} pressed={companionMode === "form"} onClick={() => pickCompanion("form")}>
+            <IconButton
+              label="Form"
+              disabled={!companionOn}
+              pressed={companionMode === "form"}
+              onClick={() => pickCompanion("form")}
+            >
               <FormIcon className="w-4 h-4" />
             </IconButton>
-            <IconButton label="Voice" disabled={!companionOn} pressed={companionMode === "voice"} onClick={() => pickCompanion("voice")}>
+            <IconButton
+              label="Voice"
+              disabled={!companionOn}
+              pressed={companionMode === "voice"}
+              onClick={() => pickCompanion("voice")}
+            >
               <MicIcon className="w-4 h-4" />
             </IconButton>
-            <IconButton label="Scribe" disabled={!companionOn} pressed={companionMode === "scribe"} onClick={() => pickCompanion("scribe")}>
+            <IconButton
+              label="Scribe"
+              disabled={!companionOn}
+              pressed={companionMode === "scribe"}
+              onClick={() => pickCompanion("scribe")}
+            >
               <ScribeIcon className="w-4 h-4" />
             </IconButton>
           </div>
@@ -239,31 +278,41 @@ export default function DoctorConsolePage() {
             patient={patient}
             /* If DigitalRx tool is chosen while companion is OFF, embed the form in the paper body */
             bodyOverride={
-              !showPast && companionMode === "off" && activeTool === "digitalrx" ? (
-                <DigitalRxForm value={rxForm} onChange={setRxForm} onSave={onSave} />
+              virtIdx === 0 &&
+              companionMode === "off" &&
+              activeTool === "digitalrx" ? (
+                <DigitalRxForm
+                  value={rxForm}
+                  onChange={setRxForm}
+                  onSave={onSave}
+                />
               ) : undefined
             }
             /* When not embedding, show a live preview of the current Rx state (blank by default) */
-            payload={showPast ? undefined : rxForm}
-            /* Past records control & data */
+            payload={virtIdx === 0 ? rxForm : undefined}
+            /* Past records control & data (derived from virtual slot) */
             past={{
-              active: showPast,
-              index: clampIdx(dayIdx),
-              total: totalDays,
+              active: virtIdx > 0,
+              index: virtIdx > 0 ? virtIdx - 1 : 0,   // 0..(totalDays-1) → what the button expects
+              total: totalDays, // totalDays + 1 (includes current)
               loading: loadingPast,
               error: errorPast ?? undefined,
-              day: pastDays[clampIdx(dayIdx)],
-              onOpen: () => setShowPast(true),
-              onClose: () => setShowPast(false),
-              onPrev: prevDay,
-              onNext: nextDay,
+              day: virtIdx > 0 ? pastDays[virtIdx - 1] : undefined,
+              onOpen: () => setVirtIdx(1), // starts at 1/N// toggle between current and latest past
+              onClose: () => setVirtIdx(0), // back to live/blank
+              onPrev: prevSlot,
+              onNext: nextSlot,
             }}
           />
 
           {/* RIGHT panel appears ONLY in Companion modes (split screen) */}
           {companionMode === "form" && (
             <SectionCard ariaLabel="Consultation form (Companion)">
-              <DigitalRxForm value={rxForm} onChange={setRxForm} onSave={onSave} />
+              <DigitalRxForm
+                value={rxForm}
+                onChange={setRxForm}
+                onSave={onSave}
+              />
             </SectionCard>
           )}
 
@@ -286,17 +335,45 @@ export default function DoctorConsolePage() {
             <div className="flex flex-col items-center gap-4">
               <div className="ui-card p-1.5 w-[58px] flex flex-col items-center gap-2">
                 {/* Group A */}
-                <RoundPill label="" img="/icons/digitalrx.png" onClick={() => openTool("digitalrx")} borderColor="blue-500" />
-                <RoundPill label="" img="/icons/syringe.png" onClick={() => openTool("immunization")} borderColor="amber-500" />
-                <RoundPill label="" img="/icons/discharge-summary.png" onClick={() => openTool("discharge")} borderColor="green-500" />
-                <RoundPill label="" img="/icons/lab-request.png" onClick={() => openTool("lab")} borderColor="pink-500" />
+                <RoundPill
+                  label=""
+                  img="/icons/digitalrx.png"
+                  onClick={() => openTool("digitalrx")}
+                  borderColor="blue-500"
+                />
+                <RoundPill
+                  label=""
+                  img="/icons/syringe.png"
+                  onClick={() => openTool("immunization")}
+                  borderColor="amber-500"
+                />
+                <RoundPill
+                  label=""
+                  img="/icons/discharge-summary.png"
+                  onClick={() => openTool("discharge")}
+                  borderColor="green-500"
+                />
+                <RoundPill
+                  label=""
+                  img="/icons/lab-request.png"
+                  onClick={() => openTool("lab")}
+                  borderColor="pink-500"
+                />
                 {/* Divider */}
                 <div className="my-10 h-px w-full bg-gray-300" />
                 {/* Group B */}
                 <TinyIcon img="/icons/save.png" label="Save" onClick={onSave} />
                 <TinyIcon img="/icons/send.png" label="Send" onClick={onSend} />
-                <TinyIcon img="/icons/print.png" label="Print" onClick={onPrint} />
-                <TinyIcon img="/icons/language.png" label="Language" onClick={onLanguage} />
+                <TinyIcon
+                  img="/icons/print.png"
+                  label="Print"
+                  onClick={onPrint}
+                />
+                <TinyIcon
+                  img="/icons/language.png"
+                  label="Language"
+                  onClick={onLanguage}
+                />
               </div>
             </div>
           </aside>
@@ -324,8 +401,8 @@ function PreviewPaper({
   bodyOverride?: React.ReactNode;
   past: {
     active: boolean;
-    index: number;
-    total: number;
+    index: number; // 0..total-1 (0 = current)
+    total: number; // total slots incl. current
     loading: boolean;
     error?: string;
     day?: DayRecords;
@@ -356,19 +433,53 @@ function PreviewPaper({
               <div className="text-xs text-gray-700 mt-0.5">
                 {patient.gender} • {patient.age}
               </div>
-              <div className="text-xs text-gray-600 mt-1">ABHA No: {patient.abhaNumber}</div>
-              <div className="text-xs text-gray-600">ABHA Address: {patient.abhaAddress}</div>
+              <div className="text-xs text-gray-600 mt-1">
+                ABHA No: {patient.abhaNumber}
+              </div>
+              <div className="text-xs text-gray-600">
+                ABHA Address: {patient.abhaAddress}
+              </div>
             </div>
-            <Image src="/whitelogo.png" alt="ARAN Logo" width={40} height={40} />
+            <Image
+              src="/whitelogo.png"
+              alt="ARAN Logo"
+              width={40}
+              height={40}
+            />
+
+            {/* Code comes here  */}
             <div className="flex items-start justify-end pl-3">
-              <button
-                className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
-                title="Open Patient Summary"
-                type="button"
-              >
-                <SummaryIcon className="w-4 h-4" />
-                <span className="font-medium">Patient Summary</span>
-              </button>
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
+                  title="Open Patient Summary"
+                  type="button"
+                >
+                  <SummaryIcon className="w-4 h-4" />
+                  <span className="font-medium">Patient Summary</span>
+                </button>
+                {/* Just below Patient Summary: either CTA or the pager */}
+                {!past.active ? (
+                  <button
+                    type="button"
+                    onClick={past.onOpen}
+                    className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    View Past Record
+                  </button>
+                ) : (
+                  <div className="backdrop-blur bg-white/70 border border-gray-200 rounded-full px-2 py-1 shadow-sm">
+                    <PastRecordButton
+                      active={past.active}
+                      index={past.index}
+                      total={past.total}
+                      onOpen={past.onClose} /* close back to live */
+                      onPrev={past.onPrev}
+                      onNext={past.onNext}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -378,31 +489,23 @@ function PreviewPaper({
           <div className="mt-2">
             {showingPast ? (
               past.loading ? (
-                <div className="ui-card p-4 text-sm text-gray-500">Loading past records…</div>
+                <div className="ui-card p-4 text-sm text-gray-500">
+                  Loading past records…
+                </div>
               ) : past.error ? (
-                <div className="ui-card p-4 text-sm text-red-600">Error: {past.error}</div>
+                <div className="ui-card p-4 text-sm text-red-600">
+                  Error: {past.error}
+                </div>
               ) : past.total === 0 || !past.day ? (
-                <div className="ui-card p-4 text-sm text-gray-500">No past records available.</div>
+                <div className="ui-card p-4 text-sm text-gray-500">
+                  No past records available.
+                </div>
               ) : (
                 <PastRecordsPanel day={past.day} />
               )
             ) : (
               bodyOverride ?? <LivePreview payload={payload} />
             )}
-          </div>
-
-          {/* PastRecordButton at bottom-right */}
-          <div className="absolute bottom-3 right-3">
-            <div className="backdrop-blur bg-white/70 border border-gray-200 rounded-full px-2 py-1 shadow-sm">
-              <PastRecordButton
-                active={past.active}
-                index={past.index}
-                total={past.total}
-                onOpen={past.active ? past.onClose : past.onOpen}
-                onPrev={past.onPrev}
-                onNext={past.onNext}
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -519,8 +622,11 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Vitals</h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-            {nonEmpty(vitals.temperature) && <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />}
-            {(nonEmpty(vitals.bp) || (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
+            {nonEmpty(vitals.temperature) && (
+              <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
+            )}
+            {(nonEmpty(vitals.bp) ||
+              (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
               <KV
                 k="Blood Pressure"
                 v={
@@ -530,11 +636,19 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
                 }
               />
             )}
-            {nonEmpty(vitals.spo2) && <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />}
-            {nonEmpty(vitals.weight) && <KV k="Weight" v={`${safe(vitals.weight)} kg`} />}
-            {nonEmpty(vitals.height) && <KV k="Height" v={`${safe(vitals.height)} cm`} />}
+            {nonEmpty(vitals.spo2) && (
+              <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />
+            )}
+            {nonEmpty(vitals.weight) && (
+              <KV k="Weight" v={`${safe(vitals.weight)} kg`} />
+            )}
+            {nonEmpty(vitals.height) && (
+              <KV k="Height" v={`${safe(vitals.height)} cm`} />
+            )}
             {nonEmpty(vitals.bmi) && <KV k="BMI" v={safe(vitals.bmi)} />}
-            {nonEmpty(vitals.lmpDate) && <KV k="LMP" v={safe(vitals.lmpDate)} />}
+            {nonEmpty(vitals.lmpDate) && (
+              <KV k="LMP" v={safe(vitals.lmpDate)} />
+            )}
           </div>
 
           {(nonEmpty(vitals.bodyMeasurement?.waist) ||
@@ -542,12 +656,28 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             nonEmpty(vitals.bodyMeasurement?.neck) ||
             nonEmpty(vitals.bodyMeasurement?.chest)) && (
             <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Body Measurements</h4>
+              <h4 className="text-xs font-medium text-gray-600 mb-2">
+                Body Measurements
+              </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                {nonEmpty(vitals.bodyMeasurement?.waist) && <KV k="Waist" v={`${safe(vitals.bodyMeasurement?.waist)} cm`} />}
-                {nonEmpty(vitals.bodyMeasurement?.hip) && <KV k="Hip" v={`${safe(vitals.bodyMeasurement?.hip)} cm`} />}
-                {nonEmpty(vitals.bodyMeasurement?.neck) && <KV k="Neck" v={`${safe(vitals.bodyMeasurement?.neck)} cm`} />}
-                {nonEmpty(vitals.bodyMeasurement?.chest) && <KV k="Chest" v={`${safe(vitals.bodyMeasurement?.chest)} cm`} />}
+                {nonEmpty(vitals.bodyMeasurement?.waist) && (
+                  <KV
+                    k="Waist"
+                    v={`${safe(vitals.bodyMeasurement?.waist)} cm`}
+                  />
+                )}
+                {nonEmpty(vitals.bodyMeasurement?.hip) && (
+                  <KV k="Hip" v={`${safe(vitals.bodyMeasurement?.hip)} cm`} />
+                )}
+                {nonEmpty(vitals.bodyMeasurement?.neck) && (
+                  <KV k="Neck" v={`${safe(vitals.bodyMeasurement?.neck)} cm`} />
+                )}
+                {nonEmpty(vitals.bodyMeasurement?.chest) && (
+                  <KV
+                    k="Chest"
+                    v={`${safe(vitals.bodyMeasurement?.chest)} cm`}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -559,14 +689,34 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             nonEmpty(vitals.womensHealth?.parity) ||
             nonEmpty(vitals.womensHealth?.abortions)) && (
             <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Women’s Health</h4>
+              <h4 className="text-xs font-medium text-gray-600 mb-2">
+                Women’s Health
+              </h4>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.womensHealth?.lmpDate) && <KV k="LMP" v={safe(vitals.womensHealth?.lmpDate)} />}
-                {nonEmpty(vitals.womensHealth?.cycleLengthDays) && <KV k="Cycle (days)" v={safe(vitals.womensHealth?.cycleLengthDays)} />}
-                {nonEmpty(vitals.womensHealth?.cycleRegularity) && <KV k="Regularity" v={safe(vitals.womensHealth?.cycleRegularity)} />}
-                {nonEmpty(vitals.womensHealth?.gravidity) && <KV k="Gravidity" v={safe(vitals.womensHealth?.gravidity)} />}
-                {nonEmpty(vitals.womensHealth?.parity) && <KV k="Parity" v={safe(vitals.womensHealth?.parity)} />}
-                {nonEmpty(vitals.womensHealth?.abortions) && <KV k="Abortions" v={safe(vitals.womensHealth?.abortions)} />}
+                {nonEmpty(vitals.womensHealth?.lmpDate) && (
+                  <KV k="LMP" v={safe(vitals.womensHealth?.lmpDate)} />
+                )}
+                {nonEmpty(vitals.womensHealth?.cycleLengthDays) && (
+                  <KV
+                    k="Cycle (days)"
+                    v={safe(vitals.womensHealth?.cycleLengthDays)}
+                  />
+                )}
+                {nonEmpty(vitals.womensHealth?.cycleRegularity) && (
+                  <KV
+                    k="Regularity"
+                    v={safe(vitals.womensHealth?.cycleRegularity)}
+                  />
+                )}
+                {nonEmpty(vitals.womensHealth?.gravidity) && (
+                  <KV k="Gravidity" v={safe(vitals.womensHealth?.gravidity)} />
+                )}
+                {nonEmpty(vitals.womensHealth?.parity) && (
+                  <KV k="Parity" v={safe(vitals.womensHealth?.parity)} />
+                )}
+                {nonEmpty(vitals.womensHealth?.abortions) && (
+                  <KV k="Abortions" v={safe(vitals.womensHealth?.abortions)} />
+                )}
               </div>
             </div>
           )}
@@ -577,13 +727,25 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             nonEmpty(vitals.lifestyle?.sleepHours) ||
             nonEmpty(vitals.lifestyle?.stressLevel)) && (
             <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Lifestyle</h4>
+              <h4 className="text-xs font-medium text-gray-600 mb-2">
+                Lifestyle
+              </h4>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.lifestyle?.smokingStatus) && <KV k="Smoking" v={safe(vitals.lifestyle?.smokingStatus)} />}
-                {nonEmpty(vitals.lifestyle?.alcoholIntake) && <KV k="Alcohol" v={safe(vitals.lifestyle?.alcoholIntake)} />}
-                {nonEmpty(vitals.lifestyle?.dietType) && <KV k="Diet" v={safe(vitals.lifestyle?.dietType)} />}
-                {nonEmpty(vitals.lifestyle?.sleepHours) && <KV k="Sleep (hrs)" v={safe(vitals.lifestyle?.sleepHours)} />}
-                {nonEmpty(vitals.lifestyle?.stressLevel) && <KV k="Stress" v={safe(vitals.lifestyle?.stressLevel)} />}
+                {nonEmpty(vitals.lifestyle?.smokingStatus) && (
+                  <KV k="Smoking" v={safe(vitals.lifestyle?.smokingStatus)} />
+                )}
+                {nonEmpty(vitals.lifestyle?.alcoholIntake) && (
+                  <KV k="Alcohol" v={safe(vitals.lifestyle?.alcoholIntake)} />
+                )}
+                {nonEmpty(vitals.lifestyle?.dietType) && (
+                  <KV k="Diet" v={safe(vitals.lifestyle?.dietType)} />
+                )}
+                {nonEmpty(vitals.lifestyle?.sleepHours) && (
+                  <KV k="Sleep (hrs)" v={safe(vitals.lifestyle?.sleepHours)} />
+                )}
+                {nonEmpty(vitals.lifestyle?.stressLevel) && (
+                  <KV k="Stress" v={safe(vitals.lifestyle?.stressLevel)} />
+                )}
               </div>
             </div>
           )}
@@ -595,14 +757,28 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
           <div className="space-y-2 text-sm">
-            {nonEmpty(clinical.chiefComplaints) && <Block k="Chief Complaints" v={safe(clinical.chiefComplaints)} />}
-            {nonEmpty(clinical.pastHistory) && <Block k="Past History" v={safe(clinical.pastHistory)} />}
-            {nonEmpty(clinical.familyHistory) && <Block k="Family History" v={safe(clinical.familyHistory)} />}
-            {nonEmpty(clinical.allergy) && <Block k="Allergy" v={safe(clinical.allergy)} />}
+            {nonEmpty(clinical.chiefComplaints) && (
+              <Block k="Chief Complaints" v={safe(clinical.chiefComplaints)} />
+            )}
+            {nonEmpty(clinical.pastHistory) && (
+              <Block k="Past History" v={safe(clinical.pastHistory)} />
+            )}
+            {nonEmpty(clinical.familyHistory) && (
+              <Block k="Family History" v={safe(clinical.familyHistory)} />
+            )}
+            {nonEmpty(clinical.allergy) && (
+              <Block k="Allergy" v={safe(clinical.allergy)} />
+            )}
           </div>
-          {anyRowHas(clinical.currentMedications, ["medicine", "dosage", "since"]) && (
+          {anyRowHas(clinical.currentMedications, [
+            "medicine",
+            "dosage",
+            "since",
+          ]) && (
             <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Current Medications</h4>
+              <h4 className="text-xs font-medium text-gray-600 mb-2">
+                Current Medications
+              </h4>
               <div className="space-y-1.5">
                 {(clinical.currentMedications ?? []).map((m, i) => (
                   <div key={i} className="text-sm">
@@ -625,17 +801,27 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-gray-600">
-                  <th className="px-2 py-1.5 text-left font-medium">Medicine</th>
-                  <th className="px-2 py-1.5 text-left font-medium">Frequency</th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Medicine
+                  </th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Frequency
+                  </th>
                   <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
-                  <th className="px-2 py-1.5 text-left font-medium">Duration</th>
-                  <th className="px-2 py-1.5 text-left font-medium">Instruction</th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Duration
+                  </th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Instruction
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {rxRows.map((m, i) => (
                   <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5 font-medium">{safe(m.medicine)}</td>
+                    <td className="px-2 py-1.5 font-medium">
+                      {safe(m.medicine)}
+                    </td>
                     <td className="px-2 py-1.5">{safe(m.frequency)}</td>
                     <td className="px-2 py-1.5">{safe(m.dosage)}</td>
                     <td className="px-2 py-1.5">{safe(m.duration)}</td>
@@ -653,19 +839,41 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Plan / Advice</h3>
           <div className="space-y-3 text-sm">
-            {nonEmpty(plan.investigations) && <Block k="Investigations" v={safe(plan.investigations)} />}
-            {nonEmpty(plan.investigationInstructions) && (
-              <Block k="Investigation Instructions" v={safe(plan.investigationInstructions)} />
+            {nonEmpty(plan.investigations) && (
+              <Block k="Investigations" v={safe(plan.investigations)} />
             )}
-            {nonEmpty(plan.advice) && <Block k="Advice" v={safe(plan.advice)} />}
-            {nonEmpty(plan.doctorNote) && <Block k="Doctor’s Note" v={safe(plan.doctorNote)} />}
-            {nonEmpty(plan.followUpInstructions) && <Block k="Follow-up Instructions" v={safe(plan.followUpInstructions)} />}
-            {nonEmpty(plan.followUpDate) && <KV k="Follow-up Date" v={safe(plan.followUpDate)} />}
-            {nonEmpty(plan.investigationNote) && <Block k="Investigation Note" v={safe(plan.investigationNote)} />}
-            {nonEmpty(plan.patientNote) && <Block k="Patient Note" v={safe(plan.patientNote)} />}
+            {nonEmpty(plan.investigationInstructions) && (
+              <Block
+                k="Investigation Instructions"
+                v={safe(plan.investigationInstructions)}
+              />
+            )}
+            {nonEmpty(plan.advice) && (
+              <Block k="Advice" v={safe(plan.advice)} />
+            )}
+            {nonEmpty(plan.doctorNote) && (
+              <Block k="Doctor’s Note" v={safe(plan.doctorNote)} />
+            )}
+            {nonEmpty(plan.followUpInstructions) && (
+              <Block
+                k="Follow-up Instructions"
+                v={safe(plan.followUpInstructions)}
+              />
+            )}
+            {nonEmpty(plan.followUpDate) && (
+              <KV k="Follow-up Date" v={safe(plan.followUpDate)} />
+            )}
+            {nonEmpty(plan.investigationNote) && (
+              <Block k="Investigation Note" v={safe(plan.investigationNote)} />
+            )}
+            {nonEmpty(plan.patientNote) && (
+              <Block k="Patient Note" v={safe(plan.patientNote)} />
+            )}
             {(plan.attachments?.files?.length ?? 0) > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">Attachments</h4>
+                <h4 className="text-xs font-medium text-gray-600 mb-2">
+                  Attachments
+                </h4>
                 <ul className="list-disc ml-5 space-y-1">
                   {(plan.attachments?.files ?? []).map((f, i) => (
                     <li key={i}>{(f as any)?.name ?? "File"}</li>
@@ -673,7 +881,9 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
                 </ul>
               </div>
             )}
-            {nonEmpty(plan.attachments?.note) && <Block k="Attachment Note" v={safe(plan.attachments?.note)} />}
+            {nonEmpty(plan.attachments?.note) && (
+              <Block k="Attachment Note" v={safe(plan.attachments?.note)} />
+            )}
           </div>
         </section>
       )}
@@ -802,7 +1012,9 @@ function RoundPill({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={img} alt="" className="w-5 h-5 object-contain" />
-      <span className="absolute -bottom-5 text-[10px] text-gray-700">{label}</span>
+      <span className="absolute -bottom-5 text-[10px] text-gray-700">
+        {label}
+      </span>
     </button>
   );
 }

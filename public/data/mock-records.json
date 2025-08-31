@@ -1,5 +1,81 @@
 [
   {
+    "id": "rec_2025_08_30_rx2",
+    "patientId": "pat_001",
+    "dateISO": "30-08-2025",
+    "type": "Prescription",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "99.1",
+        "bpSys": "116",
+        "bpDia": "74",
+        "spo2": "99",
+        "weight": "63.8",
+        "height": "162",
+        "bmi": "24.3"
+      },
+      "clinical": {
+        "chiefComplaints": "Burning micturition, increased frequency for 2 days",
+        "pastHistory": "No prior UTIs",
+        "familyHistory": "Hypertension (father)",
+        "allergy": "None",
+        "currentMedications": []
+      },
+      "prescription": [
+        { "medicine": "Nitrofurantoin 100 mg", "frequency": "1-0-1", "duration": "5 days", "dosage": "100 mg", "instruction": "After meals" },
+        { "medicine": "Dicyclomine 10 mg", "frequency": "0-0-1", "duration": "3 days", "dosage": "10 mg", "instruction": "Night, if cramps" }
+      ],
+      "plan": {
+        "investigations": "Urine R/E and Urine Culture",
+        "investigationInstructions": "Midstream, sterile container",
+        "advice": "Hydrate well; avoid bladder irritants",
+        "doctorNote": "Acute uncomplicated cystitis suspected",
+        "followUpInstructions": "Review with report or if fever develops",
+        "followUpDate": "02-09-2025"
+      }
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Dr. A. Banerjee", "regNo": "KMC/2011/12345", "specialty": "Internal Medicine" }
+    }
+  },
+  {
+    "id": "rec_2025_08_20_immun1",
+    "patientId": "pat_001",
+    "dateISO": "20-08-2025",
+    "type": "Immunization",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.6",
+        "bpSys": "114",
+        "bpDia": "72",
+        "spo2": "99",
+        "weight": "63.9",
+        "height": "162",
+        "bmi": "24.4"
+      },
+      "clinical": {
+        "chiefComplaints": "Scheduled immunization (Tdap booster)",
+        "proceduresDone": [
+          { "name": "Tdap booster (0.5 mL IM deltoid)", "date": "20-08-2025" }
+        ],
+        "investigationsDone": []
+      },
+      "prescription": [],
+      "plan": {
+        "advice": "Observe for local soreness; paracetamol if needed",
+        "doctorNote": "Immunization administered without immediate adverse events",
+        "followUpInstructions": "Next preventive visit in 1 year"
+      }
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Dr. Kavya Rao", "regNo": "KMC/2014/99887", "specialty": "General Practice" }
+    }
+  },
+  {
     "id": "rec_2025_08_12_rx1",
     "patientId": "pat_001",
     "dateISO": "12-08-2025",
@@ -76,6 +152,35 @@
     }
   },
   {
+    "id": "rec_2025_08_05_lab2",
+    "patientId": "pat_001",
+    "dateISO": "05-08-2025",
+    "type": "Lab",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.6",
+        "bpSys": "118",
+        "bpDia": "76",
+        "spo2": "99",
+        "weight": "64",
+        "height": "162",
+        "bmi": "24.4"
+      },
+      "clinical": {},
+      "prescription": [],
+      "plan": {
+        "investigations": "LFT, Urine R/E",
+        "investigationNote": "LFT within normal limits; Urine R/E: trace leukocytes"
+      }
+    },
+    "meta": {
+      "hospital": "City Diagnostics",
+      "doctor": { "name": "Dr. Kavya Rao", "specialty": "Pathology" },
+      "labPanel": { "AST": "22 U/L", "ALT": "24 U/L", "Bilirubin": "0.9 mg/dL" }
+    }
+  },
+  {
     "id": "rec_2025_08_01_vitals1",
     "patientId": "pat_001",
     "dateISO": "01-08-2025",
@@ -129,19 +234,58 @@
     }
   },
   {
+    "id": "rec_2025_07_28_discharge1",
+    "patientId": "pat_001",
+    "dateISO": "28-07-2025",
+    "type": "DischargeSummary",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.4",
+        "bpSys": "118",
+        "bpDia": "76",
+        "spo2": "99",
+        "weight": "64.2",
+        "height": "162",
+        "bmi": "24.5"
+      },
+      "clinical": {
+        "chiefComplaints": "Gastritis—admitted for observation",
+        "pastHistory": "Intermittent dyspepsia",
+        "proceduresDone": [{ "name": "IV fluids, PPI", "date": "27-07-2025" }],
+        "investigationsDone": [{ "name": "USG Abdomen", "date": "27-07-2025" }]
+      },
+      "prescription": [
+        { "medicine": "Pantoprazole 40 mg", "frequency": "1-0-0", "duration": "14 days", "dosage": "40 mg", "instruction": "Before breakfast" }
+      ],
+      "plan": {
+        "advice": "Avoid spicy food; small frequent meals",
+        "doctorNote": "Discharged stable; no red flags",
+        "followUpInstructions": "OPD review in 2 weeks",
+        "followUpDate": "11-08-2025"
+      }
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Dr. A. Banerjee", "specialty": "Internal Medicine" }
+    }
+  },
+  {
     "id": "rec_2025_07_19_lab1",
     "patientId": "pat_001",
     "dateISO": "19-07-2025",
     "type": "Lab",
     "source": "digital-rx",
     "canonical": {
-      "vitals": {"temperature": "98.4",
+      "vitals": {
+        "temperature": "98.4",
         "bpSys": "120",
         "bpDia": "78",
         "spo2": "99",
         "weight": "64.5",
         "height": "162",
-        "bmi": "24.6"},
+        "bmi": "24.6"
+      },
       "clinical": {},
       "prescription": [],
       "plan": { "investigations": "CBC", "investigationNote": "Within normal limits" }
@@ -151,9 +295,104 @@
       "doctor": { "name": "Dr. Kavya Rao", "specialty": "Pathology" },
       "labPanel": { "hb": "13.4 g/dL", "tlc": "7.2 x10^3/µL", "platelets": "2.1 L/µL" }
     }
+  },
+  {
+    "id": "rec_2025_07_10_rx3",
+    "patientId": "pat_001",
+    "dateISO": "10-07-2025",
+    "type": "Prescription",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.7",
+        "bpSys": "118",
+        "bpDia": "76",
+        "spo2": "99",
+        "weight": "64.7",
+        "height": "162",
+        "bmi": "24.7"
+      },
+      "clinical": {
+        "chiefComplaints": "Acute low back pain after lifting",
+        "pastHistory": "No previous spine surgery",
+        "allergy": "None",
+        "proceduresDone": [],
+        "investigationsDone": []
+      },
+      "prescription": [
+        { "medicine": "Naproxen 250 mg", "frequency": "1-0-1", "duration": "7 days", "dosage": "250 mg", "instruction": "After meals" },
+        { "medicine": "Pantoprazole 40 mg", "frequency": "1-0-0", "duration": "7 days", "dosage": "40 mg", "instruction": "Before breakfast" },
+        { "medicine": "Tizanidine 2 mg", "frequency": "0-0-1", "duration": "5 days", "dosage": "2 mg", "instruction": "Night if spasm" }
+      ],
+      "plan": {
+        "advice": "Hot fomentation; avoid forward bending",
+        "doctorNote": "Muscle strain—no neuro deficit",
+        "followUpInstructions": "Physio if pain persists >5 days"
+      }
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Dr. A. Banerjee", "specialty": "Internal Medicine" }
+    }
+  },
+  {
+    "id": "rec_2025_06_25_vitals2",
+    "patientId": "pat_001",
+    "dateISO": "25-06-2025",
+    "type": "Vitals",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.5",
+        "bpSys": "118",
+        "bpDia": "76",
+        "spo2": "99",
+        "weight": "65.2",
+        "height": "162",
+        "bmi": "24.9",
+        "vitalsNotes": "Baseline vitals prior to vaccination"
+      },
+      "clinical": {},
+      "prescription": [],
+      "plan": {}
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Nurse Station" }
+    }
+  },
+  {
+    "id": "rec_2025_06_10_immun2",
+    "patientId": "pat_001",
+    "dateISO": "10-06-2025",
+    "type": "Immunization",
+    "source": "digital-rx",
+    "canonical": {
+      "vitals": {
+        "temperature": "98.4",
+        "bpSys": "116",
+        "bpDia": "74",
+        "spo2": "99",
+        "weight": "65.4",
+        "height": "162",
+        "bmi": "25.0"
+      },
+      "clinical": {
+        "chiefComplaints": "Hepatitis B vaccination (Dose 2)",
+        "proceduresDone": [
+          { "name": "Hepatitis B (1 mL IM deltoid)", "date": "10-06-2025" }
+        ]
+      },
+      "prescription": [],
+      "plan": {
+        "advice": "Keep arm relaxed; mild fever/body ache possible",
+        "doctorNote": "Dose 2 administered; schedule next as per protocol",
+        "followUpInstructions": "Dose 3 as per schedule"
+      }
+    },
+    "meta": {
+      "hospital": "Sushila Mathrutva Clinic",
+      "doctor": { "name": "Dr. Kavya Rao", "specialty": "General Practice" }
+    }
   }
-  
-  
-  
-  
 ]
