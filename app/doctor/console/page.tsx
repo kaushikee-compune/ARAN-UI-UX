@@ -12,6 +12,8 @@ import DigitalRxForm, {
 /* Past records tiny controller */
 import PastRecordButton from "@/components/doctor/PastRecordButton";
 
+import { generatePrescriptionPdf } from "@/lib/pdf/prescription";
+
 /* ------------------------------ Canonical types ------------------------------ */
 type DigitalRxFormState = RxState;
 
@@ -120,6 +122,26 @@ export default function DoctorConsolePage() {
   const [loadingPast, setLoadingPast] = useState(false);
   const [errorPast, setErrorPast] = useState<string | null>(null);
 
+  const doctor = useMemo(
+    () => ({
+      name: "Dr. A. Banerjee",
+      regNo: "KMC/2011/12345",
+      specialty: "Internal Medicine",
+      qualifications: "MBBS, MD",
+    }),
+    []
+  );
+
+  const clinic = useMemo(
+    () => ({
+      name: "Sushila Mathrutva Clinic",
+      address: "Banashankari, Bengaluru, KA 560070",
+      phone: "+91 97420 00134",
+      website: "sushilamathrutvaclinic.com",
+    }),
+    []
+  );
+
   /**
    * VIRTUAL INDEX for PastRecordButton:
    *   0 ............. = CURRENT (live / blank preview)
@@ -164,7 +186,15 @@ export default function DoctorConsolePage() {
     console.log("Saved (no-op here)");
   }, []);
   const onSend = useCallback(() => console.log("Send (no-op)"), []);
-  const onPrint = useCallback(() => window.print(), []);
+  const onPrint = useCallback(() => {
+    // Creates and downloads a PDF using current DigitalRxForm + patient context
+    generatePrescriptionPdf({
+      rx: rxForm,
+      patient,
+      doctor,
+      clinic,
+    });
+  }, [rxForm, patient, doctor, clinic]);
   const onLanguage = useCallback(() => console.log("Language (no-op)"), []);
 
   /* Companion switch + picks */
@@ -293,7 +323,7 @@ export default function DoctorConsolePage() {
             /* Past records control & data (derived from virtual slot) */
             past={{
               active: virtIdx > 0,
-              index: virtIdx > 0 ? virtIdx - 1 : 0,   // 0..(totalDays-1) → what the button expects
+              index: virtIdx > 0 ? virtIdx - 1 : 0, // 0..(totalDays-1) → what the button expects
               total: totalDays, // totalDays + 1 (includes current)
               loading: loadingPast,
               error: errorPast ?? undefined,
@@ -447,7 +477,7 @@ function PreviewPaper({
               height={40}
             />
 
-            {/* Code comes here  */}
+           
             <div className="flex items-start justify-end pl-3">
               <div className="flex flex-col items-end gap-2">
                 <button
@@ -463,7 +493,7 @@ function PreviewPaper({
                   <button
                     type="button"
                     onClick={past.onOpen}
-                    className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
                   >
                     View Past Record
                   </button>

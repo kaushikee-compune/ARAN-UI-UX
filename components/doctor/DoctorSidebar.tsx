@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
+  NotebookPen,
   FlaskConical,
   ListChecks,
   Users,
@@ -25,6 +26,7 @@ type Item = {
 
 const NAV: Item[] = [
   { label: "Dashboard",           href: "/doctor",               icon: LayoutDashboard, color: "text-indigo-600" },
+  { label: "Consultation",        href: "/doctor/console",       icon: NotebookPen,     color: "text-green-600" },
   { label: "Appointments",        href: "/doctor/appointments",  icon: CalendarDays,    color: "text-emerald-600" },
   { label: "Lab Reports",         href: "/doctor/labs",          icon: FlaskConical,    color: "text-violet-600" },
   { label: "Queues",              href: "/doctor/queues",        icon: ListChecks,      color: "text-amber-600" },
@@ -79,9 +81,9 @@ function NavIcon({
       aria-label={label}
       className={[
         "group relative grid place-items-center",
-        "w-10 h-10 rounded-xl border-2 bg-white transition",
-        active ? "border-gray-900" : "border-gray-200 hover:border-gray-300",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900",
+        "w-10 h-10 rounded-xl border-1 bg-white transition",
+        active ? "border-gray-300" : "border-gray-200 hover:border-gray-300",
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-gray-900",
       ].join(" ")}
     >
       <Icon

@@ -1,0 +1,47 @@
+[
+    {
+        "name": "Ms Shampa Goswami",
+        "gender": "Female",
+        "age": 52,
+        "phone": "+91 97420 00134",
+        "abha": "91-5510-2061-4469",
+        "regDate": "2025-01-15",
+        "uhid": "UHID-0001"
+    },
+    {
+        "name": "Mr Rajesh Kumar",
+        "gender": "Male",
+        "age": 35,
+        "phone": "+91 98100 22345",
+        "abha": "45-1024-8890-1132",
+        "regDate": "2025-02-12",
+        "uhid": "UHID-0002"
+    },
+    {
+        "name": "Mrs Asha Reddy",
+        "gender": "Female",
+        "age": 41,
+        "phone": "+91 91234 56789",
+        "abha": "19-7733-2201-4488",
+        "regDate": "2025-02-18",
+        "uhid": "UHID-0003"
+    },
+    {
+        "name": "Mr Imran Khan",
+        "gender": "Male",
+        "age": 29,
+        "phone": "+91 90555 11223",
+        "abha": "66-9901-7755-3210",
+        "regDate": "2025-03-02",
+        "uhid": "UHID-0004"
+    },
+    {
+        "name": "Ms Priya Iyer",
+        "gender": "Female",
+        "age": 47,
+        "phone": "+91 99876 54321",
+        "abha": "72-3344-9988-1100",
+        "regDate": "2025-03-10",
+        "uhid": "UHID-0005"
+    }
+]

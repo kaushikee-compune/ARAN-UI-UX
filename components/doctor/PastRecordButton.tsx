@@ -35,7 +35,7 @@ export default function PastRecordButton({
         onClick={active ? onPrev : onOpen}
         className={[
           "inline-flex items-center justify-center w-6 h-6 rounded-md",
-          "text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-transparent",
+          "text-gray-700 hover:text-gray-900 hover:bg-gray-100 border-1 border-gray-200",
         ].join(" ")}
         title={active ? "Previous day" : "Show past records"}
         aria-label="Previous"
@@ -63,7 +63,7 @@ export default function PastRecordButton({
         onClick={active ? onNext : onOpen}
         className={[
           "inline-flex items-center justify-center w-6 h-6 rounded-md",
-          "text-gray-700 hover:text-gray-900 hover:bg-gray-100 border border-transparent",
+          "text-gray-700 hover:text-gray-900 hover:bg-gray-100 border-1 border-gray-200",
         ].join(" ")}
         title={active ? "Next day" : "Show past records"}
         aria-label="Next"
