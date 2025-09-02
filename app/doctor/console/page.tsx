@@ -369,25 +369,25 @@ export default function DoctorConsolePage() {
                   label=""
                   img="/icons/digitalrx.png"
                   onClick={() => openTool("digitalrx")}
-                  borderColor="blue-500"
+                 variant="green"
                 />
                 <RoundPill
                   label=""
                   img="/icons/syringe.png"
                   onClick={() => openTool("immunization")}
-                  borderColor="amber-500"
+                 variant="pink"
                 />
                 <RoundPill
                   label=""
                   img="/icons/discharge-summary.png"
                   onClick={() => openTool("discharge")}
-                  borderColor="green-500"
+                  variant="blue"
                 />
                 <RoundPill
                   label=""
                   img="/icons/lab-request.png"
                   onClick={() => openTool("lab")}
-                  borderColor="pink-500"
+                  variant="gray"
                 />
                 {/* Divider */}
                 <div className="my-10 h-px w-full bg-gray-300" />
@@ -1018,33 +1018,48 @@ function IconButton({
   );
 }
 
-function RoundPill({
+type PillVariant = "green" | "pink" | "blue" | "gray";
+const VARIANT = {
+  green: "border-green-500 text-green-700 hover:bg-green-50 focus-visible:ring-green-400",
+  pink:  "border-pink-500 text-pink-700 hover:bg-pink-50 focus-visible:ring-pink-400",
+  blue:  "border-blue-500 text-blue-700 hover:bg-blue-50 focus-visible:ring-blue-400",
+  amber:  "border-amber-500 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400",
+  gray:  "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
+} as const;
+
+export function RoundPill({
   img,
   label,
   onClick,
-  borderColor = "gray-300",
+  variant = "gray",
 }: {
   img: string;
   label: string;
   onClick?: () => void;
-  borderColor?: string;
+  variant?: PillVariant;
 }) {
   return (
     <button
-      type="button"
       onClick={onClick}
-      className={[
-        "relative inline-flex flex-col items-center justify-center w-[38px] h-[38px] rounded-full border-1 bg-white hover:bg-gray-50 transition",
-        `border-${borderColor}`,
-      ].join(" ")}
       title={label}
       aria-label={label}
+      type="button"
+      className={[
+        // base
+        "group relative grid place-items-center",
+        "w-9 h-9 rounded-xl border-1 bg-white shadow-sm transition",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        // put variant LAST so it wins over base
+        VARIANT[variant],
+      ].join(" ")}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={img} alt="" className="w-5 h-5 object-contain" />
-      <span className="absolute -bottom-5 text-[10px] text-gray-700">
-        {label}
-      </span>
+      <Image
+        src={img}
+        alt={label}
+        width={18}
+        height={18}
+        className="pointer-events-none"
+      />
     </button>
   );
 }
