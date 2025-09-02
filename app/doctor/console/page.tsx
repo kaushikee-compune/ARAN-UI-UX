@@ -36,6 +36,8 @@ const nonEmpty = (v: unknown) =>
   v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "");
 const safe = (s?: string) => (nonEmpty(s) ? String(s) : "");
 
+
+
 const anyRowHas = <T extends Record<string, any>>(
   rows?: T[],
   keys: (keyof T)[] = []
@@ -113,7 +115,8 @@ export default function DoctorConsolePage() {
     }),
     []
   );
-
+   
+  
   /* Digital Rx form (live) */
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
 
@@ -183,8 +186,40 @@ export default function DoctorConsolePage() {
 
   /* Actions */
   const onSave = useCallback(() => {
-    console.log("Saved (no-op here)");
-  }, []);
+    // 1) Make a canonical record from the current DigitalRx form
+    const record: CanonicalRecord = {
+      id: cuidLike(),
+      patientId: "pat_001", // same patient your mock loader filters by
+      dateISO: ddmmyyyy(new Date()), // groups under "today"
+      type: "Prescription",
+      source: "digital-rx",
+      canonical: rxForm, // snapshot of what you just filled
+    };
+
+    setPastDays((prev) => {
+      // If the first day is today, prepend into that day
+      if (prev.length > 0 && prev[0].dateISO === record.dateISO) {
+        const updatedFirstDay: DayRecords = {
+          dateISO: prev[0].dateISO,
+          items: [record, ...prev[0].items],
+        };
+        return [updatedFirstDay, ...prev.slice(1)];
+      }
+      // Otherwise create a new "today" bucket and put it at the top
+      return [{ dateISO: record.dateISO, items: [record] }, ...prev];
+    });
+
+    // 3) Reset the live/current tab so it’s blank again
+    setRxForm(INITIAL_RX);
+
+    // 4) Optional UX: immediately show Past view on the new entry (1/N)
+    //    If you prefer to stay on the live blank form, change 1 -> 0.
+    setVirtIdx(1);
+
+    // (Optional) close companion or keep it — leaving as-is to not surprise the user
+    console.log("Saved to Past Records.");
+  }, [rxForm]);
+
   const onSend = useCallback(() => console.log("Send (no-op)"), []);
   const onPrint = useCallback(() => {
     // Creates and downloads a PDF using current DigitalRxForm + patient context
@@ -369,13 +404,13 @@ export default function DoctorConsolePage() {
                   label=""
                   img="/icons/digitalrx.png"
                   onClick={() => openTool("digitalrx")}
-                 variant="green"
+                  variant="green"
                 />
                 <RoundPill
                   label=""
                   img="/icons/syringe.png"
                   onClick={() => openTool("immunization")}
-                 variant="pink"
+                  variant="pink"
                 />
                 <RoundPill
                   label=""
@@ -477,7 +512,6 @@ function PreviewPaper({
               height={40}
             />
 
-           
             <div className="flex items-start justify-end pl-3">
               <div className="flex flex-col items-end gap-2">
                 <button
@@ -1020,11 +1054,13 @@ function IconButton({
 
 type PillVariant = "green" | "pink" | "blue" | "gray";
 const VARIANT = {
-  green: "border-green-500 text-green-700 hover:bg-green-50 focus-visible:ring-green-400",
-  pink:  "border-pink-500 text-pink-700 hover:bg-pink-50 focus-visible:ring-pink-400",
-  blue:  "border-blue-500 text-blue-700 hover:bg-blue-50 focus-visible:ring-blue-400",
-  amber:  "border-amber-500 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400",
-  gray:  "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
+  green:
+    "border-green-500 text-green-700 hover:bg-green-50 focus-visible:ring-green-400",
+  pink: "border-pink-500 text-pink-700 hover:bg-pink-50 focus-visible:ring-pink-400",
+  blue: "border-blue-500 text-blue-700 hover:bg-blue-50 focus-visible:ring-blue-400",
+  amber:
+    "border-amber-500 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400",
+  gray: "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
 } as const;
 
 export function RoundPill({
@@ -1141,4 +1177,16 @@ function ScribePanel({
       </button>
     </div>
   );
+}
+function ddmmyyyy(now = new Date()) {
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(now.getFullYear());
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+function cuidLike() {
+  return `rec_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 }
