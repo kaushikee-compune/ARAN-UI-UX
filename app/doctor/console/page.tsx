@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import CompanionToggle from "@/components/doctor/CompanionToggle";
+import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 
 /* External forms */
 import DigitalRxForm, {
@@ -35,8 +36,6 @@ type DayRecords = {
 const nonEmpty = (v: unknown) =>
   v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "");
 const safe = (s?: string) => (nonEmpty(s) ? String(s) : "");
-
-
 
 const anyRowHas = <T extends Record<string, any>>(
   rows?: T[],
@@ -115,8 +114,7 @@ export default function DoctorConsolePage() {
     }),
     []
   );
-   
-  
+
   /* Digital Rx form (live) */
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
 
@@ -142,6 +140,37 @@ export default function DoctorConsolePage() {
       phone: "+91 97420 00134",
       website: "sushilamathrutvaclinic.com",
     }),
+    []
+  );
+  /*** Voice Overlay Code */
+  // Voice overlay
+  const [voiceOpen, setVoiceOpen] = useState(false);
+
+  const handleVoiceInsert = useCallback(
+    (target: "chiefComplaints" | "doctorNote", text: string) => {
+      const t = (text || "").trim();
+      if (!t) {
+        setVoiceOpen(false);
+        return;
+      }
+
+      setRxForm((prev) => {
+        if (target === "chiefComplaints") {
+          const prevCC = prev.clinical?.chiefComplaints || "";
+          const merged = [prevCC, t].filter(Boolean).join(prevCC ? " " : "");
+          return {
+            ...prev,
+            clinical: { ...(prev.clinical || {}), chiefComplaints: merged },
+          };
+        }
+        // doctorNote lives under plan
+        const prevNote = prev.plan?.doctorNote || "";
+        const merged = [prevNote, t].filter(Boolean).join(prevNote ? " " : "");
+        return { ...prev, plan: { ...(prev.plan || {}), doctorNote: merged } };
+      });
+
+      setVoiceOpen(false);
+    },
     []
   );
 
@@ -319,7 +348,12 @@ export default function DoctorConsolePage() {
               label="Voice"
               disabled={!companionOn}
               pressed={companionMode === "voice"}
-              onClick={() => pickCompanion("voice")}
+              onClick={() => {
+                // keep your current companion selection behavior
+                pickCompanion("voice");
+                // open the voice overlay modal
+                setVoiceOpen(true);
+              }}
             >
               <MicIcon className="w-4 h-4" />
             </IconButton>
@@ -444,6 +478,11 @@ export default function DoctorConsolePage() {
           </aside>
         </div>
       </div>
+      <VoiceOverlay
+  open={voiceOpen}
+  onClose={() => setVoiceOpen(false)}
+  onInsert={handleVoiceInsert}
+/>
     </div>
   );
 }

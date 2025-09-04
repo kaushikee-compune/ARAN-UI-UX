@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UtteranceClassificationResponse",
+  "type": "object",
+  "properties": {
+    "results": {
+      "type": "array",
+      "description": "One item per input sentence, preserving order.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "label": {
+            "type": "string",
+            "enum": ["complaint", "advice", "other"]
+          },
+          "negated": { "type": "boolean" },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": ["text", "label", "negated", "confidence"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["results"],
+  "additionalProperties": false
+}
