@@ -527,7 +527,25 @@ export default function DoctorConsolePage() {
       <VoiceOverlay
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
-        onInsert={handleVoiceInsert}
+        onSubmit={({ complaints, advice }) => {
+          // Update DigitalRx form fields (Chief Complaints + Doctor’s Note + Advice)
+          setRxForm((prev) => ({
+            ...prev,
+            clinical: {
+              ...(prev.clinical ?? {}),
+              chiefComplaints: mergeUniqueBullets(
+                prev.clinical?.chiefComplaints,
+                complaints
+              ),
+            },
+            plan: {
+              ...(prev.plan ?? {}),
+              doctorNote: mergeUniqueBullets(prev.plan?.doctorNote, advice),
+              advice: mergeUniqueBullets(prev.plan?.advice, advice),
+            },
+          }));
+          setVoiceOpen(false);
+        }}
       />
     </div>
   );
