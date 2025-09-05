@@ -1,29 +1,10 @@
+// components/doctor/VoiceOverlay.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  segmentTranscript,
-  classifySentenceHybrid,
-  type SentenceClass,
-  type SnomedConceptCandidate,
-} from "@/utils/voiceNlp";
-import {
-  loadUtteranceModel,
-  createNoopModel,
-  type UtteranceModelInstance,
-} from "@/lib/nlp/utterance-model";
+import { segmentTranscript, type SentenceClass } from "@/utils/voiceNlp";
 
-/**
- * VoiceOverlay
- * - Uses Web Speech API; falls back to manual textarea.
- * - Auto-sorts transcript sentences into Complaint / Advice / Other.
- * - Lets the user insert grouped text into target fields.
- *
- * Props:
- * - open: boolean
- * - onClose: () => void
- * - onInsert: (target: "chiefComplaints" | "doctorNote", text: string) => void
- */
+
 type InsertTarget = "chiefComplaints" | "doctorNote";
 
 type Props = {
@@ -35,11 +16,9 @@ type Props = {
 type UiItem = {
   id: number;
   text: string;
-  label: SentenceClass; // "complaint" | "advice" | "other"
+  label: SentenceClass;        // "complaint" | "advice" | "other"
   negated: boolean;
   confidence?: number;
-  concepts?: SnomedConceptCandidate[];
-  include: boolean; // for inserting
 };
 
 export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
@@ -55,15 +34,14 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
   const startBtnRef = useRef<HTMLButtonElement | null>(null);
   const recRef = useRef<any>(null);
 
-  // ---- NLP model (optional; rules work even if this stays no-op)
-  const modelRef = useRef<UtteranceModelInstance>(createNoopModel());
-  const [modelReady, setModelReady] = useState(false);
-
-  // Auto-sort UI state
+  // classification preview
   const [nlpBusy, setNlpBusy] = useState(false);
-  const [items, setItems] = useState<UiItem[]>([]); // editable preview
+  const [items, setItems] = useState<UiItem[]>([]);
 
-  // Detect Web Speech API (prefix variants)
+  // prevent duplicate onInsert calls
+  const lastAppliedRef = useRef<string>("");
+
+  // ---- Detect Web Speech API
   useEffect(() => {
     const SR =
       (window as any).SpeechRecognition ||
@@ -73,38 +51,15 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
     recognizerSupported(!!SR);
   }, []);
 
-  // Load ML model (optional). If not found, rules-only still work.
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const m = await loadUtteranceModel("/models/utterance-v1.json");
-        if (!mounted) return;
-        if (m) {
-          modelRef.current = m;
-          setModelReady(true);
-        } else {
-          modelRef.current = createNoopModel();
-          setModelReady(false);
-        }
-      } catch {
-        modelRef.current = createNoopModel();
-        setModelReady(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Init recognizer when opening
+  // ---- Init recognizer on open
   useEffect(() => {
     if (!open) return;
     setError(null);
     setInterim("");
     setFinalTranscript("");
+    setItems([]);
+    lastAppliedRef.current = "";
     setRecording("idle");
-    setItems([]); // clear previous NLP preview
 
     if (!supported) return;
 
@@ -112,9 +67,9 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const rec = new SR();
 
-    rec.lang = lang;           // e.g. "en-IN", "hi-IN"
-    rec.continuous = true;     // continuous results
-    rec.interimResults = true; // get interim
+    rec.lang = lang;
+    rec.continuous = true;
+    rec.interimResults = true;
 
     rec.onresult = (event: any) => {
       let interimText = "";
@@ -137,21 +92,19 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
     };
 
     rec.onend = () => {
-      // If ended suddenly during listening, go idle.
+      // If ended suddenly during listening, go idle (this will trigger classify)
       setRecording((prev) => (prev === "listening" ? "idle" : prev));
     };
 
     recRef.current = rec;
     return () => {
-      try {
-        rec.stop();
-      } catch {}
+      try { rec.stop(); } catch {}
       recRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, supported, lang]);
 
-  // Close on Escape + focus first button on open
+  // ---- Escape closes
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -162,69 +115,58 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // ---- Controls
   const start = useCallback(() => {
     if (!supported || !recRef.current) return;
     setError(null);
     setInterim("");
     setFinalTranscript("");
-    setItems([]); // reset auto-sort
+    setItems([]);
+    lastAppliedRef.current = "";
     try {
       recRef.current.lang = lang;
       recRef.current.start();
       setRecording("listening");
-    } catch (e) {
+    } catch {
       setError("Unable to start microphone.");
     }
   }, [supported, lang]);
 
   const stop = useCallback(() => {
     if (!supported || !recRef.current) return;
-    try {
-      recRef.current.stop();
-    } catch {}
-    setRecording("idle");
+    try { recRef.current.stop(); } catch {}
+    setRecording("idle"); // will trigger classify
   }, [supported]);
 
   const pause = useCallback(() => {
-    // Web Speech API lacks real "pause"; emulate by stop but keep transcript
     if (!supported || !recRef.current) return;
-    try {
-      recRef.current.stop();
-      setRecording("paused");
-    } catch {}
+    try { recRef.current.stop(); setRecording("paused"); } catch {}
   }, [supported]);
 
   const resume = useCallback(() => {
     if (!supported || !recRef.current) return;
-    try {
-      recRef.current.start();
-      setRecording("listening");
-    } catch {}
+    try { recRef.current.start(); setRecording("listening"); } catch {}
   }, [supported]);
 
-  // Combined transcript
+  // ---- Derived text
   const fullText = useMemo(
     () => [finalTranscript.trim(), interim.trim()].filter(Boolean).join(" ") || "",
     [finalTranscript, interim]
   );
 
-  // Small word wave for visual feedback
   const words = useMemo(() => {
     const txt = (interim || finalTranscript).trim();
     if (!txt) return [];
-    return txt.split(/\s+/).slice(-12); // last 12 words
+    return txt.split(/\s+/).slice(-12);
   }, [interim, finalTranscript]);
 
-  // -------------------- NLP: classify sentences (debounced) --------------------
+  // ---- Classify with your backend (OpenAI + fallback)
   useEffect(() => {
-    // Only (re)classify when not actively listening (to avoid thrashing)
+    // Only classify when not actively listening (to avoid thrashing mid-speech)
     if (!open) return;
     const sourceText = supported ? fullText : manual;
-    if (!sourceText.trim()) {
-      setItems([]);
-      return;
-    }
-    if (recording === "listening") return;
+    const canClassify = !!sourceText.trim() && recording !== "listening";
+    if (!canClassify) { setItems([]); return; }
 
     let cancelled = false;
     setNlpBusy(true);
@@ -233,68 +175,81 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
         const sentences = segmentTranscript(sourceText)
           .map((s) => s.trim())
           .filter(Boolean);
-
-        const results: UiItem[] = [];
-        let id = 0;
-        for (const s of sentences) {
-          const cls = await classifySentenceHybrid(s, {
-            model: modelRef.current, // ok even if noop
-            threshold: 0.7,
-            withSnomed: true,
-          });
-          if (cancelled) return;
-          results.push({
-            id: id++,
-            text: cls.text,
-            label: cls.label,
-            negated: cls.negated,
-            confidence: cls.confidence,
-            concepts: cls.concepts,
-            include: cls.label !== "other", // default include complaints/advice; skip "other"
-          });
+        if (sentences.length === 0) {
+          if (!cancelled) setItems([]);
+          return;
         }
-        if (!cancelled) setItems(results);
+
+        const res = await fetch("/api/nlp/classify-utterances", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lang, sentences }),
+        });
+
+        if (!res.ok) throw new Error(`NLP API ${res.status}`);
+        const data = await res.json();
+
+        const results = (data?.results ?? []) as Array<{
+          text: string;
+          label: SentenceClass;
+          negated?: boolean;
+          confidence?: number;
+        }>;
+
+        if (cancelled) return;
+
+        let id = 0;
+        const mapped: UiItem[] = results.map((r) => ({
+          id: id++,
+          text: r.text,
+          label: r.label,
+          negated: !!r.negated,
+          confidence: r.confidence,
+        }));
+        setItems(mapped);
       } catch (e) {
         if (!cancelled) {
-          // do not surface error to the main error bar; keep silent here
-          console.warn("[VoiceOverlay] NLP classify error:", e);
+          console.warn("[VoiceOverlay] classify error:", e);
+          // Soft-fail: keep previous items; do not hard error the overlay
         }
       } finally {
         if (!cancelled) setNlpBusy(false);
       }
     }, 250); // debounce
 
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
+    return () => { cancelled = true; clearTimeout(handle); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, fullText, manual, recording, supported]);
+  }, [open, fullText, manual, recording, supported, lang]);
 
-  // -------------------- Insert helpers --------------------
+  // ---- Auto-apply to DigitalRx (no buttons)
   const bulletJoin = (arr: string[]) =>
     arr.length ? "• " + arr.map((s) => s.trim()).filter(Boolean).join("\n• ") : "";
 
-  const onInsertComplaints = () => {
+  useEffect(() => {
+    if (!open) return;
+    if (nlpBusy) return;
+    if (recording === "listening") return; // apply only when paused/idle/typing
+
     const complaints = items
-      .filter((it) => it.include && it.label === "complaint")
-      .map((it) => it.text);
-    const blob = bulletJoin(complaints);
-    if (blob) onInsert("chiefComplaints", blob);
-  };
+      .filter((i) => i.label === "complaint")
+      .map((i) => (i.negated ? `${i.text} (negated)` : i.text));
 
-  const onInsertAdvice = () => {
     const advice = items
-      .filter((it) => it.include && it.label === "advice")
-      .map((it) => it.text);
-    const blob = bulletJoin(advice);
-    if (blob) onInsert("doctorNote", blob); // mapped to doctorNote prop
-  };
+      .filter((i) => i.label === "advice")
+      .map((i) => i.text);
 
-  const onInsertBoth = () => {
-    onInsertComplaints();
-    onInsertAdvice();
-  };
+    const ccBlob = bulletJoin(complaints);
+    const adviceBlob = bulletJoin(advice);
+
+    const fingerprint = JSON.stringify({ ccBlob, adviceBlob });
+    if (fingerprint === lastAppliedRef.current) return; // no change
+
+    // Only push non-empty fields; never clear existing form fields implicitly
+    if (ccBlob) onInsert("chiefComplaints", ccBlob);
+    if (adviceBlob) onInsert("doctorNote", adviceBlob);
+
+    lastAppliedRef.current = fingerprint;
+  }, [items, nlpBusy, recording, onInsert, open]);
 
   if (!open) return null;
 
@@ -311,7 +266,7 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
           <div>
             <h2 className="text-sm font-semibold">Voice Scribe</h2>
             <p className="text-xs text-gray-600">
-              Dictate notes. Auto-sort separates <b>Complaints</b> from <b>Advice</b>.
+              Dictate notes. We’ll auto-sort into <b>Chief Complaints</b> and <b>Doctor Note</b>.
             </p>
           </div>
           <button
@@ -336,15 +291,6 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
                   : "Ready"
                 : "Mic transcription not supported (fallback to typing)."}
             </span>
-            {modelReady ? (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                NLP Model
-              </span>
-            ) : (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200">
-                Rules Only
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <label className="text-[11px] text-gray-600">Language</label>
@@ -408,10 +354,7 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
           {words.length > 0 && (
             <div className="flex flex-wrap gap-1 text-[11px] text-gray-700">
               {words.map((w, i) => (
-                <span
-                  key={`${w}-${i}`}
-                  className="px-2 py-0.5 rounded-full border bg-gray-50"
-                >
+                <span key={`${w}-${i}`} className="px-2 py-0.5 rounded-full border bg-gray-50">
                   {w}
                 </span>
               ))}
@@ -439,13 +382,11 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
           )}
         </div>
 
-        {/* Auto-sort Preview */}
+        {/* Read-only classification preview (no buttons) */}
         <div className="mt-4">
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold">Auto-sort Preview</div>
-            {nlpBusy && (
-              <div className="text-[11px] text-gray-500">Analyzing…</div>
-            )}
+            {nlpBusy && <div className="text-[11px] text-gray-500">Analyzing…</div>}
           </div>
 
           {items.length === 0 ? (
@@ -455,10 +396,7 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
           ) : (
             <div className="mt-2 space-y-2">
               {items.map((it) => (
-                <div
-                  key={it.id}
-                  className="flex items-start gap-2 p-2 border rounded-lg bg-white"
-                >
+                <div key={it.id} className="flex items-start gap-2 p-2 border rounded-lg bg-white">
                   <span
                     className={[
                       "inline-flex items-center px-2 py-0.5 rounded text-[11px] border",
@@ -472,128 +410,18 @@ export default function VoiceOverlay({ open, onClose, onInsert }: Props) {
                   >
                     {it.label === "complaint" ? "Complaint" : it.label === "advice" ? "Advice" : "Other"}
                     {typeof it.confidence === "number" ? (
-                      <span className="ml-1 opacity-70">
-                        ({Math.round(it.confidence * 100)}%)
-                      </span>
+                      <span className="ml-1 opacity-70">({Math.round((it.confidence || 0) * 100)}%)</span>
                     ) : null}
                     {it.negated ? <span className="ml-1">• neg</span> : null}
                   </span>
 
                   <div className="flex-1">
                     <div className="text-sm text-gray-800">{it.text}</div>
-
-                    {/* SNOMED badges for complaints */}
-                    {it.label === "complaint" && it.concepts?.length ? (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {it.concepts.map((c, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[10px] px-1.5 py-0.5 rounded border bg-violet-50 text-violet-800 border-violet-200"
-                            title={c.code}
-                          >
-                            {c.display}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="inline-flex items-center gap-1 text-[11px] text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={it.include}
-                        onChange={(e) =>
-                          setItems((prev) =>
-                            prev.map((p) =>
-                              p.id === it.id ? { ...p, include: e.target.checked } : p
-                            )
-                          )
-                        }
-                      />
-                      Include
-                    </label>
-
-                    {/* Swap Complaint <-> Advice; cycle for Other */}
-                    <button
-                      className="text-[11px] rounded border px-2 py-1 hover:bg-gray-50"
-                      onClick={() =>
-                        setItems((prev) =>
-                          prev.map((p) =>
-                            p.id === it.id
-                              ? {
-                                  ...p,
-                                  label:
-                                    p.label === "complaint"
-                                      ? "advice"
-                                      : p.label === "advice"
-                                      ? "complaint"
-                                      : "complaint", // other → complaint
-                                }
-                              : p
-                          )
-                        )
-                      }
-                      title="Swap Complaint/Advice"
-                    >
-                      Swap
-                    </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        {/* Insert actions (Auto) */}
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-            onClick={onInsertComplaints}
-            disabled={!items.some((i) => i.include && i.label === "complaint")}
-          >
-            Insert Complaints → Chief Complaints
-          </button>
-          <button
-            className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-            onClick={onInsertAdvice}
-            disabled={!items.some((i) => i.include && i.label === "advice")}
-          >
-            Insert Advice → Doctor Note
-          </button>
-          <button
-            className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-            onClick={onInsertBoth}
-            disabled={
-              !items.some((i) => i.include && (i.label === "complaint" || i.label === "advice"))
-            }
-          >
-            Insert Both
-          </button>
-          <div className="ml-auto text-xs text-gray-500">
-            Tip: You can still use the manual buttons below.
-          </div>
-        </div>
-
-        {/* Manual Insert (unchanged behavior) */}
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-            onClick={() => onInsert("chiefComplaints", supported ? fullText : manual)}
-            disabled={!((supported ? fullText : manual).trim())}
-          >
-            Insert (Raw) → Chief Complaints
-          </button>
-          <button
-            className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
-            onClick={() => onInsert("doctorNote", supported ? fullText : manual)}
-            disabled={!((supported ? fullText : manual).trim())}
-          >
-            Insert (Raw) → Doctor Note
-          </button>
-          <div className="ml-auto text-xs text-gray-500">
-            Press <kbd>Esc</kbd> to close
-          </div>
         </div>
 
         {/* Error */}

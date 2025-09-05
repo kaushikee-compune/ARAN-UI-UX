@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import CompanionToggle from "@/components/doctor/CompanionToggle";
 import VoiceOverlay from "@/components/doctor/VoiceOverlay";
+import ScribePanel from "@/components/doctor/ScribePanel";
 
 /* External forms */
 import DigitalRxForm, {
@@ -115,6 +116,12 @@ export default function DoctorConsolePage() {
     []
   );
 
+  // Preview convenience (kept so you don’t get unused-vars errors elsewhere)
+  const [previewChiefComplaints, setPreviewChiefComplaints] = useState<
+    string[]
+  >([]);
+  const [previewDoctorNote, setPreviewDoctorNote] = useState<string[]>([]);
+
   /* Digital Rx form (live) */
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
 
@@ -142,6 +149,7 @@ export default function DoctorConsolePage() {
     }),
     []
   );
+
   /*** Voice Overlay Code */
   // Voice overlay
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -173,6 +181,18 @@ export default function DoctorConsolePage() {
     },
     []
   );
+
+  /* ---------- NEW: merge bullets helper for Scribe submit (dedupe + bullets) ---------- */
+  function mergeUniqueBullets(existing: string | undefined, items: string[]) {
+    const clean = (s: string) => s.replace(/^[•\-\s]+/, "").trim();
+    const current = (existing || "").split(/\n+/).map(clean).filter(Boolean);
+    const next = [...current];
+    for (const it of items) {
+      const c = clean(it);
+      if (c && !next.includes(c)) next.push(c);
+    }
+    return next.map((t) => `• ${t}`).join("\n");
+  }
 
   /**
    * VIRTUAL INDEX for PastRecordButton:
@@ -418,12 +438,38 @@ export default function DoctorConsolePage() {
           {companionMode === "scribe" && (
             <SectionCard ariaLabel="Scribe editor">
               <ScribePanel
-                onPayload={(p) => {
-                  // write scribe note into preview (doctor note)
-                  setRxForm((prev) => ({
-                    ...prev,
-                    plan: { ...prev.plan, doctorNote: p.doctorNote ?? "" },
-                  }));
+                onSubmit={({ complaints, advice }) => {
+                  // 1) Update small preview arrays (kept for compatibility)
+                  setPreviewChiefComplaints(complaints);
+                  setPreviewDoctorNote(advice);
+
+                  // 2) Simultaneously patch the DigitalRxForm
+                  //    Chief Complaints → clinical.chiefComplaints (bulleted)
+                  //    Advice → BOTH plan.doctorNote (for preview) AND plan.advice (RX field)
+                  setRxForm((prev) => {
+                    const next: DigitalRxFormState = {
+                      ...prev,
+                      clinical: {
+                        ...(prev.clinical ?? {}),
+                        chiefComplaints: mergeUniqueBullets(
+                          prev.clinical?.chiefComplaints,
+                          complaints
+                        ),
+                      },
+                      plan: {
+                        ...(prev.plan ?? {}),
+                        doctorNote: mergeUniqueBullets(
+                          prev.plan?.doctorNote,
+                          advice
+                        ),
+                        advice: mergeUniqueBullets(prev.plan?.advice, advice),
+                      },
+                    };
+                    return next;
+                  });
+                }}
+                onCancel={() => {
+                  /* optional: no-op or toast */
                 }}
               />
             </SectionCard>
@@ -479,10 +525,10 @@ export default function DoctorConsolePage() {
         </div>
       </div>
       <VoiceOverlay
-  open={voiceOpen}
-  onClose={() => setVoiceOpen(false)}
-  onInsert={handleVoiceInsert}
-/>
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onInsert={handleVoiceInsert}
+      />
     </div>
   );
 }
@@ -704,7 +750,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
 
   const showVitals = hasVitals;
   const showClinical = hasClinical;
-  const showRx = hasRx;
+  const showRx = rxRows.length > 0;
   const showPlan = hasPlan;
 
   const nothing = !showVitals && !showClinical && !showRx && !showPlan;
@@ -1193,30 +1239,30 @@ function SummaryIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 /* ------------------------------- Scribe mock ------------------------------- */
-function ScribePanel({
-  onPayload,
-}: {
-  onPayload: (p: { doctorNote?: string }) => void;
-}) {
-  const [note, setNote] = useState("");
-  return (
-    <div className="space-y-2">
-      <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        className="w-full h-40 rounded border p-2 text-sm"
-        placeholder="Type scribe note here…"
-      />
-      <button
-        className="px-3 py-1.5 bg-gray-900 text-white rounded text-sm"
-        onClick={() => onPayload({ doctorNote: note })}
-        type="button"
-      >
-        Insert into Preview
-      </button>
-    </div>
-  );
-}
+// function ScribePanel({
+//   onPayload,
+// }: {
+//   onPayload: (p: { doctorNote?: string }) => void;
+// }) {
+//   const [note, setNote] = useState("");
+//   return (
+//     <div className="space-y-2">
+//       <textarea
+//         value={note}
+//         onChange={(e) => setNote(e.target.value)}
+//         className="w-full h-40 rounded border p-2 text-sm"
+//         placeholder="Type scribe note here…"
+//       />
+//       <button
+//         className="px-3 py-1.5 bg-gray-900 text-white rounded text-sm"
+//         onClick={() => onPayload({ doctorNote: note })}
+//         type="button"
+//       >
+//         Analyze
+//       </button>
+//     </div>
+//   );
+// }
 function ddmmyyyy(now = new Date()) {
   const dd = String(now.getDate()).padStart(2, "0");
   const mm = String(now.getMonth() + 1).padStart(2, "0");
