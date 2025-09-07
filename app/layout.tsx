@@ -1,39 +1,21 @@
 // app/layout.tsx
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "../components/theme-provider"; // <- add this
+import type { ReactNode } from "react";
+import "./globals.css"; // if you have Tailwind/global styles
+import { ThemeProvider } from "@/components/theme-provider";
 
-// Keep your font setup
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Update metadata to match ARAN HMIS
-export const metadata: Metadata = {
-  title: "ARAN HMIS",
-  description: "ABDM-compliant HMIS - ARAN",
+export const metadata = {
+  title: "ARAN Care",
+  description: "ABDM-compliant HMIS",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    // data-theme="t1" gives a no-flicker default before ThemeProvider hydrates
-    <html lang="en" data-theme="t1" className="h-full bg-gray-50">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased text-gray-900`}
-      >
-        {/* Wrap the app so theme toggling works everywhere, including /login */}
-        <ThemeProvider>{children}</ThemeProvider>
+    <html lang="en">
+      <body>
+        {/* Theme + UI style context (needed for theme-toggle, appearance-panel, etc.) */}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

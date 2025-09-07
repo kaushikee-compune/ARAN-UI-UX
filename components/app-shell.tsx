@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AppearancePanel from "./appearance-panel";
 import type { PropsWithChildren } from "react";
+import { logout } from "@/lib/auth/logout";
 
 /** Icon type */
 type IconType = (props: SVGProps<SVGSVGElement>) => ReactElement;
@@ -347,17 +348,18 @@ export default function AppShell({ children }: AppShellProps): ReactElement {
               <AppearancePanel />
 
               {/* User menu (placeholder) */}
-              <button
-                className="inline-flex items-center gap-2 btn-outline"
-                aria-haspopup="menu"
-                aria-expanded="false"
-              >
-                <span
-                  className="inline-block w-6 h-6 rounded-full"
-                  style={{ background: "var(--tertiary)" }}
-                />
-                <span className="hidden sm:inline">Admin</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={logout}
+                  className="inline-flex items-center gap-2 btn-outline"
+                >
+                  <span
+                    className="inline-block w-6 h-6 rounded-full"
+                    style={{ background: "var(--tertiary)" }}
+                  />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </div>
             </div>
           </div>
         </header>

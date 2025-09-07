@@ -5,6 +5,8 @@ import Image from "next/image";
 import CompanionToggle from "@/components/doctor/CompanionToggle";
 import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 import ScribePanel from "@/components/doctor/ScribePanel";
+import ImmunizationForm from "@/components/doctor/ImmunizationForm"; 
+
 
 /* External forms */
 import DigitalRxForm, {
@@ -91,6 +93,18 @@ const INITIAL_RX: DigitalRxFormState = {
     { medicine: "", frequency: "", duration: "", dosage: "", instruction: "" },
   ],
   plan: {},
+};
+
+type ImmunizationState = {
+  patient?: { name?: string; id?: string };
+  entries: Array<{
+    vaccine?: string;
+    dose?: string;
+    date?: string;
+    batch?: string;
+    nextDue?: string;
+    notes?: string;
+  }>;
 };
 
 export default function DoctorConsolePage() {

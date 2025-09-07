@@ -30,7 +30,7 @@ const NAV: Item[] = [
   { label: "Appointments",        href: "/doctor/appointments",  icon: CalendarDays,    color: "text-emerald-600" },
   { label: "Lab Reports",         href: "/doctor/labs",          icon: FlaskConical,    color: "text-violet-600" },
   { label: "Queues",              href: "/doctor/queues",        icon: ListChecks,      color: "text-amber-600" },
-  { label: "Patients",            href: "/doctor/patients",      icon: Users,           color: "text-sky-600" },
+  { label: "Patients",            href: "/patient/patientlist",      icon: Users,           color: "text-sky-600" },
   { label: "Analytics",           href: "/doctor/analytics",     icon: ChartLine,       color: "text-rose-600" },
   { label: "Payments",            href: "/doctor/payments",      icon: CreditCard,      color: "text-teal-600" },
   { label: "Settings",            href: "/doctor/settings",      icon: Settings,        color: "text-gray-700" },
