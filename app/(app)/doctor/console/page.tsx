@@ -341,7 +341,7 @@ export default function DoctorConsolePage() {
   return (
     <div className="space-y-3">
       {/* ------------------------------- Header Panel ------------------------------- */}
-      <div className="ui-card px-3 py-1">
+      <div className="ui-card px-5 py-1  mt-2 mx-4">
         <div className="flex items-center gap-2">
           <TopMenuButton
             active={activeTop === "consultation"}
@@ -404,8 +404,8 @@ export default function DoctorConsolePage() {
       </div>
 
       {/* --------------------- Main Area & Sticky Right Toolbar --------------------- */}
-      <div className="mt-10 px-3 md:px-6 lg:px-8">
-        <div className={`grid gap-4 items-start ${layout}`}>
+      <div className="mt-2 px-1 md:px-6 lg:px-8">
+        <div className={`grid gap-2 items-start ${layout}`}>
           {/* LEFT: Preview paper (NO tabs, NO filter) */}
           <PreviewPaper
             patient={patient}
