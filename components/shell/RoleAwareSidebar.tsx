@@ -12,6 +12,11 @@ import {
   CreditCard,
   Settings,
 } from "lucide-react";
+import { GraphIcon, QueueIcon } from "@phosphor-icons/react";
+import { QueueListIcon } from "@heroicons/react/16/solid";
+import { Analytics, AnalyticsOutlined, People, PeopleAlt, PeopleAltOutlined } from "@mui/icons-material";
+import { FaRupeeSign } from "react-icons/fa6";
+import { BiRupee } from "react-icons/bi";
 
 export type Role = "doctor" | "staff" | "admin";
 
@@ -74,9 +79,27 @@ const MENU: Record<Role, Item[]> = {
       color: "text-purple-600",
     },
     {
+      href: "/queue",
+      label: "OPD Queue",
+      icon: QueueListIcon,
+      color: "text-blue-600",
+    },
+    {
       href: "/patient/patientlist",
       label: "Patients",
-      icon: Users,
+      icon: PeopleAlt,
+      color: "text-pink-600",
+    },
+    {
+      href: "/billing",
+      label: "Payments",
+      icon: BiRupee,
+      color: "text-green-600",
+    },
+    {
+      href: "/analytics",
+      label: "Analytics",
+      icon: AnalyticsOutlined,
       color: "text-pink-600",
     },
     {

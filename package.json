@@ -14,10 +14,10 @@
     "@heroicons/react": "^2.2.0",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
+    "@next/font": "^14.2.15",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-table": "^8.21.3",
     "lucide-react": "^0.540.0",
-    
     "next": "15.4.6",
     "pdf-lib": "^1.17.1",
     "react": "19.1.0",

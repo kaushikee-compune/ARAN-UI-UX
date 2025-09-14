@@ -623,8 +623,8 @@ function PreviewPaper({
               </div>
             </div>
             <Image
-              src="/whitelogo.png"
-              alt="ARAN Logo"
+              src="/icons/logo.png"
+              alt="Test Clinic"
               width={40}
               height={40}
             />
