@@ -1,13 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  UserIcon,
-  MapPinIcon,
-  HeartIcon,
-} from "lucide-react";
+import { UserIcon, MapPinIcon, HeartIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
+import AbhaRegistrationPage from "../abharegistration/page";
 
 /* ---------------- Types ---------------- */
 type PatientForm = {
@@ -39,7 +36,7 @@ export default function RegisterPatientPage() {
   const router = useRouter();
 
   /* State */
-  const [tab, setTab] = useState<"registration" | "abha">("registration");
+  const [tab, setTab] = useState<"registration" | "abha" | "abhascan">("registration");
   const [uhid, setUhid] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -133,6 +130,16 @@ export default function RegisterPatientPage() {
         >
           Registration with ABHA
         </button>
+         <button
+          onClick={() => setShowQR(true)}
+          className={`px-8 py-3 rounded-lg font-semibold text-sm ${
+            tab === "abhascan"
+              ? "bg-[#02066b] text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Scan Desk
+        </button>
       </div>
 
       {/* Registration Tab */}
@@ -150,9 +157,21 @@ export default function RegisterPatientPage() {
               placeholder="Search existing / enter new"
             />
             <div className="grid md:grid-cols-4 gap-3">
-              <LabeledInput label="First Name" value={form.firstName} onChange={(v) => update({ firstName: v })} />
-              <LabeledInput label="Middle Name" value={form.middleName} onChange={(v) => update({ middleName: v })} />
-              <LabeledInput label="Last Name" value={form.lastName} onChange={(v) => update({ lastName: v })} />
+              <LabeledInput
+                label="First Name"
+                value={form.firstName}
+                onChange={(v) => update({ firstName: v })}
+              />
+              <LabeledInput
+                label="Middle Name"
+                value={form.middleName}
+                onChange={(v) => update({ middleName: v })}
+              />
+              <LabeledInput
+                label="Last Name"
+                value={form.lastName}
+                onChange={(v) => update({ lastName: v })}
+              />
               <LabeledInput label="Full Name" value={form.fullName} readOnly />
             </div>
             <div className="grid md:grid-cols-3 gap-3">
@@ -169,7 +188,12 @@ export default function RegisterPatientPage() {
                   <option>Other</option>
                 </select>
               </div>
-              <LabeledInput label="Date of Birth" type="date" value={form.dob} onChange={(v) => update({ dob: v })} />
+              <LabeledInput
+                label="Date of Birth"
+                type="date"
+                value={form.dob}
+                onChange={(v) => update({ dob: v })}
+              />
               <LabeledInput label="Age" value={form.age} readOnly />
             </div>
           </div>
@@ -178,16 +202,37 @@ export default function RegisterPatientPage() {
           <div className="ui-card p-4 space-y-2 !bg-purple-50">
             <MapPinIcon className="w-5 h-5 text-purple-500" />
             <div className="grid md:grid-cols-2 gap-3">
-              <LabeledInput label="Pincode" value={form.pincode} onChange={(v) => update({ pincode: v })} />
-              <LabeledInput label="House No / Street" value={form.address} onChange={(v) => update({ address: v })} />
+              <LabeledInput
+                label="Pincode"
+                value={form.pincode}
+                onChange={(v) => update({ pincode: v })}
+              />
+              <LabeledInput
+                label="House No / Street"
+                value={form.address}
+                onChange={(v) => update({ address: v })}
+              />
               <LabeledInput label="City" value={form.city} readOnly />
               <LabeledInput label="State" value={form.state} readOnly />
             </div>
             <div className="grid md:grid-cols-2 gap-3">
-              <LabeledInput label="Email" type="email" value={form.email} onChange={(v) => update({ email: v })} />
+              <LabeledInput
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(v) => update({ email: v })}
+              />
               <div className="grid md:grid-cols-2 gap-3">
-                <LabeledInput label="Emergency Contact Person" value={form.emergencyContactName} onChange={(v) => update({ emergencyContactName: v })} />
-                <LabeledInput label="Emergency Phone" value={form.emergencyContactPhone} onChange={(v) => update({ emergencyContactPhone: v })} />
+                <LabeledInput
+                  label="Emergency Contact Person"
+                  value={form.emergencyContactName}
+                  onChange={(v) => update({ emergencyContactName: v })}
+                />
+                <LabeledInput
+                  label="Emergency Phone"
+                  value={form.emergencyContactPhone}
+                  onChange={(v) => update({ emergencyContactPhone: v })}
+                />
               </div>
             </div>
           </div>
@@ -204,46 +249,86 @@ export default function RegisterPatientPage() {
                   onChange={(e) => update({ bloodGroup: e.target.value })}
                 >
                   <option value="">Select</option>
-                  <option>A+</option><option>A-</option>
-                  <option>B+</option><option>B-</option>
-                  <option>O+</option><option>O-</option>
-                  <option>AB+</option><option>AB-</option>
+                  <option>A+</option>
+                  <option>A-</option>
+                  <option>B+</option>
+                  <option>B-</option>
+                  <option>O+</option>
+                  <option>O-</option>
+                  <option>AB+</option>
+                  <option>AB-</option>
                 </select>
               </div>
-              <LabeledInput label="Allergy" value={form.allergy} onChange={(v) => update({ allergy: v })} />
-              <LabeledInput label="Known Ailments" value={form.ailments} onChange={(v) => update({ ailments: v })} />
-              <LabeledInput label="Medications On" value={form.medications} onChange={(v) => update({ medications: v })} />
+              <LabeledInput
+                label="Allergy"
+                value={form.allergy}
+                onChange={(v) => update({ allergy: v })}
+              />
+              <LabeledInput
+                label="Known Ailments"
+                value={form.ailments}
+                onChange={(v) => update({ ailments: v })}
+              />
+              <LabeledInput
+                label="Medications On"
+                value={form.medications}
+                onChange={(v) => update({ medications: v })}
+              />
             </div>
             <div className="grid md:grid-cols-2 gap-3">
-              <LabeledInput label="Insurance Name" value={form.insuranceName} onChange={(v) => update({ insuranceName: v })} />
-              <LabeledInput label="Insurance Number" value={form.insuranceNumber} onChange={(v) => update({ insuranceNumber: v })} />
+              <LabeledInput
+                label="Insurance Name"
+                value={form.insuranceName}
+                onChange={(v) => update({ insuranceName: v })}
+              />
+              <LabeledInput
+                label="Insurance Number"
+                value={form.insuranceNumber}
+                onChange={(v) => update({ insuranceNumber: v })}
+              />
             </div>
             <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.consent} onChange={(e) => update({ consent: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={form.consent}
+                onChange={(e) => update({ consent: e.target.checked })}
+              />
               I consent to the use of my data for treatment and record keeping
             </label>
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" className="px-4 py-2 border rounded-md hover:bg-gray-50">Cancel</button>
-            <button type="submit" className="px-4 py-2 border rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91]">Register Patient</button>
+            <button
+              type="button"
+              className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 border rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91]"
+            >
+              Register Patient
+            </button>
           </div>
         </form>
       )}
 
       {/* ABHA Registration Tab */}
       {tab === "abha" && (
-        <form onSubmit={onSubmit} className="space-y-6">
+        <div className="space-y-6">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-lg font-semibold">Register Patient with ABHA</h1>
-            <button
+            {/* <h1 className="text-lg font-semibold">
+              Register Patient with ABHA
+            </h1> */}
+            {/* <button
               type="button"
               onClick={() => setShowQR(true)}
               className="px-4 py-2 rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91] text-sm font-medium"
             >
               Scan ABHA QR
-            </button>
+            </button> */}
           </div>
 
           {/* ABHA options */}
@@ -266,28 +351,47 @@ export default function RegisterPatientPage() {
             </label>
           </div>
 
-          {/* Placeholder form content */}
+          {/* Mode-specific content */}
           {abhaMode === "verify" && (
             <div className="ui-card p-4 space-y-3 bg-blue-50">
               <LabeledInput label="ABHA Number" value="" onChange={() => {}} />
               <LabeledInput label="ABHA Address" value="" onChange={() => {}} />
-              <p className="text-xs text-gray-500">After verifying ABHA, demographics will auto-fill.</p>
+              <p className="text-xs text-gray-500">
+                After verifying ABHA, demographics will auto-fill.
+              </p>
             </div>
           )}
 
           {abhaMode === "create" && (
-            <div className="ui-card p-4 space-y-3 bg-yellow-50">
-              <p className="text-sm text-gray-700">Launch ABHA creation workflow here (Aadhaar → Mobile → Address → Success).</p>
-            </div>
+            <>
+              {/* Full ABHA wizard mounted here */}
+              <AbhaRegistrationPage />
+            </>
           )}
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button type="button" className="px-4 py-2 border rounded-md hover:bg-gray-50">Cancel</button>
-            <button type="submit" className="px-4 py-2 border rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91]">Register Patient</button>
-          </div>
-        </form>
+        </div>
       )}
+
+      {/* Scan ABHA Tab */}
+
+      {/* {tab === "abha" && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-lg font-semibold">
+              SCAN Desk
+            </h1>
+            <button
+              type="button"
+              onClick={() => setShowQR(true)}
+              className="px-4 py-2 rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91] text-sm font-medium"
+            >
+              Scan ABHA QR
+            </button>
+          </div>        
+          
+        </div>
+      )} */}
+
+
 
       {/* FloatingActionMenu */}
       {showMenu && uhid && (
@@ -322,7 +426,9 @@ export default function RegisterPatientPage() {
                 className="rounded-lg border"
               />
             </div>
-            <h2 className="text-lg font-semibold text-gray-800">ABHA QR Code</h2>
+            <h2 className="text-lg font-semibold text-gray-800">
+              ABHA QR Code
+            </h2>
             <p className="text-sm text-gray-600 mt-2">
               Scan this QR code with the ABHA app to share patient profile
             </p>
