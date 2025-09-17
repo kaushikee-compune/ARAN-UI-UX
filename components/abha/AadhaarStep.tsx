@@ -1,64 +1,104 @@
 "use client";
 
-import React from "react";
-import { AbhaRegistrationData } from "@/app/(app)/patient/abharegistration/page";
+import React, { useState } from "react";
+import type { AbhaRegistrationData } from "@/app/(app)/patient/abharegistration/page";
 
-type AadhaarStepProps = {
+export default function AadhaarStep({
+  data,
+  onChange,
+  onNext,
+}: {
   data: AbhaRegistrationData;
   onChange: (patch: Partial<AbhaRegistrationData>) => void;
   onNext: () => void;
-};
+}) {
+  const [consents, setConsents] = useState({
+    point1: true,
+    point2: false,
+    point3: true,
+    point4: true,
+    point5: true,
+    point6: true,
+    point7: true,
+  });
 
-export default function AadhaarStep({ data, onChange, onNext }: AadhaarStepProps) {
-  const ready = data.aadhaar.length === 12 && data.patientName.trim() !== "";
+  const allConsented = Object.values(consents).every(Boolean);
+  const ready = data.aadhaar.length === 12 && data.patientName && consents.point2 == false;
+
+  const formatAadhaar = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 12);
+    if (digits.length < 12) return digits; // only show plain until 12 entered
+    return `XXXX-XXXX-${digits.slice(-4)}`;
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-1">
-        <label className="text-[12px] text-gray-600">Aadhaar Number (first 8 masked)</label>
-        <input
-          type="text"
-          className="ui-input"
-          maxLength={12}
-          value={data.aadhaar}
-          onChange={(e) => onChange({ aadhaar: e.target.value })}
-          placeholder="XXXXXXXX1234"
-        />
+    <div className="space-y-6">
+      {/* Aadhaar + Name Row */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid gap-1">
+          <label className="text-xs text-gray-600">Aadhaar Number</label>
+          <input
+            type="text"
+            className="ui-input"
+            value={formatAadhaar(data.aadhaar)}
+            onChange={(e) => onChange({ aadhaar: e.target.value })}
+            placeholder="Enter 12-digit Aadhaar number"
+          />
+        </div>
+        <div className="grid gap-1">
+          <label className="text-xs text-gray-600">Beneficiary Name</label>
+          <input
+            type="text"
+            className="ui-input border-3"
+            value={data.patientName}
+            onChange={(e) => onChange({ patientName: e.target.value })}
+            placeholder="Enter benefiaciary name"
+          />
+        </div>
       </div>
 
-      <div className="grid gap-1">
-        <label className="text-[12px] text-gray-600">Patient Name</label>
-        <input
-          type="text"
-          className="ui-input"
-          value={data.patientName}
-          onChange={(e) => onChange({ patientName: e.target.value })}
-          placeholder="Enter patient name"
-        />
+      {/* Consent points */}
+      <div className="ui-card p-4 space-y-2 bg-gray-50">
+        {Object.keys(consents).map((key) => (
+          <label
+            key={key}
+            className="flex items-start gap-2 text-sm cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={consents[key as keyof typeof consents]}
+              onChange={(e) =>
+                setConsents((c) => ({
+                  ...c,
+                  [key]: e.target.checked,
+                }))
+              }
+            />
+            <span>
+              {key === "point6"
+                ? `I, ${data.staffName}, confirm I have explained the consent.`
+                : key === "point7"
+                ? `${data.patientName || "Patient"} confirms the consent.`
+                : `Consent ${key.replace("point", "")}`}
+            </span>
+          </label>
+        ))}
       </div>
 
-      {/* Consent block */}
-      <div className="bg-gray-50 rounded-md p-3 text-sm space-y-1">
-        <p className="font-semibold">Consent (auto-checked)</p>
-        <label><input type="checkbox" checked readOnly /> 1. I consent to use Aadhaar for ABHA creation<br></br></label>
-        <label><input type="checkbox" readOnly /> 2. I consent to use Aadhaar for ABHA creation<br></br></label>
-        <label><input type="checkbox" checked readOnly /> 3. Data will be used only for ABHA<br></br></label>
-        <label><input type="checkbox" checked readOnly /> 4. I authorize government systems for verification<br></br></label>
-        <label><input type="checkbox" checked readOnly /> 5. I understand the risks of sharing Aadhaar<br></br></label>
-        <label><input type="checkbox" checked readOnly /> 6. Verified by {data.staffName}<br></br></label>
-        <label><input type="checkbox" checked readOnly /> 7. For patient {data.patientName || "______"}<br></br></label>
+      {/* Actions */}
+      <div className="flex justify-end">
+        <button
+          disabled={!ready}
+          onClick={onNext}
+          className={`px-4 py-2 rounded-md text-white text-sm font-medium ${
+            ready
+              ? "bg-[#66ad45] hover:bg-[#8dd869]"
+              : "bg-gray-300 cursor-not-allowed"
+          }`}
+        >
+          Generate OTP
+        </button>
       </div>
-
-      <button
-        type="button"
-        disabled={!ready}
-        onClick={onNext}
-        className={`px-4 py-2 rounded-md text-white ${
-          ready ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
-        }`}
-      >
-        Generate OTP
-      </button>
     </div>
   );
 }

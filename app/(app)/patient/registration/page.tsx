@@ -332,24 +332,24 @@ export default function RegisterPatientPage() {
           </div>
 
           {/* ABHA options */}
-          <div className="flex gap-6 mb-4">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                checked={abhaMode === "create"}
-                onChange={() => setAbhaMode("create")}
-              />
-              Create ABHA
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                checked={abhaMode === "verify"}
-                onChange={() => setAbhaMode("verify")}
-              />
-              Verify ABHA
-            </label>
-          </div>
+          <div className="flex gap-6 mb-4 pl-8 justify-center">
+  <label className="inline-flex items-center gap-2">
+    <input
+      type="radio"
+      checked={abhaMode === "create"}
+      onChange={() => setAbhaMode("create")}
+    />
+    Create ABHA
+  </label>
+  <label className="inline-flex items-center gap-2">
+    <input
+      type="radio"
+      checked={abhaMode === "verify"}
+      onChange={() => setAbhaMode("verify")}
+    />
+    Verify ABHA
+  </label>
+</div>
 
           {/* Mode-specific content */}
           {abhaMode === "verify" && (
