@@ -54,7 +54,7 @@ export default function OtpStep({ data, onChange, onNext, onBack}: OtpStepProps)
               type="text"
               inputMode="numeric"
               maxLength={1}
-              className="w-10 h-12 text-center border rounded-md focus:ring-2 focus:ring-[#66ad45] focus:outline-none"
+              className="w-10 h-12 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-[#66ad45] focus:outline-none"
               value={data.otp[i] || ""}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
@@ -83,11 +83,11 @@ export default function OtpStep({ data, onChange, onNext, onBack}: OtpStepProps)
        
       </div>
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-between mt-4 pt-4">
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-2 rounded-md border bg-gray-100 hover:bg-gray-200 text-sm"
+          className="px-4 py-2 rounded-md border border-gray-300 bg-gray-100 hover:bg-gray-200 text-sm"
         >
           Back
         </button>

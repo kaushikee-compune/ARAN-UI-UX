@@ -10,6 +10,7 @@ import AbhaAddressInputStep from "./AbhaAddressInputStep";
 import OtpVerifyStep from "./OTPVerifyStep";
 import VerifyCompareStep from "./VerifyCompareStep";
 import { RestartButton } from "@/components/abha/restart";
+import ConfirmStep from "@/components/abha/ConfirmStep";
 
 
 /* Shared type for flow state */
@@ -32,6 +33,7 @@ export default function VerifyAbhaFlow() {
     | "abhaAddress"
     | "otp"
     | "compare"
+    | "confirm"
   >("mode");
 
   const [data, setData] = useState<AbhaVerificationData>({});
