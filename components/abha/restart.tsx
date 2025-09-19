@@ -9,7 +9,7 @@ export function RestartButton({ onRestart }: RestartProps) {
     <button
       type="button"
       onClick={onRestart}
-      className="absolute top-3 right-3 text-gray-500 hover:text-[#02066b]"
+      className="absolute top-3 right-3 text-red-500 hover:text-[#02066b]"
       title="Restart from Step 1"
     >
       <RotateCcw className="w-4 h-4" />

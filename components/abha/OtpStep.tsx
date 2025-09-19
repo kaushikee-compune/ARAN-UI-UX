@@ -54,7 +54,7 @@ export default function OtpStep({ data, onChange, onNext, onBack}: OtpStepProps)
               type="text"
               inputMode="numeric"
               maxLength={1}
-              className="w-10 h-12 text-center border rounded-md focus:ring-2 focus:ring-[#02066b] focus:outline-none"
+              className="w-10 h-12 text-center border rounded-md focus:ring-2 focus:ring-[#66ad45] focus:outline-none"
               value={data.otp[i] || ""}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
@@ -97,7 +97,7 @@ export default function OtpStep({ data, onChange, onNext, onBack}: OtpStepProps)
           onClick={onNext}
           className={`px-4 py-2 rounded-md text-white text-sm font-medium ${
             ready
-              ? "bg-[#02066b] hover:bg-[#1a1f91]"
+              ?  "bg-[#66ad45] hover:bg-[#79b35e]"
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >

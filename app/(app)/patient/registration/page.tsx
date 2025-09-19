@@ -5,6 +5,7 @@ import { UserIcon, MapPinIcon, HeartIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
 import AbhaRegistrationPage from "../abharegistration/page";
+import AbhaVerificationPage from "../abhaverification/page";
 
 /* ---------------- Types ---------------- */
 type PatientForm = {
@@ -36,7 +37,9 @@ export default function RegisterPatientPage() {
   const router = useRouter();
 
   /* State */
-  const [tab, setTab] = useState<"registration" | "abha" | "abhascan">("registration");
+  const [tab, setTab] = useState<"registration" | "abha" | "abhascan">(
+    "registration"
+  );
   const [uhid, setUhid] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -130,7 +133,7 @@ export default function RegisterPatientPage() {
         >
           Registration with ABHA
         </button>
-         <button
+        <button
           onClick={() => setShowQR(true)}
           className={`px-8 py-3 rounded-lg font-semibold text-sm ${
             tab === "abhascan"
@@ -148,7 +151,7 @@ export default function RegisterPatientPage() {
           <h1 className="text-lg font-semibold mb-4">Register New Patient</h1>
 
           {/* Group 1: Personal Details */}
-          <div className="ui-card p-4 space-y-2 !bg-orange-50">
+          <div className="ui-card p-4 space-y-2 !bg-gray-100">
             <UserIcon className="w-5 h-5 text-orange-500" />
             <LabeledInput
               label="Phone"
@@ -199,7 +202,7 @@ export default function RegisterPatientPage() {
           </div>
 
           {/* Group 2: Contact + Address */}
-          <div className="ui-card p-4 space-y-2 !bg-purple-50">
+          <div className="ui-card p-4 space-y-2 !bg-gray-100">
             <MapPinIcon className="w-5 h-5 text-purple-500" />
             <div className="grid md:grid-cols-2 gap-3">
               <LabeledInput
@@ -238,7 +241,7 @@ export default function RegisterPatientPage() {
           </div>
 
           {/* Group 3: Medical + Insurance */}
-          <div className="ui-card p-2 space-y-2 !bg-green-50">
+          <div className="ui-card p-2 space-y-2 !bg-gray-100">
             <HeartIcon className="w-5 h-5 text-green-500" />
             <div className="grid md:grid-cols-2 gap-3">
               <div className="grid gap-1">
@@ -333,34 +336,23 @@ export default function RegisterPatientPage() {
 
           {/* ABHA options */}
           <div className="flex gap-6 mb-4 pl-8 justify-center">
-  <label className="inline-flex items-center gap-2">
-    <input
-      type="radio"
-      checked={abhaMode === "create"}
-      onChange={() => setAbhaMode("create")}
-    />
-    Create ABHA
-  </label>
-  <label className="inline-flex items-center gap-2">
-    <input
-      type="radio"
-      checked={abhaMode === "verify"}
-      onChange={() => setAbhaMode("verify")}
-    />
-    Verify ABHA
-  </label>
-</div>
-
-          {/* Mode-specific content */}
-          {abhaMode === "verify" && (
-            <div className="ui-card p-4 space-y-3 bg-blue-50">
-              <LabeledInput label="ABHA Number" value="" onChange={() => {}} />
-              <LabeledInput label="ABHA Address" value="" onChange={() => {}} />
-              <p className="text-xs text-gray-500">
-                After verifying ABHA, demographics will auto-fill.
-              </p>
-            </div>
-          )}
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                checked={abhaMode === "create"}
+                onChange={() => setAbhaMode("create")}
+              />
+              Create ABHA
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                checked={abhaMode === "verify"}
+                onChange={() => setAbhaMode("verify")}
+              />
+              Verify ABHA
+            </label>
+          </div>
 
           {abhaMode === "create" && (
             <>
@@ -368,30 +360,16 @@ export default function RegisterPatientPage() {
               <AbhaRegistrationPage />
             </>
           )}
+          {abhaMode === "verify" && (
+            <>
+              {/* Full ABHA wizard mounted here */}
+              <AbhaVerificationPage />
+            </>
+          )}
         </div>
       )}
 
-      {/* Scan ABHA Tab */}
-
-      {/* {tab === "abha" && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-lg font-semibold">
-              SCAN Desk
-            </h1>
-            <button
-              type="button"
-              onClick={() => setShowQR(true)}
-              className="px-4 py-2 rounded-md bg-[#02066b] text-white hover:bg-[#1a1f91] text-sm font-medium"
-            >
-              Scan ABHA QR
-            </button>
-          </div>        
-          
-        </div>
-      )} */}
-
-
+      
 
       {/* FloatingActionMenu */}
       {showMenu && uhid && (

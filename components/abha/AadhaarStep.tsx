@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import type { AbhaRegistrationData } from "@/app/(app)/patient/abharegistration/page";
 
 export default function AadhaarStep({
@@ -22,39 +22,69 @@ export default function AadhaarStep({
     point7: true,
   });
 
+  // Split Aadhaar into 3 segments
+  const [aadhaarParts, setAadhaarParts] = useState(["", "", ""]);
+  const inputs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleChange = (index: number, value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4); // only digits, max 4
+    const newParts = [...aadhaarParts];
+    newParts[index] = digits;
+    setAadhaarParts(newParts);
+
+    // Update parent state as combined Aadhaar
+    onChange({ aadhaar: newParts.join("") });
+
+    if (digits.length === 4 && index < 2) {
+      inputs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && aadhaarParts[index].length === 0 && index > 0) {
+      inputs.current[index - 1]?.focus();
+    }
+  };
+
   const allConsented = Object.values(consents).every(Boolean);
   const ready = data.aadhaar.length === 12 && data.patientName && consents.point2 == false;
 
-  const formatAadhaar = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 12);
-    if (digits.length < 12) return digits; // only show plain until 12 entered
-    return `XXXX-XXXX-${digits.slice(-4)}`;
-  };
-
   return (
     <div className="space-y-6">
-      {/* Aadhaar + Name Row */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Aadhaar Row */}
+      <div className="grid gap-4">
         <div className="grid gap-1">
           <label className="text-xs text-gray-600">Aadhaar Number</label>
-          <input
-            type="text"
-            className="ui-input"
-            value={formatAadhaar(data.aadhaar)}
-            onChange={(e) => onChange({ aadhaar: e.target.value })}
-            placeholder="Enter 12-digit Aadhaar number"
-          />
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
+              <input
+                key={i}
+                ref={(el) => {
+                  inputs.current[i] = el;
+                }}
+                type={i < 2 ? "password" : "text"} // first 2 masked
+                inputMode="numeric"
+                maxLength={4}
+                className="ui-input w-20 text-center border  tracking-widest"
+                value={aadhaarParts[i]}
+                onChange={(e) => handleChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid gap-1">
-          <label className="text-xs text-gray-600">Beneficiary Name</label>
-          <input
-            type="text"
-            className="ui-input border-3"
-            value={data.patientName}
-            onChange={(e) => onChange({ patientName: e.target.value })}
-            placeholder="Enter benefiaciary name"
-          />
-        </div>
+      </div>
+
+      {/* Beneficiary Name Row */}
+      <div className="grid gap-1">
+        <label className="text-xs text-gray-600">Beneficiary Name</label>
+        <input
+          type="text"
+          className="ui-input border-3"
+          value={data.patientName}
+          onChange={(e) => onChange({ patientName: e.target.value })}
+          placeholder="Enter beneficiary name"
+        />
       </div>
 
       {/* Consent points */}
@@ -66,6 +96,7 @@ export default function AadhaarStep({
           >
             <input
               type="checkbox"
+              className="accent-green-600"
               checked={consents[key as keyof typeof consents]}
               onChange={(e) =>
                 setConsents((c) => ({
