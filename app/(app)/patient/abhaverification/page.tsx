@@ -9,7 +9,7 @@ export default function AbhaVerificationPage() {
   <div className="max-w-lg mx-auto">
     <h1 className="text-xl font-semibold mb-4">ABHA Verification Wizard</h1>
     <VerifyAbhaFlow />
-  </div>
+  </div>   
 </div>
   );
 }

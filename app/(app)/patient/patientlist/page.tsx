@@ -22,7 +22,7 @@ import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
 import { useRouter } from "next/navigation";
 
 type Patient = {
-  id: string;
+  patientId: string;
   name: string;
   age: number;
   gender: string;
@@ -189,7 +189,7 @@ export default function PatientListPage() {
             ) : (
               filtered.map((p) => (
                 <TableRow
-                  key={p.id}
+                  key={p.patientId}
                   sx={{
                     backgroundColor: "#fafafa",
                     borderRadius: 2,
@@ -248,11 +248,17 @@ export default function PatientListPage() {
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell align="center">
+                 <TableCell align="center">
                     <Tooltip title="View">
-                      <IconButton size="small" sx={{ color: "primary.main" }}>
+                      <IconButton
+                        size="small"
+                        sx={{ color: "primary.main" }}
+                        onClick={() =>
+                          router.push(`/patient/patientlist/${p.patientId}`)
+                        }
+                      >
                         <VisibilityIcon fontSize="small" />
-                      </IconButton>
+                      </IconButton> 
                     </Tooltip>
                     <Tooltip title="Edit">
                       <IconButton size="small" sx={{ color: "success.main" }}>
@@ -272,35 +278,36 @@ export default function PatientListPage() {
         </Table>
       </TableContainer>
 
-            {showQR && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] text-center">
-      {/* Close X */}
-      <button
-        onClick={() => setShowQR(false)}
-        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-      >
-        ✕
-      </button>
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] text-center">
+            {/* Close X */}
+            <button
+              onClick={() => setShowQR(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
 
-      {/* QR Code (mock) */}
-      <div className="flex justify-center mb-4">
-        <img
-          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ABHA-DEMO-PLACEHOLDER"
-          alt="ABHA QR Code"
-          className="rounded-lg border"
-        />
-      </div>
+            {/* QR Code (mock) */}
+            <div className="flex justify-center mb-4">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ABHA-DEMO-PLACEHOLDER"
+                alt="ABHA QR Code"
+                className="rounded-lg border"
+              />
+            </div>
 
-      {/* Text */}
-      <h2 className="text-lg font-semibold text-gray-800">ABHA QR Code</h2>
-      <p className="text-sm text-gray-600 mt-2">
-        Scan this QR code with the ABHA app to share patient profile
-      </p>
-    </div>
-  </div>
-)}
-
+            {/* Text */}
+            <h2 className="text-lg font-semibold text-gray-800">
+              ABHA QR Code
+            </h2>
+            <p className="text-sm text-gray-600 mt-2">
+              Scan this QR code with the ABHA app to share patient profile
+            </p>
+          </div>
+        </div>
+      )}
     </Paper>
   );
 }

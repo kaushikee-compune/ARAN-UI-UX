@@ -17,19 +17,20 @@ export default function VerifyCompareStep(props: {
   onRestart: () => void;
 }) {
   return (
-    <div className="ui-card relative drop-shadow-2xl space-y-6 p-6 max-w-5xl mx-auto">
+    <div className="ui-card  relative drop-shadow-2xl space-y-6 p-6 w-[800px] h-[600px] mx-auto">
       {/* Restart button */}
       <RestartButton onRestart={props.onRestart} />
 
       {/* Compare content */}
-      <div className="max-w-4xl mx-auto w-full">
-        <CompareStep
-          data={props.data as any}
-          onChange={props.onChange as any}
-          onNext={props.onNext}
-          onBack={props.onBack}
-        />
-      </div>
+          
+          <div className="max-w-4xl mx-auto w-full">
+            <CompareStep
+              data={props.data as any}
+              onChange={props.onChange as any}
+              onNext={props.onNext}
+              onBack={props.onBack}
+            />
+          </div>
     </div>
   );
 }

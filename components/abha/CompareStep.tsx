@@ -39,7 +39,7 @@ export default function CompareStep({
   return (
     <div className="grid md:grid-cols-2 gap-6">
       {/* Left Panel: ABDM Data */}
-      <div className="border rounded-lg p-4 bg-gray-50 space-y-4 shadow-sm">
+      <div className="border border-gray-300 rounded-lg p-4 bg-[#eae7f8] space-y-4 shadow-sm">
         <div className="font-semibold text-lg mb-2">ABDM Data</div>
 
         {/* ABHA Card Preview */}
@@ -88,7 +88,7 @@ export default function CompareStep({
       </div>
 
       {/* Right Panel: System Records */}
-      <div className="border rounded-lg p-4 bg-gray-50 space-y-4 shadow-sm">
+      <div className="border border-gray-300 rounded-lg p-4 bg-[#e5f3dc] space-y-4 shadow-sm">
         <div className="font-semibold text-lg mb-2">System Records</div>
         <div className="text-sm space-y-1">
           <div><strong>Name:</strong> {systemPatient.name}</div>
