@@ -1,0 +1,36 @@
+{
+  "waiting": [
+    {
+      "uhid": "UHID001",
+      "token": "T01",
+      "name": "Anita Sharma",
+      "gender": "Female",
+      "abhaAddress": "anita@sbx"
+    },
+    {
+      "uhid": "UHID002",
+      "token": "T02",
+      "name": "Rajesh Kumar",
+      "gender": "Male",
+      "abhaAddress": "rajesh@sbx"
+    }
+  ],
+  "current": [
+    {
+      "uhid": "UHID003",
+      "token": "T03",
+      "name": "Suman Das",
+      "gender": "Female",
+      "abhaAddress": "suman@sbx"
+    }
+  ],
+  "completed": [
+    {
+      "uhid": "UHID004",
+      "token": "T04",
+      "name": "Vikram Singh",
+      "gender": "Male",
+      "abhaAddress": "vikram@sbx"
+    }
+  ]
+}
