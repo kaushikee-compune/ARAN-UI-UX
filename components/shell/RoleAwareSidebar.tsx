@@ -68,7 +68,7 @@ const MENU: Record<Role, Item[]> = {
     },
     {
       href: "/doctor/console",
-      label: "Console",
+      label: "Rx",
       icon: MonitorCog,
       color: "text-emerald-600",
     },
