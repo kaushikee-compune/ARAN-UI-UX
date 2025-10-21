@@ -5,8 +5,7 @@ import Image from "next/image";
 import CompanionToggle from "@/components/doctor/CompanionToggle";
 import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 import ScribePanel from "@/components/doctor/ScribePanel";
-import ImmunizationForm from "@/components/doctor/ImmunizationForm"; 
-
+import ImmunizationForm from "@/components/doctor/ImmunizationForm";
 
 /* External forms */
 import DigitalRxForm, {
@@ -87,12 +86,32 @@ const collapseSidebar = (collapse: boolean) => {
 
 /* --------------------------------- Page --------------------------------- */
 const INITIAL_RX: DigitalRxFormState = {
-  vitals: {},
-  clinical: {},
-  prescription: [
-    { medicine: "", frequency: "", duration: "", dosage: "", instruction: "" },
+  vitals: {
+    temperature: "",
+    bp: "",
+    bpSys: "",
+    bpDia: "",
+    spo2: "",
+    pulse: "",
+  },
+  chiefComplaints: "",
+  allergies: "",
+  medicalHistory: "",
+  investigationAdvice: "",
+  procedure: "",
+  followUpText: "",
+  followUpDate: "",
+  medications: [
+    {
+      medicine: "",
+      frequency: "",
+      timing: "",
+      duration: "",
+      dosage: "",
+      instruction: "",
+    },
   ],
-  plan: {},
+  uploads: { files: [], note: "" },
 };
 
 type ImmunizationState = {
@@ -178,17 +197,15 @@ export default function DoctorConsolePage() {
 
       setRxForm((prev) => {
         if (target === "chiefComplaints") {
-          const prevCC = prev.clinical?.chiefComplaints || "";
+          const prevCC = prev.chiefComplaints || "";
           const merged = [prevCC, t].filter(Boolean).join(prevCC ? " " : "");
-          return {
-            ...prev,
-            clinical: { ...(prev.clinical || {}), chiefComplaints: merged },
-          };
+          return { ...prev, chiefComplaints: merged };
         }
-        // doctorNote lives under plan
-        const prevNote = prev.plan?.doctorNote || "";
+
+        // doctorNote maps to followUpText in the new flat structure
+        const prevNote = prev.followUpText || "";
         const merged = [prevNote, t].filter(Boolean).join(prevNote ? " " : "");
-        return { ...prev, plan: { ...(prev.plan || {}), doctorNote: merged } };
+        return { ...prev, followUpText: merged };
       });
 
       setVoiceOpen(false);
@@ -417,7 +434,7 @@ export default function DoctorConsolePage() {
                 <DigitalRxForm
                   value={rxForm}
                   onChange={setRxForm}
-                  onSave={onSave}
+                 // onSave={onSave}
                 />
               ) : undefined
             }
@@ -444,7 +461,7 @@ export default function DoctorConsolePage() {
               <DigitalRxForm
                 value={rxForm}
                 onChange={setRxForm}
-                onSave={onSave}
+                //onSave={onSave}
               />
             </SectionCard>
           )}
@@ -463,21 +480,14 @@ export default function DoctorConsolePage() {
                   setRxForm((prev) => {
                     const next: DigitalRxFormState = {
                       ...prev,
-                      clinical: {
-                        ...(prev.clinical ?? {}),
-                        chiefComplaints: mergeUniqueBullets(
-                          prev.clinical?.chiefComplaints,
-                          complaints
-                        ),
-                      },
-                      plan: {
-                        ...(prev.plan ?? {}),
-                        doctorNote: mergeUniqueBullets(
-                          prev.plan?.doctorNote,
-                          advice
-                        ),
-                        advice: mergeUniqueBullets(prev.plan?.advice, advice),
-                      },
+                      chiefComplaints: mergeUniqueBullets(
+                        prev.chiefComplaints,
+                        complaints
+                      ),
+                      followUpText: mergeUniqueBullets(
+                        prev.followUpText,
+                        advice
+                      ),
                     };
                     return next;
                   });
@@ -545,19 +555,13 @@ export default function DoctorConsolePage() {
           // Update DigitalRx form fields (Chief Complaints + Doctor’s Note + Advice)
           setRxForm((prev) => ({
             ...prev,
-            clinical: {
-              ...(prev.clinical ?? {}),
-              chiefComplaints: mergeUniqueBullets(
-                prev.clinical?.chiefComplaints,
-                complaints
-              ),
-            },
-            plan: {
-              ...(prev.plan ?? {}),
-              doctorNote: mergeUniqueBullets(prev.plan?.doctorNote, advice),
-              advice: mergeUniqueBullets(prev.plan?.advice, advice),
-            },
+            chiefComplaints: mergeUniqueBullets(
+              prev.chiefComplaints,
+              complaints
+            ),
+            followUpText: mergeUniqueBullets(prev.followUpText, advice),
           }));
+
           setVoiceOpen(false);
         }}
       />
@@ -714,71 +718,52 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     );
   }
 
-  const { vitals = {}, clinical = {}, prescription = [], plan = {} } = payload;
+  const {
+    vitals = {},
+    chiefComplaints = "",
+    allergies = "",
+    medicalHistory = "",
+    investigationAdvice = "",
+    procedure = "",
+    followUpText = "",
+    followUpDate = "",
+    medications = [],
+    uploads = { files: [], note: "" },
+  } = payload;
 
-  const rxRows = compactRows(prescription, [
-    "medicine",
-    "frequency",
-    "dosage",
-    "duration",
-    "instruction",
-  ]);
+  const rxRows = compactRows(medications, [
+  "medicine",
+  "frequency",
+  "dosage",
+  "duration",
+  "instruction",
+]);
+
 
   const hasVitals =
-    nonEmpty(vitals.temperature) ||
-    nonEmpty(vitals.bp) ||
-    (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
-    nonEmpty(vitals.spo2) ||
-    nonEmpty(vitals.weight) ||
-    nonEmpty(vitals.height) ||
-    nonEmpty(vitals.bmi) ||
-    nonEmpty(vitals.lmpDate) ||
-    nonEmpty(vitals.vitalsNotes) ||
-    nonEmpty(vitals.bodyMeasurement?.waist) ||
-    nonEmpty(vitals.bodyMeasurement?.hip) ||
-    nonEmpty(vitals.bodyMeasurement?.neck) ||
-    nonEmpty(vitals.bodyMeasurement?.chest) ||
-    nonEmpty(vitals.womensHealth?.lmpDate) ||
-    nonEmpty(vitals.womensHealth?.cycleLengthDays) ||
-    nonEmpty(vitals.womensHealth?.cycleRegularity) ||
-    nonEmpty(vitals.womensHealth?.gravidity) ||
-    nonEmpty(vitals.womensHealth?.parity) ||
-    nonEmpty(vitals.womensHealth?.abortions) ||
-    anyRowHas(vitals.physicalActivity?.logs, [
-      "activity",
-      "durationMin",
-      "intensity",
-      "frequencyPerWeek",
-    ]) ||
-    nonEmpty(vitals.GeneralAssessment?.painScore) ||
-    nonEmpty(vitals.GeneralAssessment?.temperatureSite) ||
-    nonEmpty(vitals.GeneralAssessment?.posture) ||
-    nonEmpty(vitals.GeneralAssessment?.edema) ||
-    nonEmpty(vitals.GeneralAssessment?.pallor);
+  nonEmpty(vitals.temperature) ||
+  nonEmpty(vitals.bp) ||
+  (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
+  nonEmpty(vitals.spo2) ||
+  nonEmpty(vitals.pulse);
 
-  const hasClinical =
-    nonEmpty(clinical.chiefComplaints) ||
-    nonEmpty(clinical.pastHistory) ||
-    nonEmpty(clinical.familyHistory) ||
-    nonEmpty(clinical.allergy) ||
-    anyRowHas(clinical.currentMedications, ["medicine", "dosage", "since"]) ||
-    anyRowHas(clinical.familyHistoryRows, ["relation", "ailment"]) ||
-    anyRowHas(clinical.proceduresDone, ["name", "date"]) ||
-    anyRowHas(clinical.investigationsDone, ["name", "date"]);
+const hasClinical =
+  nonEmpty(chiefComplaints) ||
+  nonEmpty(allergies) ||
+  nonEmpty(medicalHistory) ||
+  nonEmpty(investigationAdvice) ||
+  nonEmpty(procedure) ||
+  nonEmpty(followUpText) ||
+  nonEmpty(followUpDate);
 
-  const hasRx = rxRows.length > 0;
+const hasRx = rxRows.length > 0;
 
-  const hasPlan =
-    nonEmpty(plan.investigations) ||
-    nonEmpty(plan.investigationInstructions) ||
-    nonEmpty(plan.advice) ||
-    nonEmpty(plan.doctorNote) ||
-    nonEmpty(plan.followUpInstructions) ||
-    nonEmpty(plan.followUpDate) ||
-    nonEmpty(plan.investigationNote) ||
-    nonEmpty(plan.patientNote) ||
-    (plan.attachments?.files && plan.attachments.files.length > 0) ||
-    nonEmpty(plan.attachments?.note);
+const hasPlan =
+  nonEmpty(followUpText) ||
+  nonEmpty(followUpDate) ||
+  (uploads?.files?.length ?? 0) > 0 ||
+  nonEmpty(uploads?.note);
+
 
   const showVitals = hasVitals;
   const showClinical = hasClinical;
@@ -797,279 +782,133 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Vitals */}
-      {showVitals && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Vitals</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-            {nonEmpty(vitals.temperature) && (
-              <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
-            )}
-            {(nonEmpty(vitals.bp) ||
-              (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
-              <KV
-                k="Blood Pressure"
-                v={
-                  nonEmpty(vitals.bp)
-                    ? safe(vitals.bp)
-                    : `${safe(vitals.bpSys)}/${safe(vitals.bpDia)} mmHg`
-                }
-              />
-            )}
-            {nonEmpty(vitals.spo2) && (
-              <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />
-            )}
-            {nonEmpty(vitals.weight) && (
-              <KV k="Weight" v={`${safe(vitals.weight)} kg`} />
-            )}
-            {nonEmpty(vitals.height) && (
-              <KV k="Height" v={`${safe(vitals.height)} cm`} />
-            )}
-            {nonEmpty(vitals.bmi) && <KV k="BMI" v={safe(vitals.bmi)} />}
-            {nonEmpty(vitals.lmpDate) && (
-              <KV k="LMP" v={safe(vitals.lmpDate)} />
-            )}
-          </div>
-
-          {(nonEmpty(vitals.bodyMeasurement?.waist) ||
-            nonEmpty(vitals.bodyMeasurement?.hip) ||
-            nonEmpty(vitals.bodyMeasurement?.neck) ||
-            nonEmpty(vitals.bodyMeasurement?.chest)) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">
-                Body Measurements
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                {nonEmpty(vitals.bodyMeasurement?.waist) && (
-                  <KV
-                    k="Waist"
-                    v={`${safe(vitals.bodyMeasurement?.waist)} cm`}
-                  />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.hip) && (
-                  <KV k="Hip" v={`${safe(vitals.bodyMeasurement?.hip)} cm`} />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.neck) && (
-                  <KV k="Neck" v={`${safe(vitals.bodyMeasurement?.neck)} cm`} />
-                )}
-                {nonEmpty(vitals.bodyMeasurement?.chest) && (
-                  <KV
-                    k="Chest"
-                    v={`${safe(vitals.bodyMeasurement?.chest)} cm`}
-                  />
-                )}
-              </div>
-            </div>
+  <div className="space-y-6">
+    {/* 🩺 Vitals */}
+    {showVitals && (
+      <section className="ui-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Vitals</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          {nonEmpty(vitals.temperature) && (
+            <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
           )}
-
-          {(nonEmpty(vitals.womensHealth?.lmpDate) ||
-            nonEmpty(vitals.womensHealth?.cycleLengthDays) ||
-            nonEmpty(vitals.womensHealth?.cycleRegularity) ||
-            nonEmpty(vitals.womensHealth?.gravidity) ||
-            nonEmpty(vitals.womensHealth?.parity) ||
-            nonEmpty(vitals.womensHealth?.abortions)) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">
-                Women’s Health
-              </h4>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.womensHealth?.lmpDate) && (
-                  <KV k="LMP" v={safe(vitals.womensHealth?.lmpDate)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.cycleLengthDays) && (
-                  <KV
-                    k="Cycle (days)"
-                    v={safe(vitals.womensHealth?.cycleLengthDays)}
-                  />
-                )}
-                {nonEmpty(vitals.womensHealth?.cycleRegularity) && (
-                  <KV
-                    k="Regularity"
-                    v={safe(vitals.womensHealth?.cycleRegularity)}
-                  />
-                )}
-                {nonEmpty(vitals.womensHealth?.gravidity) && (
-                  <KV k="Gravidity" v={safe(vitals.womensHealth?.gravidity)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.parity) && (
-                  <KV k="Parity" v={safe(vitals.womensHealth?.parity)} />
-                )}
-                {nonEmpty(vitals.womensHealth?.abortions) && (
-                  <KV k="Abortions" v={safe(vitals.womensHealth?.abortions)} />
-                )}
-              </div>
-            </div>
+          {(nonEmpty(vitals.bp) ||
+            (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
+            <KV
+              k="Blood Pressure"
+              v={
+                nonEmpty(vitals.bp)
+                  ? `${safe(vitals.bp)} mmHg`
+                  : `${safe(vitals.bpSys)}/${safe(vitals.bpDia)} mmHg`
+              }
+            />
           )}
-
-          {(nonEmpty(vitals.lifestyle?.smokingStatus) ||
-            nonEmpty(vitals.lifestyle?.alcoholIntake) ||
-            nonEmpty(vitals.lifestyle?.dietType) ||
-            nonEmpty(vitals.lifestyle?.sleepHours) ||
-            nonEmpty(vitals.lifestyle?.stressLevel)) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">
-                Lifestyle
-              </h4>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                {nonEmpty(vitals.lifestyle?.smokingStatus) && (
-                  <KV k="Smoking" v={safe(vitals.lifestyle?.smokingStatus)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.alcoholIntake) && (
-                  <KV k="Alcohol" v={safe(vitals.lifestyle?.alcoholIntake)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.dietType) && (
-                  <KV k="Diet" v={safe(vitals.lifestyle?.dietType)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.sleepHours) && (
-                  <KV k="Sleep (hrs)" v={safe(vitals.lifestyle?.sleepHours)} />
-                )}
-                {nonEmpty(vitals.lifestyle?.stressLevel) && (
-                  <KV k="Stress" v={safe(vitals.lifestyle?.stressLevel)} />
-                )}
-              </div>
-            </div>
+          {nonEmpty(vitals.spo2) && <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />}
+          {nonEmpty(vitals.pulse) && (
+            <KV k="Pulse" v={`${safe(vitals.pulse)} bpm`} />
           )}
-        </section>
-      )}
+        </div>
+      </section>
+    )}
 
-      {/* Clinical */}
-      {showClinical && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
-          <div className="space-y-2 text-sm">
-            {nonEmpty(clinical.chiefComplaints) && (
-              <Block k="Chief Complaints" v={safe(clinical.chiefComplaints)} />
-            )}
-            {nonEmpty(clinical.pastHistory) && (
-              <Block k="Past History" v={safe(clinical.pastHistory)} />
-            )}
-            {nonEmpty(clinical.familyHistory) && (
-              <Block k="Family History" v={safe(clinical.familyHistory)} />
-            )}
-            {nonEmpty(clinical.allergy) && (
-              <Block k="Allergy" v={safe(clinical.allergy)} />
-            )}
-          </div>
-          {anyRowHas(clinical.currentMedications, [
-            "medicine",
-            "dosage",
-            "since",
-          ]) && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-2">
-                Current Medications
-              </h4>
-              <div className="space-y-1.5">
-                {(clinical.currentMedications ?? []).map((m, i) => (
-                  <div key={i} className="text-sm">
-                    <span className="font-medium">{safe(m.medicine)}</span>{" "}
-                    <span className="text-gray-600">{safe(m.dosage)}</span>{" "}
-                    <span className="text-gray-600">{safe(m.since)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+    {/* 🧾 Clinical Summary */}
+    {showClinical && (
+      <section className="ui-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
+        <div className="space-y-2 text-sm">
+          {nonEmpty(chiefComplaints) && (
+            <Block k="Chief Complaints" v={safe(chiefComplaints)} />
           )}
-        </section>
-      )}
+          {nonEmpty(allergies) && <Block k="Allergies" v={safe(allergies)} />}
+          {nonEmpty(medicalHistory) && (
+            <Block k="Medical History" v={safe(medicalHistory)} />
+          )}
+          {nonEmpty(investigationAdvice) && (
+            <Block k="Investigation Advice" v={safe(investigationAdvice)} />
+          )}
+          {nonEmpty(procedure) && <Block k="Procedure" v={safe(procedure)} />}
+        </div>
+      </section>
+    )}
 
-      {/* Prescription */}
-      {showRx && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Prescription</h3>
-          <div className="overflow-auto rounded border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-600">
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Medicine
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Frequency
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Duration
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Instruction
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rxRows.map((m, i) => (
+    {/* 💊 Prescription */}
+    {showRx && (
+      <section className="ui-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Medications</h3>
+        <div className="overflow-auto rounded border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600">
+                <th className="px-2 py-1.5 text-left font-medium">Medicine</th>
+                <th className="px-2 py-1.5 text-left font-medium">Frequency</th>
+                <th className="px-2 py-1.5 text-left font-medium">Timings</th>
+                <th className="px-2 py-1.5 text-left font-medium">Duration</th>
+                <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
+                <th className="px-2 py-1.5 text-left font-medium">
+                  Instructions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {(rxRows ?? []).length > 0 ? (
+                rxRows.map((m, i) => (
                   <tr key={i} className="border-t">
                     <td className="px-2 py-1.5 font-medium">
                       {safe(m.medicine)}
                     </td>
                     <td className="px-2 py-1.5">{safe(m.frequency)}</td>
-                    <td className="px-2 py-1.5">{safe(m.dosage)}</td>
+                    <td className="px-2 py-1.5">{safe(m.timing)}</td>
                     <td className="px-2 py-1.5">{safe(m.duration)}</td>
+                    <td className="px-2 py-1.5">{safe(m.dosage)}</td>
                     <td className="px-2 py-1.5">{safe(m.instruction)}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="text-center text-gray-500 py-2 text-xs"
+                  >
+                    No medications added
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
 
-      {/* Plan */}
-      {showPlan && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Plan / Advice</h3>
-          <div className="space-y-3 text-sm">
-            {nonEmpty(plan.investigations) && (
-              <Block k="Investigations" v={safe(plan.investigations)} />
-            )}
-            {nonEmpty(plan.investigationInstructions) && (
-              <Block
-                k="Investigation Instructions"
-                v={safe(plan.investigationInstructions)}
-              />
-            )}
-            {nonEmpty(plan.advice) && (
-              <Block k="Advice" v={safe(plan.advice)} />
-            )}
-            {nonEmpty(plan.doctorNote) && (
-              <Block k="Doctor’s Note" v={safe(plan.doctorNote)} />
-            )}
-            {nonEmpty(plan.followUpInstructions) && (
-              <Block
-                k="Follow-up Instructions"
-                v={safe(plan.followUpInstructions)}
-              />
-            )}
-            {nonEmpty(plan.followUpDate) && (
-              <KV k="Follow-up Date" v={safe(plan.followUpDate)} />
-            )}
-            {nonEmpty(plan.investigationNote) && (
-              <Block k="Investigation Note" v={safe(plan.investigationNote)} />
-            )}
-            {nonEmpty(plan.patientNote) && (
-              <Block k="Patient Note" v={safe(plan.patientNote)} />
-            )}
-            {(plan.attachments?.files?.length ?? 0) > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-2">
-                  Attachments
-                </h4>
-                <ul className="list-disc ml-5 space-y-1">
-                  {(plan.attachments?.files ?? []).map((f, i) => (
-                    <li key={i}>{(f as any)?.name ?? "File"}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {nonEmpty(plan.attachments?.note) && (
-              <Block k="Attachment Note" v={safe(plan.attachments?.note)} />
-            )}
+    {/* 🩹 Follow-up & Attachments */}
+    <section className="ui-card p-4">
+      <h3 className="text-sm font-semibold mb-3">Follow-Up & Advice</h3>
+      <div className="space-y-3 text-sm">
+        {nonEmpty(followUpText) && (
+          <Block k="Doctor’s Note / Advice" v={safe(followUpText)} />
+        )}
+        {nonEmpty(followUpDate) && (
+          <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
+        )}
+
+        {(uploads?.files?.length ?? 0) > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-gray-600 mb-2">
+              Attachments
+            </h4>
+            <ul className="list-disc ml-5 space-y-1">
+              {(uploads?.files ?? []).map((f, i) => (
+                <li key={i}>{(f as any)?.name ?? "File"}</li>
+              ))}
+            </ul>
           </div>
-        </section>
-      )}
-    </div>
-  );
+        )}
+        {nonEmpty(uploads?.note) && (
+          <Block k="Attachment Note" v={safe(uploads?.note)} />
+        )}
+      </div>
+    </section>
+  </div>
+);
+
 }
 
 /* ----------------------------- Small preview UI ---------------------------- */
