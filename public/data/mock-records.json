@@ -16,7 +16,7 @@
         "bmi": "24.3"
       },
       "chiefComplaints": "Burning micturition, increased frequency for 2 days",
-      "allergies": "None",
+      "allergies": "Banana, Jelly Fish",
       "medicalHistory": "No prior UTIs",
       "investigationAdvice": "Urine R/E and Urine Culture",
       "procedure": "",
@@ -106,7 +106,7 @@
         "spo2": "99"
       },
       "chiefComplaints": "Acute low back pain after lifting",
-      "allergies": "None",
+      "allergies": "Banana, Jelly Fish",
       "medicalHistory": "No previous spine surgery",
       "investigationAdvice": "",
       "procedure": "",
@@ -159,8 +159,8 @@
         "spo2": "99"
       },
       "chiefComplaints": "",
-      "allergies": "",
-      "medicalHistory": "",
+      "allergies": "Banana, Jelly Fish",
+      "medicalHistory": "Spine Surgery",
       "investigationAdvice": "LFT, Urine R/E",
       "procedure": "",
       "followUpText": "LFT within normal limits; Urine R/E: trace leukocytes",

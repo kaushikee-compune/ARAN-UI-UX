@@ -126,6 +126,8 @@ type ImmunizationState = {
   }>;
 };
 
+
+
 export default function DoctorConsolePage() {
   /* Header */
   const [activeTop, setActiveTop] = useState<TopMenuKey>("consultation");
@@ -136,6 +138,10 @@ export default function DoctorConsolePage() {
 
   /* Right tools */
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
+
+  const [bpTrend, setBpTrend] = useState<
+  Array<{ date: string; sys: number; dia: number }>
+>([]);
 
   /* Patient header (placeholder) */
   const patient = useMemo(
@@ -238,8 +244,46 @@ export default function DoctorConsolePage() {
     loadMockRecords("pat_001")
       .then((canon) => {
         if (!alive) return;
-        setPastDays(groupByDate(canon));
+
+        // Group by date for Past Records viewer
+        const grouped = groupByDate(canon);
+        setPastDays(grouped);
         setErrorPast(null);
+
+        // ✅ Prefill Allergies + Medical History from the LATEST record that has them
+        const latest = canon
+          .slice()
+          .reverse()
+          .find(
+            (r) =>
+              (r.canonical?.allergies && r.canonical.allergies.trim() !== "") ||
+              (r.canonical?.medicalHistory &&
+                r.canonical.medicalHistory.trim() !== "")
+          );
+
+        if (latest) {
+          setRxForm((prev) => ({
+            ...prev,
+            allergies: latest.canonical.allergies || prev.allergies,
+            medicalHistory:
+              latest.canonical.medicalHistory || prev.medicalHistory,
+          }));
+        }
+
+        // ✅ Derive BP trend from all available vitals
+        const bpData = canon
+          .map((r) => {
+            const v = r.canonical?.vitals || {};
+            const sys = parseFloat(v.bpSys || "");
+            const dia = parseFloat(v.bpDia || "");
+            if (!isNaN(sys) && !isNaN(dia)) {
+              return { date: r.dateISO, sys, dia };
+            }
+            return null;
+          })
+          .filter(Boolean) as Array<{ date: string; sys: number; dia: number }>;
+
+        setBpTrend(bpData);
       })
       .catch((e: any) => {
         if (!alive) return;
@@ -434,7 +478,7 @@ export default function DoctorConsolePage() {
                 <DigitalRxForm
                   value={rxForm}
                   onChange={setRxForm}
-                 // onSave={onSave}
+                  bpHistory={bpTrend}
                 />
               ) : undefined
             }
@@ -461,7 +505,7 @@ export default function DoctorConsolePage() {
               <DigitalRxForm
                 value={rxForm}
                 onChange={setRxForm}
-                //onSave={onSave}
+                bpHistory={bpTrend}
               />
             </SectionCard>
           )}
@@ -732,38 +776,36 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
   } = payload;
 
   const rxRows = compactRows(medications, [
-  "medicine",
-  "frequency",
-  "dosage",
-  "duration",
-  "instruction",
-]);
-
+    "medicine",
+    "frequency",
+    "dosage",
+    "duration",
+    "instruction",
+  ]);
 
   const hasVitals =
-  nonEmpty(vitals.temperature) ||
-  nonEmpty(vitals.bp) ||
-  (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
-  nonEmpty(vitals.spo2) ||
-  nonEmpty(vitals.pulse);
+    nonEmpty(vitals.temperature) ||
+    nonEmpty(vitals.bp) ||
+    (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
+    nonEmpty(vitals.spo2) ||
+    nonEmpty(vitals.pulse);
 
-const hasClinical =
-  nonEmpty(chiefComplaints) ||
-  nonEmpty(allergies) ||
-  nonEmpty(medicalHistory) ||
-  nonEmpty(investigationAdvice) ||
-  nonEmpty(procedure) ||
-  nonEmpty(followUpText) ||
-  nonEmpty(followUpDate);
+  const hasClinical =
+    nonEmpty(chiefComplaints) ||
+    nonEmpty(allergies) ||
+    nonEmpty(medicalHistory) ||
+    nonEmpty(investigationAdvice) ||
+    nonEmpty(procedure) ||
+    nonEmpty(followUpText) ||
+    nonEmpty(followUpDate);
 
-const hasRx = rxRows.length > 0;
+  const hasRx = rxRows.length > 0;
 
-const hasPlan =
-  nonEmpty(followUpText) ||
-  nonEmpty(followUpDate) ||
-  (uploads?.files?.length ?? 0) > 0 ||
-  nonEmpty(uploads?.note);
-
+  const hasPlan =
+    nonEmpty(followUpText) ||
+    nonEmpty(followUpDate) ||
+    (uploads?.files?.length ?? 0) > 0 ||
+    nonEmpty(uploads?.note);
 
   const showVitals = hasVitals;
   const showClinical = hasClinical;
@@ -782,133 +824,140 @@ const hasPlan =
   }
 
   return (
-  <div className="space-y-6">
-    {/* 🩺 Vitals */}
-    {showVitals && (
-      <section className="ui-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Vitals</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-          {nonEmpty(vitals.temperature) && (
-            <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
-          )}
-          {(nonEmpty(vitals.bp) ||
-            (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
-            <KV
-              k="Blood Pressure"
-              v={
-                nonEmpty(vitals.bp)
-                  ? `${safe(vitals.bp)} mmHg`
-                  : `${safe(vitals.bpSys)}/${safe(vitals.bpDia)} mmHg`
-              }
-            />
-          )}
-          {nonEmpty(vitals.spo2) && <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />}
-          {nonEmpty(vitals.pulse) && (
-            <KV k="Pulse" v={`${safe(vitals.pulse)} bpm`} />
-          )}
-        </div>
-      </section>
-    )}
-
-    {/* 🧾 Clinical Summary */}
-    {showClinical && (
-      <section className="ui-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
-        <div className="space-y-2 text-sm">
-          {nonEmpty(chiefComplaints) && (
-            <Block k="Chief Complaints" v={safe(chiefComplaints)} />
-          )}
-          {nonEmpty(allergies) && <Block k="Allergies" v={safe(allergies)} />}
-          {nonEmpty(medicalHistory) && (
-            <Block k="Medical History" v={safe(medicalHistory)} />
-          )}
-          {nonEmpty(investigationAdvice) && (
-            <Block k="Investigation Advice" v={safe(investigationAdvice)} />
-          )}
-          {nonEmpty(procedure) && <Block k="Procedure" v={safe(procedure)} />}
-        </div>
-      </section>
-    )}
-
-    {/* 💊 Prescription */}
-    {showRx && (
-      <section className="ui-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Medications</h3>
-        <div className="overflow-auto rounded border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600">
-                <th className="px-2 py-1.5 text-left font-medium">Medicine</th>
-                <th className="px-2 py-1.5 text-left font-medium">Frequency</th>
-                <th className="px-2 py-1.5 text-left font-medium">Timings</th>
-                <th className="px-2 py-1.5 text-left font-medium">Duration</th>
-                <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
-                <th className="px-2 py-1.5 text-left font-medium">
-                  Instructions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(rxRows ?? []).length > 0 ? (
-                rxRows.map((m, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5 font-medium">
-                      {safe(m.medicine)}
-                    </td>
-                    <td className="px-2 py-1.5">{safe(m.frequency)}</td>
-                    <td className="px-2 py-1.5">{safe(m.timing)}</td>
-                    <td className="px-2 py-1.5">{safe(m.duration)}</td>
-                    <td className="px-2 py-1.5">{safe(m.dosage)}</td>
-                    <td className="px-2 py-1.5">{safe(m.instruction)}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="text-center text-gray-500 py-2 text-xs"
-                  >
-                    No medications added
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    )}
-
-    {/* 🩹 Follow-up & Attachments */}
-    <section className="ui-card p-4">
-      <h3 className="text-sm font-semibold mb-3">Follow-Up & Advice</h3>
-      <div className="space-y-3 text-sm">
-        {nonEmpty(followUpText) && (
-          <Block k="Doctor’s Note / Advice" v={safe(followUpText)} />
-        )}
-        {nonEmpty(followUpDate) && (
-          <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
-        )}
-
-        {(uploads?.files?.length ?? 0) > 0 && (
-          <div>
-            <h4 className="text-xs font-medium text-gray-600 mb-2">
-              Attachments
-            </h4>
-            <ul className="list-disc ml-5 space-y-1">
-              {(uploads?.files ?? []).map((f, i) => (
-                <li key={i}>{(f as any)?.name ?? "File"}</li>
-              ))}
-            </ul>
+    <div className="space-y-6">
+      {/* 🩺 Vitals */}
+      {showVitals && (
+        <section className="ui-card p-4">
+          <h3 className="text-sm font-semibold mb-3">Vitals</h3>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+            {nonEmpty(vitals.temperature) && (
+              <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
+            )}
+            {(nonEmpty(vitals.bp) ||
+              (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
+              <KV
+                k="Blood Pressure"
+                v={
+                  nonEmpty(vitals.bp)
+                    ? `${safe(vitals.bp)} mmHg`
+                    : `${safe(vitals.bpSys)}/${safe(vitals.bpDia)} mmHg`
+                }
+              />
+            )}
+            {nonEmpty(vitals.spo2) && (
+              <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />
+            )}
+            {nonEmpty(vitals.pulse) && (
+              <KV k="Pulse" v={`${safe(vitals.pulse)} bpm`} />
+            )}
           </div>
-        )}
-        {nonEmpty(uploads?.note) && (
-          <Block k="Attachment Note" v={safe(uploads?.note)} />
-        )}
-      </div>
-    </section>
-  </div>
-);
+        </section>
+      )}
 
+      {/* 🧾 Clinical Summary */}
+      {showClinical && (
+        <section className="ui-card p-4">
+          <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
+          <div className="space-y-2 text-sm">
+            {nonEmpty(chiefComplaints) && (
+              <Block k="Chief Complaints" v={safe(chiefComplaints)} />
+            )}
+            {nonEmpty(allergies) && <Block k="Allergies" v={safe(allergies)} />}
+            {nonEmpty(medicalHistory) && (
+              <Block k="Medical History" v={safe(medicalHistory)} />
+            )}
+            {nonEmpty(investigationAdvice) && (
+              <Block k="Investigation Advice" v={safe(investigationAdvice)} />
+            )}
+            {nonEmpty(procedure) && <Block k="Procedure" v={safe(procedure)} />}
+          </div>
+        </section>
+      )}
+
+      {/* 💊 Prescription */}
+      {showRx && (
+        <section className="ui-card p-4">
+          <h3 className="text-sm font-semibold mb-3">Medications</h3>
+          <div className="overflow-auto rounded border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-gray-600">
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Medicine
+                  </th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Frequency
+                  </th>
+                  <th className="px-2 py-1.5 text-left font-medium">Timings</th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Duration
+                  </th>
+                  <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
+                  <th className="px-2 py-1.5 text-left font-medium">
+                    Instructions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rxRows ?? []).length > 0 ? (
+                  rxRows.map((m, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-2 py-1.5 font-medium">
+                        {safe(m.medicine)}
+                      </td>
+                      <td className="px-2 py-1.5">{safe(m.frequency)}</td>
+                      <td className="px-2 py-1.5">{safe(m.timing)}</td>
+                      <td className="px-2 py-1.5">{safe(m.duration)}</td>
+                      <td className="px-2 py-1.5">{safe(m.dosage)}</td>
+                      <td className="px-2 py-1.5">{safe(m.instruction)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center text-gray-500 py-2 text-xs"
+                    >
+                      No medications added
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* 🩹 Follow-up & Attachments */}
+      <section className="ui-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Follow-Up & Advice</h3>
+        <div className="space-y-3 text-sm">
+          {nonEmpty(followUpText) && (
+            <Block k="Doctor’s Note / Advice" v={safe(followUpText)} />
+          )}
+          {nonEmpty(followUpDate) && (
+            <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
+          )}
+
+          {(uploads?.files?.length ?? 0) > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-600 mb-2">
+                Attachments
+              </h4>
+              <ul className="list-disc ml-5 space-y-1">
+                {(uploads?.files ?? []).map((f, i) => (
+                  <li key={i}>{(f as any)?.name ?? "File"}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {nonEmpty(uploads?.note) && (
+            <Block k="Attachment Note" v={safe(uploads?.note)} />
+          )}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 /* ----------------------------- Small preview UI ---------------------------- */

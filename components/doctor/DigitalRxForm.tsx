@@ -182,7 +182,7 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
               {/* BP input (inline style consistent with yours) */}
               <div className="mt-1 flex items-center gap-2">
                 <input
-                  className="flex-1 max-w-[120px] bg-transparent border-b border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
+                  className="flex-1 max-w-[120px] bg-transparent  border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
                   inputMode="text"
                   placeholder="120/80"
                   value={safeValue.vitals.bp || ""}
@@ -386,7 +386,7 @@ function LabeledInput({
     <div className="flex items-center border-gray-300 pb-0.5 gap-2">
       <label className="text-sm text-gray-600 w-40 shrink-0">{label}</label>
       <input
-        className="flex-1 max-w-[80px] bg-transparent border-b border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
+        className="flex-1 max-w-[80px] bg-transparent  border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
         type={type}
         value={value}
         placeholder={placeholder}
@@ -417,7 +417,7 @@ function LabeledTextarea({
       <label className="text-sm text-gray-600 w-40 shrink-0 mt-1">
         {label}
       </label>
-      <div className="flex-1 border-b border-gray-300">
+      <div className="flex-1 border-gray-300">
         <textarea
           className="w-full bg-transparent outline-none resize-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400"
           rows={2}
