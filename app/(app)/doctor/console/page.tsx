@@ -126,8 +126,6 @@ type ImmunizationState = {
   }>;
 };
 
-
-
 export default function DoctorConsolePage() {
   /* Header */
   const [activeTop, setActiveTop] = useState<TopMenuKey>("consultation");
@@ -139,9 +137,15 @@ export default function DoctorConsolePage() {
   /* Right tools */
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
 
+  const [activeForm, setActiveForm] = useState<
+    "digitalRx" | "immunization" | "lab" | null
+  >(null);
+
+  const [showImmunization, setShowImmunization] = useState(false);
+
   const [bpTrend, setBpTrend] = useState<
-  Array<{ date: string; sys: number; dia: number }>
->([]);
+    Array<{ date: string; sys: number; dia: number }>
+  >([]);
 
   /* Patient header (placeholder) */
   const patient = useMemo(
@@ -470,30 +474,38 @@ export default function DoctorConsolePage() {
           {/* LEFT: Preview paper (NO tabs, NO filter) */}
           <PreviewPaper
             patient={patient}
-            /* If DigitalRx tool is chosen while companion is OFF, embed the form in the paper body */
+            /* Embed form inside paper body depending on active tool */
             bodyOverride={
-              virtIdx === 0 &&
-              companionMode === "off" &&
-              activeTool === "digitalrx" ? (
-                <DigitalRxForm
-                  value={rxForm}
-                  onChange={setRxForm}
-                  bpHistory={bpTrend}
-                />
+              virtIdx === 0 && companionMode === "off" ? (
+                activeTool === "digitalrx" ? (
+                  <DigitalRxForm
+                    value={rxForm}
+                    onChange={setRxForm}
+                    bpHistory={bpTrend}
+                  />
+                ) : activeTool === "immunization" ? (
+                  <ImmunizationForm />
+                ) : // ) : activeTool === "lab" ? (
+                //   <LabRequestForm />
+                // ) : activeTool === "discharge" ? (
+                //   <DischargeSummaryForm />
+                undefined
               ) : undefined
             }
-            /* When not embedding, show a live preview of the current Rx state (blank by default) */
-            payload={virtIdx === 0 ? rxForm : undefined}
+            /* Only show live DigitalRx preview when the DigitalRx tool is active */
+            payload={
+              virtIdx === 0 && activeTool === "digitalrx" ? rxForm : undefined
+            }
             /* Past records control & data (derived from virtual slot) */
             past={{
               active: virtIdx > 0,
-              index: virtIdx > 0 ? virtIdx - 1 : 0, // 0..(totalDays-1) → what the button expects
-              total: totalDays, // totalDays + 1 (includes current)
+              index: virtIdx > 0 ? virtIdx - 1 : 0,
+              total: totalDays,
               loading: loadingPast,
               error: errorPast ?? undefined,
               day: virtIdx > 0 ? pastDays[virtIdx - 1] : undefined,
-              onOpen: () => setVirtIdx(1), // starts at 1/N// toggle between current and latest past
-              onClose: () => setVirtIdx(0), // back to live/blank
+              onOpen: () => setVirtIdx(1),
+              onClose: () => setVirtIdx(0),
               onPrev: prevSlot,
               onNext: nextSlot,
             }}
@@ -514,13 +526,8 @@ export default function DoctorConsolePage() {
             <SectionCard ariaLabel="Scribe editor">
               <ScribePanel
                 onSubmit={({ complaints, advice }) => {
-                  // 1) Update small preview arrays (kept for compatibility)
                   setPreviewChiefComplaints(complaints);
                   setPreviewDoctorNote(advice);
-
-                  // 2) Simultaneously patch the DigitalRxForm
-                  //    Chief Complaints → clinical.chiefComplaints (bulleted)
-                  //    Advice → BOTH plan.doctorNote (for preview) AND plan.advice (RX field)
                   setRxForm((prev) => {
                     const next: DigitalRxFormState = {
                       ...prev,
@@ -536,9 +543,7 @@ export default function DoctorConsolePage() {
                     return next;
                   });
                 }}
-                onCancel={() => {
-                  /* optional: no-op or toast */
-                }}
+                onCancel={() => {}}
               />
             </SectionCard>
           )}
@@ -572,8 +577,10 @@ export default function DoctorConsolePage() {
                   onClick={() => openTool("lab")}
                   variant="gray"
                 />
+
                 {/* Divider */}
                 <div className="my-10 h-px w-full bg-gray-300" />
+
                 {/* Group B */}
                 <TinyIcon img="/icons/save.png" label="Save" onClick={onSave} />
                 <TinyIcon img="/icons/send.png" label="Send" onClick={onSend} />
@@ -592,6 +599,7 @@ export default function DoctorConsolePage() {
           </aside>
         </div>
       </div>
+
       <VoiceOverlay
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
@@ -1086,11 +1094,9 @@ export function RoundPill({
       aria-label={label}
       type="button"
       className={[
-        // base
-        "group relative grid place-items-center",
+        "group relative grid place-items-center overflow-visible",
         "w-9 h-9 rounded-xl border-1 bg-white shadow-sm transition",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        // put variant LAST so it wins over base
         VARIANT[variant],
       ].join(" ")}
     >
@@ -1101,9 +1107,19 @@ export function RoundPill({
         height={18}
         className="pointer-events-none"
       />
+
+      {/* ---------- Plain text label on hover ---------- */}
+      <span
+        className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[11px] text-black font-medium 
+                   opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-20"
+      >
+        {label}
+      </span>
     </button>
   );
 }
+
+
 
 function TinyIcon({
   img,

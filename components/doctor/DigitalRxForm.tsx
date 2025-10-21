@@ -28,11 +28,14 @@ export type RxRow = {
 export type DigitalRxFormState = {
   vitals: {
     temperature?: string;
-    bp?: string; // legacy field (kept for backward compatibility)
-    bpSys?: string; // systolic (new)
-    bpDia?: string; // diastolic (new)
+    bp?: string; // (legacy)
+    bpSys?: string; // NEW
+    bpDia?: string; // NEW
     spo2?: string;
     pulse?: string;
+
+    // ✅ This line makes vitals dynamic and fixes the TS error
+    [key: string]: string | undefined;
   };
   chiefComplaints?: string;
   allergies?: string;
@@ -55,7 +58,6 @@ export type DigitalRxFormState = {
   };
 };
 
-
 export type DigitalRxFormProps = {
   value: DigitalRxFormState;
   onChange: (next: DigitalRxFormState) => void;
@@ -67,6 +69,26 @@ export type DigitalRxFormProps = {
 const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
   ({ value, onChange, bpHistory }, ref) => {
     const [showBpTrend, setShowBpTrend] = useState(false);
+
+    // ⚙️ Customizable vitals configuration
+    const [showVitalsConfig, setShowVitalsConfig] = useState(false);
+    const [vitalConfig, setVitalConfig] = useState<Record<string, boolean>>({
+      temperature: true,
+      bpSys: true,
+      bpDia: true,
+      spo2: true,
+      pulse: true,
+      weight: true,
+      height: true,
+      bmi: false,
+      headCircumference: false,
+      chest: false,
+      waist: false,
+      womensHealth_lmpDate: false,
+      womensHealth_cycle: false,
+      lifestyle_smoking: false,
+      lifestyle_sleep: false,
+    });
 
     const safeValue: DigitalRxFormState = {
       vitals: value.vitals || { temperature: "", bp: "", spo2: "", pulse: "" },
@@ -114,6 +136,29 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
       next[i] = { ...next[i], ...row };
       patch("medications", next);
     };
+    const vitalOptions: Record<
+      string,
+      { label: string; placeholder?: string }
+    > = {
+      temperature: { label: "Temperature (°C)", placeholder: "98.6" },
+      bpSys: { label: "BP Systolic (mmHg)", placeholder: "120" },
+      bpDia: { label: "BP Diastolic (mmHg)", placeholder: "80" },
+      spo2: { label: "SpO₂ (%)", placeholder: "98" },
+      pulse: { label: "Pulse (bpm)", placeholder: "80" },
+      weight: { label: "Weight (kg)", placeholder: "65" },
+      height: { label: "Height (cm)", placeholder: "165" },
+      bmi: { label: "BMI", placeholder: "24.3" },
+      headCircumference: {
+        label: "Head Circumference (cm)",
+        placeholder: "50",
+      },
+      chest: { label: "Chest (cm)", placeholder: "80" },
+      waist: { label: "Waist (cm)", placeholder: "72" },
+      womensHealth_lmpDate: { label: "LMP Date", placeholder: "dd-mm-yyyy" },
+      womensHealth_cycle: { label: "Cycle Length (days)", placeholder: "28" },
+      lifestyle_smoking: { label: "Smoking Status", placeholder: "Never" },
+      lifestyle_sleep: { label: "Sleep Hours", placeholder: "7" },
+    };
 
     return (
       <div className="ui-card p-6 space-y-6 bg-white shadow-sm rounded-md relative">
@@ -138,87 +183,171 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
           </Section>
         </div>
 
-        {/* 3 Vitals */}
-        <Section title="Vitals" icon="/icons/lifeline-in-a-heart-outline.png">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <LabeledInput
-              label="Temperature (°C)"
-              value={safeValue.vitals.temperature || ""}
-              onChange={(v) =>
-                patch("vitals", { ...safeValue.vitals, temperature: v })
-              }
-              placeholder="100"
-            />
+       {/* 3️⃣ Vitals Section */}
+<Section
+  title={
+    <div className="flex items-center justify-between relative">
+      <span>Vitals</span>
+      {/* ⚙️ Settings button */}
+      <button
+        type="button"
+        onClick={() => setShowVitalsConfig((v) => !v)}
+        className="text-gray-500 hover:text-gray-800"
+        title="Customize vitals fields"
+      >
+        <Image
+          src="/icons/settings.png"
+          alt="Settings"
+          width={18}
+          height={18}
+          className="opacity-100 cursor-pointer"
+        />
+      </button>
 
-            {/* BP field with tiny trend icon + floating popover */}
-            <div className="relative">
-              {/* Tiny top row: label + trend button */}
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-gray-600 w-40 shrink-0">
-                  Blood Pressure (mmHg)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowBpTrend((s) => !s)}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] rounded hover:bg-gray-100 text-gray-700"
-                  title="View trend / compare"
-                  aria-label="View BP trend"
-                >
-                  {/* tiny chart icon */}
-                  <svg width="14" height="14" viewBox="0 0 24 24" className="opacity-80">
-                    <path
-                      d="M3 3v18h18M6 15l3-4 3 3 4-6 3 4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>Trend</span>
-                </button>
-              </div>
-
-              {/* BP input (inline style consistent with yours) */}
-              <div className="mt-1 flex items-center gap-2">
+      {/* ⚙️ Dropdown for custom fields */}
+      {showVitalsConfig && (
+        <div className="absolute  top-6 z-50 w-72 bg-white border border-gray-200 rounded-md shadow-lg p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-600">
+            Select fields to show:
+          </p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+            {Object.keys(vitalOptions).map((key) => (
+              <label key={key} className="flex items-center gap-2">
                 <input
-                  className="flex-1 max-w-[120px] bg-transparent  border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
-                  inputMode="text"
-                  placeholder="120/80"
-                  value={safeValue.vitals.bp || ""}
-                  onChange={(e) =>
-                    patch("vitals", { ...safeValue.vitals, bp: e.target.value })
+                  type="checkbox"
+                  checked={vitalConfig[key]}
+                  onChange={() =>
+                    setVitalConfig((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
                   }
                 />
-              </div>
-
-              {/* Floating popover */}
-              {showBpTrend && (
-                <BpTrendPopover
-                  history={bpHistory}
-                  onClose={() => setShowBpTrend(false)}
-                />
-              )}
-            </div>
-
-            <LabeledInput
-              label="SpO₂ (%)"
-              value={safeValue.vitals.spo2 || ""}
-              onChange={(v) =>
-                patch("vitals", { ...safeValue.vitals, spo2: v })
-              }
-              placeholder="98"
-            />
-            <LabeledInput
-              label="Pulse (bpm)"
-              value={safeValue.vitals.pulse || ""}
-              onChange={(v) =>
-                patch("vitals", { ...safeValue.vitals, pulse: v })
-              }
-              placeholder="80"
-            />
+                {vitalOptions[key].label}
+              </label>
+            ))}
           </div>
-        </Section>
+        </div>
+      )}
+    </div>
+  }
+  icon="/icons/lifeline-in-a-heart-outline.png"
+>
+  {/* 🧾 Default + Custom Vitals */}
+  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+
+    {/* 🌡 Temperature */}
+    <LabeledInput
+      label="Temperature (°C)"
+      value={safeValue.vitals.temperature || ""}
+      onChange={(v) =>
+        patch("vitals", { ...safeValue.vitals, temperature: v })
+      }
+      placeholder="98.6"
+    />
+
+    {/* 💓 BP with trend */}
+    <div className="relative">
+      <div className="flex items-center justify-between">
+        <label className="text-sm text-gray-600 w-40 shrink-0">
+          Blood Pressure (mmHg)
+        </label>
+
+        <button
+          type="button"
+          onClick={() => setShowBpTrend((s) => !s)}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] rounded hover:bg-gray-100 text-gray-700"
+          title="View BP trend"
+          aria-label="View BP trend"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            className="opacity-80"
+          >
+            <path
+              d="M3 3v18h18M6 15l3-4 3 3 4-6 3 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>Trend</span>
+        </button>
+      </div>
+
+      {/* BP Input */}
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          className="flex-1 max-w-[120px] bg-transparent border-b border-gray-300 outline-none px-1 py-0.5 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500"
+          placeholder="120/80"
+          value={formatBp(safeValue.vitals.bpSys, safeValue.vitals.bpDia)}
+          onChange={(e) => {
+            const { sys, dia } = parseBpString(e.target.value);
+            const next = {
+              ...safeValue.vitals,
+              bpSys: sys ?? "",
+              bpDia: dia ?? "",
+              bp: sys && dia ? `${sys}/${dia}` : sys || dia || "",
+            };
+            patch("vitals", next);
+          }}
+          inputMode="numeric"
+        />
+      </div>
+
+      {/* BP Trend popover */}
+      {showBpTrend && (
+        <BpTrendPopover
+          history={bpHistory}
+          onClose={() => setShowBpTrend(false)}
+        />
+      )}
+    </div>
+
+    {/* ❤️ Pulse */}
+    <LabeledInput
+      label="Pulse (bpm)"
+      value={safeValue.vitals.pulse || ""}
+      onChange={(v) =>
+        patch("vitals", { ...safeValue.vitals, pulse: v })
+      }
+      placeholder="80"
+    />
+
+    {/* ⚖️ Weight */}
+    <LabeledInput
+      label="Weight (kg)"
+      value={safeValue.vitals.weight || ""}
+      onChange={(v) =>
+        patch("vitals", { ...safeValue.vitals, weight: v })
+      }
+      placeholder="65"
+    />
+
+    {/* ⚙️ Optional vitals from config */}
+    {Object.entries(vitalConfig)
+      .filter(([_, show]) => show)
+      .map(([key]) => {
+        const option = vitalOptions[key];
+        return (
+          <LabeledInput
+            key={key}
+            label={option.label}
+            value={safeValue.vitals[key] || ""}
+            onChange={(v) =>
+              patch("vitals", { ...safeValue.vitals, [key]: v })
+            }
+            placeholder={option.placeholder}
+          />
+        );
+      })}
+  </div>
+</Section>
+
 
         {/* 4 Chief Complaints */}
         <Section title="Chief Complaints" icon="/icons/digitalrx.png">
@@ -343,23 +472,25 @@ function Section({
   icon,
   children,
 }: {
-  title: string;
+  title: React.ReactNode; // ✅ accepts either string or JSX
   icon?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg p-3 bg-white">
-      <div className="flex items-center gap-2 mb-3">
-        {icon && (
-          <Image
-            src={icon}
-            alt=""
-            width={18}
-            height={18}
-            className="opacity-80"
-          />
-        )}
-        <h3 className="text-sm font-semibold">{title}</h3>
+    <section className="rounded-lg p-3 bg-white relative">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {icon && (
+            <Image
+              src={icon}
+              alt=""
+              width={18}
+              height={18}
+              className="opacity-80"
+            />
+          )}
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
       </div>
       {children}
     </section>
@@ -660,7 +791,7 @@ function BpTrendPopover({
     return P + (i * (W - 2 * P)) / (n - 1);
   };
   const yAt = (v: number) => P + (H - 2 * P) * (1 - (v - minY) / span);
-  const poly = (get: (r: typeof rows[number]) => number) =>
+  const poly = (get: (r: (typeof rows)[number]) => number) =>
     rows.map((r, i) => `${xAt(i)},${yAt(get(r))}`).join(" ");
 
   return (
@@ -757,3 +888,23 @@ function BpTrendPopover({
     </div>
   );
 }
+/* --------------------- BP Utility Helpers --------------------- */
+function parseBpString(s: string): { sys?: string; dia?: string } {
+  // accepts "120/80", "120-80", "120 80", etc.
+  const cleaned = s.replace(/[^\d/]/g, (ch) =>
+    /\d/.test(ch) ? ch : "/"
+  );
+  const parts = cleaned.split(/[\/\s-]+/).filter(Boolean);
+  const sys = parts[0] && /^\d+$/.test(parts[0]) ? parts[0] : "";
+  const dia = parts[1] && /^\d+$/.test(parts[1]) ? parts[1] : "";
+  return { sys, dia };
+}
+
+function formatBp(sys?: string, dia?: string): string {
+  const s = (sys || "").trim();
+  const d = (dia || "").trim();
+  if (!s && !d) return "";
+  if (s && d) return `${s}/${d}`;
+  return s || d;
+}
+
