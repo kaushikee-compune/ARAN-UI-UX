@@ -21,6 +21,10 @@ export default function DaycareSummary({
     { name: "", datetime: "", performer: loggedInUser, notes: "" },
   ]);
 
+  const [vitalsChart, setVitalsChart] = useState([
+    { time: currentHour(), bpSys: "", bpDia: "", temp: "", spo2: "" },
+  ]);
+
   const [medications, setMedications] = useState([
     { medicine: "", route: "", time: "", administeredBy: "" },
   ]);
@@ -166,6 +170,102 @@ export default function DaycareSummary({
                 datetime: "",
                 performer: loggedInUser,
                 notes: "",
+              })
+            }
+          />
+        </SubSection>
+
+        {/* --- Hourly Vitals Chart --- */}
+        <SubSection title="Hourly Vitals Chart">
+          <ModernTable
+            headers={[
+              "Time",
+              "BP (Sys/Dia)",
+              "Temperature (°F)",
+              "SpO₂ (%)",
+              "Actions",
+            ]}
+          >
+            {vitalsChart.map((v, idx) => (
+              <tr key={idx} className="border-t border-gray-100">
+                <Td>
+                  <input
+                    type="time"
+                    className="ui-input w-full"
+                    value={v.time}
+                    onChange={(e) =>
+                      update(vitalsChart, setVitalsChart, idx, {
+                        time: e.target.value,
+                      })
+                    }
+                  />
+                </Td>
+                <Td>
+                  <div className="flex gap-1">
+                    <input
+                      className="ui-input w-16"
+                      placeholder="Sys"
+                      value={v.bpSys}
+                      onChange={(e) =>
+                        update(vitalsChart, setVitalsChart, idx, {
+                          bpSys: e.target.value,
+                        })
+                      }
+                    />
+                    <span className="text-gray-500">/</span>
+                    <input
+                      className="ui-input w-16"
+                      placeholder="Dia"
+                      value={v.bpDia}
+                      onChange={(e) =>
+                        update(vitalsChart, setVitalsChart, idx, {
+                          bpDia: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </Td>
+                <Td>
+                  <input
+                    className="ui-input w-full"
+                    placeholder="98.6"
+                    value={v.temp}
+                    onChange={(e) =>
+                      update(vitalsChart, setVitalsChart, idx, {
+                        temp: e.target.value,
+                      })
+                    }
+                  />
+                </Td>
+                <Td>
+                  <input
+                    className="ui-input w-full"
+                    placeholder="97"
+                    value={v.spo2}
+                    onChange={(e) =>
+                      update(vitalsChart, setVitalsChart, idx, {
+                        spo2: e.target.value,
+                      })
+                    }
+                  />
+                </Td>
+                <Td>
+                  <DeleteBtn
+                    onClick={() => deleteRow(vitalsChart, setVitalsChart, idx)}
+                  />
+                </Td>
+              </tr>
+            ))}
+          </ModernTable>
+
+          <AddBtn
+            onClick={() =>
+              addRow(vitalsChart, setVitalsChart, {
+                time: currentHour(),
+                bpSys: "",
+                bpDia: "",
+                temp: "",
+                spo2: "",
               })
             }
           />
@@ -768,4 +868,9 @@ function VitalsButton({
       )}
     </div>
   );
+}
+function currentHour() {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  return now.toISOString().slice(11, 16); // "HH:MM"
 }
