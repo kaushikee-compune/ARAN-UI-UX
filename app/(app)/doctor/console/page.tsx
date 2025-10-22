@@ -7,6 +7,10 @@ import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 import ScribePanel from "@/components/doctor/ScribePanel";
 import ImmunizationForm from "@/components/doctor/ImmunizationForm";
 import DaycareSummary from "@/components/doctor/DaycareSummary";
+import LabRequestForm from "@/components/lab/LabRequestForm";
+import { useRouter } from "next/navigation";
+//import { generatePrescriptionPdf } from "@/lib/pdf/generatePrescriptionPdf";
+import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 
 /* External forms */
 import DigitalRxForm, {
@@ -15,8 +19,6 @@ import DigitalRxForm, {
 
 /* Past records tiny controller */
 import PastRecordButton from "@/components/doctor/PastRecordButton";
-
-import { generatePrescriptionPdf } from "@/lib/pdf/prescription";
 
 /* ------------------------------ Canonical types ------------------------------ */
 type DigitalRxFormState = RxState;
@@ -130,6 +132,8 @@ type ImmunizationState = {
 export default function DoctorConsolePage() {
   /* Header */
   const [activeTop, setActiveTop] = useState<TopMenuKey>("consultation");
+
+  const router = useRouter();
 
   /* Companion */
   const [companionMode, setCompanionMode] = useState<CompanionMode>("off");
@@ -350,15 +354,48 @@ export default function DoctorConsolePage() {
   }, [rxForm]);
 
   const onSend = useCallback(() => console.log("Send (no-op)"), []);
-  const onPrint = useCallback(() => {
-    // Creates and downloads a PDF using current DigitalRxForm + patient context
-    generatePrescriptionPdf({
-      rx: rxForm,
-      patient,
-      doctor,
-      clinic,
+  // inside your DoctorConsole component (same place where old onPrint existed)
+  const onPrint = async () => {
+    // Dynamically import the PDF generator — browser only
+    const { generatePrescriptionPdf } = await import(
+      "@/lib/pdf/generatePrescriptionPdf"
+    );
+
+    await generatePrescriptionPdf({
+      rx: {
+        medications: rxForm?.medications  || [], // your form array
+      },
+      patient: {
+        name: patient?.name || "Unknown",
+        age: patient?.age || "",
+        gender: patient?.gender || "",
+        abhaNumber: patient?.abhaNumber || "",
+        abhaAddress: patient?.abhaAddress || "",
+        vitals: {
+          temperature: rxForm?.vitals?.temperature || "",
+          bp: rxForm?.vitals?.bp || "",
+          spo2: rxForm?.vitals?.spo2 || "",
+          pulse: rxForm?.vitals?.pulse || "",
+        },
+        chiefComplaints: rxForm?.chiefComplaints || "",
+        investigationAdvice: rxForm?.investigationAdvice || "",
+        followUpText: rxForm?.followUpText || "",
+        followUpDate: rxForm?.followUpDate || "",
+      },
+      doctor: {
+        name: doctor?.name || "Dr. Name",
+        regNo: doctor?.regNo || "",
+        specialty: doctor?.specialty || "",
+      },
+      clinic: {
+        name: clinic?.name || "Clinic Name",
+        address: clinic?.address || "",
+        phone: clinic?.phone || "",
+        logoUrl: "/White logo.png", // path in /public
+      },
     });
-  }, [rxForm, patient, doctor, clinic]);
+  };
+
   const onLanguage = useCallback(() => console.log("Language (no-op)"), []);
 
   /* Companion switch + picks */
@@ -440,14 +477,15 @@ export default function DoctorConsolePage() {
               onChange={(v) => handleCompanionSwitch(!!v)}
               onCheckedChange={(v) => handleCompanionSwitch(!!v)}
             />
-            <IconButton
+            {/* Commented for this version we dont need  */}
+            {/* <IconButton
               label="Form"
               disabled={!companionOn}
               pressed={companionMode === "form"}
               onClick={() => pickCompanion("form")}
             >
               <FormIcon className="w-4 h-4" />
-            </IconButton>
+            </IconButton> */}
             <IconButton
               label="Voice"
               disabled={!companionOn}
@@ -491,16 +529,23 @@ export default function DoctorConsolePage() {
                 ) : activeTool === "immunization" ? (
                   <ImmunizationForm />
                 ) : activeTool === "daycare" ? (
-                 <DaycareSummary
-  pastVitals={{
-    temp: [98.7, 99.3, 98.4],
-    bpSys: [120, 130],
-    bpDia: [80, 85],
-    spo2: [98, 97],
-    allergies: ["Penicillin"],
-    conditions: ["Diabetes", "Hypertension"],
-  }}
-/>
+                  <DaycareSummary
+                    pastVitals={{
+                      temp: [98.7, 99.3, 98.4],
+                      bpSys: [120, 130],
+                      bpDia: [80, 85],
+                      spo2: [98, 97],
+                      allergies: ["Penicillin"],
+                      conditions: ["Diabetes", "Hypertension"],
+                    }}
+                  />
+                ) : activeTool === "lab" ? (
+                  <LabRequestForm
+                    isDoctorContext
+                    patientName={patient.name}
+                    onSubmit={() => setActiveTool("none")}
+                    onCancel={() => setActiveTool("none")}
+                  />
                 ) : undefined
               ) : undefined
             }
