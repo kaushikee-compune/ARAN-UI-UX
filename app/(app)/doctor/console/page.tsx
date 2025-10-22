@@ -6,6 +6,7 @@ import CompanionToggle from "@/components/doctor/CompanionToggle";
 import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 import ScribePanel from "@/components/doctor/ScribePanel";
 import ImmunizationForm from "@/components/doctor/ImmunizationForm";
+import DaycareSummary from "@/components/doctor/DaycareSummary";
 
 /* External forms */
 import DigitalRxForm, {
@@ -74,7 +75,7 @@ function groupByDate<T extends { dateISO: string }>(rows: T[]) {
 /* -------------------------------- Constants -------------------------------- */
 type TopMenuKey = "consultation" | "consent" | "queue";
 type CompanionMode = "off" | "form" | "voice" | "scribe";
-type ActiveTool = "none" | "digitalrx" | "immunization" | "discharge" | "lab";
+type ActiveTool = "none" | "digitalrx" | "immunization" | "daycare" | "lab";
 
 /* Sidebar collapse broadcast (from your base) */
 const collapseSidebar = (collapse: boolean) => {
@@ -403,6 +404,10 @@ export default function DoctorConsolePage() {
       ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"
       : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]";
 
+  useEffect(() => {
+    console.log("ActiveTool changed:", activeTool);
+  }, [activeTool]);
+
   return (
     <div className="space-y-3">
       {/* ------------------------------- Header Panel ------------------------------- */}
@@ -485,11 +490,18 @@ export default function DoctorConsolePage() {
                   />
                 ) : activeTool === "immunization" ? (
                   <ImmunizationForm />
-                ) : // ) : activeTool === "lab" ? (
-                //   <LabRequestForm />
-                // ) : activeTool === "discharge" ? (
-                //   <DischargeSummaryForm />
-                undefined
+                ) : activeTool === "daycare" ? (
+                 <DaycareSummary
+  pastVitals={{
+    temp: [98.7, 99.3, 98.4],
+    bpSys: [120, 130],
+    bpDia: [80, 85],
+    spo2: [98, 97],
+    allergies: ["Penicillin"],
+    conditions: ["Diabetes", "Hypertension"],
+  }}
+/>
+                ) : undefined
               ) : undefined
             }
             /* Only show live DigitalRx preview when the DigitalRx tool is active */
@@ -568,7 +580,7 @@ export default function DoctorConsolePage() {
                 <RoundPill
                   label=""
                   img="/icons/discharge-summary.png"
-                  onClick={() => openTool("discharge")}
+                  onClick={() => openTool("daycare")}
                   variant="blue"
                 />
                 <RoundPill
@@ -1118,8 +1130,6 @@ export function RoundPill({
     </button>
   );
 }
-
-
 
 function TinyIcon({
   img,

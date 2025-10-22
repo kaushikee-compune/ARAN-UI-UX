@@ -2,6 +2,18 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  IconButton,
+} from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 export default function ImmunizationForm() {
   const [rows, setRows] = useState([
@@ -9,8 +21,12 @@ export default function ImmunizationForm() {
   ]);
 
   const addRow = () =>
-    setRows((r) => [...r, { vaccine: "", doseNumber: "", dueDate: "", dateGiven: "", comments: "" }]);
-  const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i));
+    setRows((r) => [
+      ...r,
+      { vaccine: "", doseNumber: "", dueDate: "", dateGiven: "", comments: "" },
+    ]);
+  const removeRow = (i: number) =>
+    setRows((r) => r.filter((_, idx) => idx !== i));
   const updateRow = (i: number, patch: Partial<(typeof rows)[number]>) =>
     setRows((r) => {
       const next = [...r];
@@ -64,6 +80,7 @@ export default function ImmunizationForm() {
       <div className="border-t border-gray-200 my-2" />
 
       {/* ---------- Immunization Table ---------- */}
+
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="text-xs font-medium text-gray-600">
@@ -71,81 +88,122 @@ export default function ImmunizationForm() {
           </div>
           <button
             onClick={addRow}
-            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+            className="text-xs px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 shadow-sm"
           >
             + Add Row
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border text-sm table-fixed">
-            <thead className="bg-gray-50">
-              <tr>
-                <Th>Vaccine Name</Th>
-                <Th>Dose Number</Th>
-                <Th>Due Date</Th>
-                <Th>Date Given</Th>
-                <Th>Comments</Th>
-                <Th className="w-16">Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
+        {/* Material UI Table */}
+        <TableContainer
+          component={Paper}
+          sx={{
+            boxShadow: "0px 2px 6px rgba(0,0,0,0.05)",
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "rgba(249,250,251,1)" }}>
+                <TableCell sx={{ fontWeight: 600, color: "#374151" }}>
+                  Vaccine Name
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "#374151" }}>
+                  Dose Number
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "#374151" }}>
+                  Due Date
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "#374151" }}>
+                  Date Given
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "#374151" }}>
+                  Comments
+                </TableCell>
+                <TableCell sx={{ width: 60 }} />
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
               {rows.map((r, i) => (
-                <tr key={i} className="border-t align-top">
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={r.vaccine}
-                      onChange={(e) => updateRow(i, { vaccine: e.target.value })}
+                <TableRow
+                  key={i}
+                  hover
+                  sx={{
+                    "&:last-child td, &:last-child th": { border: 0 },
+                  }}
+                >
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      fullWidth
                       placeholder="e.g., Hepatitis B"
+                      value={r.vaccine}
+                      onChange={(e) =>
+                        updateRow(i, { vaccine: e.target.value })
+                      }
                     />
-                  </Td>
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={r.doseNumber}
-                      onChange={(e) => updateRow(i, { doseNumber: e.target.value })}
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      fullWidth
                       placeholder="1st / 2nd / Booster"
+                      value={r.doseNumber}
+                      onChange={(e) =>
+                        updateRow(i, { doseNumber: e.target.value })
+                      }
                     />
-                  </Td>
-                  <Td>
-                    <input
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
                       type="date"
-                      className="ui-input w-full"
+                      fullWidth
                       value={r.dueDate}
-                      onChange={(e) => updateRow(i, { dueDate: e.target.value })}
+                      onChange={(e) =>
+                        updateRow(i, { dueDate: e.target.value })
+                      }
                     />
-                  </Td>
-                  <Td>
-                    <input
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
                       type="date"
-                      className="ui-input w-full"
+                      fullWidth
                       value={r.dateGiven}
-                      onChange={(e) => updateRow(i, { dateGiven: e.target.value })}
+                      onChange={(e) =>
+                        updateRow(i, { dateGiven: e.target.value })
+                      }
                     />
-                  </Td>
-                  <Td>
-                    <input
-                      className="ui-input w-full"
-                      value={r.comments}
-                      onChange={(e) => updateRow(i, { comments: e.target.value })}
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      fullWidth
                       placeholder="Remarks"
+                      value={r.comments}
+                      onChange={(e) =>
+                        updateRow(i, { comments: e.target.value })
+                      }
                     />
-                  </Td>
-                  <Td>
-                    <button
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      aria-label="delete"
+                      color="error"
                       onClick={() => removeRow(i)}
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full border hover:bg-gray-50 text-gray-600 hover:text-gray-900"
-                      title="Delete row"
+                      size="small"
                     >
-                      ×
-                    </button>
-                  </Td>
-                </tr>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
 
       {/* ---------- Footer ---------- */}
