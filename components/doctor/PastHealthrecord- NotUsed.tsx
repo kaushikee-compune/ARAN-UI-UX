@@ -708,7 +708,7 @@ export default function DigitalRxForm({
 
         {/* ================== Section: Clinical Details ================= */}
         <CardShell
-          title="Clinical Details"
+          title="Clinical test Details"
           moreLabel={openClinical ? "Less" : "More"}
           onMore={() => setOpenClinical((s) => !s)}
         >
