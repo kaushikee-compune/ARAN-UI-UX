@@ -6,28 +6,28 @@ import { useDropzone } from "react-dropzone";
 
 export default function ProfileManagement() {
   const [photo, setPhoto] = useState<string | null>(null);
-  const [name, setName] = useState("Dr. Kavya Deshpande");
+  const [name, setName] = useState("Dr. Full Name");
   const [specialization, setSpecialization] = useState(
-    "Consultant Gynecologist & Fetal Medicine"
+    "Specializations"
   );
   const [tagline, setTagline] = useState(
     "Compassionate women’s health, evidence-based care, and precise fetal diagnostics."
   );
   const [about, setAbout] = useState(
-    "Dr. Kavya Deshpande is a board-certified gynecologist with 20+ years of experience in obstetrics, fetal medicine, and minimally invasive gynecologic procedures."
+    "Share a short overview of your medical experience, areas of specialization, and care philosophy — what should patients know about you before their visit?"
   );
   const [experience, setExperience] = useState("20");
   const [qualifications, setQualifications] = useState([
-    "MBBS, MD (OBGYN)",
-    "Fellowship in Fetal Medicine",
+    "Qualification",
+    "Qualification",
   ]);
-  const [address, setAddress] = useState("Sushila Mathrutva Clinic, Kolkata");
-  const [publicPhone, setPublicPhone] = useState("+91 98765 43210");
+  const [address, setAddress] = useState("Full Address");
+  const [publicPhone, setPublicPhone] = useState("+91 XXX XXX XXXX");
   const [internalPhone, setInternalPhone] = useState("+91 98765 00000");
   const [testimonials, setTestimonials] = useState([
     {
-      patient: "Shampa G.",
-      text: "Dr. Kavya is incredibly caring and patient. She guided me throughout my pregnancy journey with utmost compassion.",
+      patient: "Patient 1",
+      text: "Include patient reviews or feedback highlighting your care quality, professionalism, and medical expertise.",
     },
   ]);
 
@@ -193,7 +193,7 @@ export default function ProfileManagement() {
               editingField === "experience" ? (
                 <li key={i}>
                   <input
-                    className="ui-input w-full"
+                    className="ui-input w-full text-sm"
                     value={q}
                     onChange={(e) => {
                       const next = [...qualifications];
@@ -242,13 +242,13 @@ export default function ProfileManagement() {
           {editingField === "contact" ? (
             <div className="space-y-2">
               <textarea
-                className="ui-textarea w-full"
+                className="ui-textarea w-full text-sm"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Clinic address"
               />
               <input
-                className="ui-input w-full"
+                className="ui-input w-full text-sm"
                 value={publicPhone}
                 onChange={(e) => setPublicPhone(e.target.value)}
                 placeholder="Public phone"
