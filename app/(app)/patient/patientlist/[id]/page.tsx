@@ -24,8 +24,8 @@ const MOCK_PATIENT = {
   dob: "1973-01-20",
   mobile: "9972826000",
   email: "shampa@mail.com",
-  abhaNumber: "91-5510-2061-4469",
-  abhaAddress: "shampa.go@sbx",
+  abhaNumber: "91 1234 1234 1234",
+  abhaAddress: "shampa@addm",
   address: "123, Park Street, Kolkata",
   emergencyContact: "R. Goswami • +91-9876543210",
   allergy: "Penicillin",
@@ -148,12 +148,17 @@ export default function PatientDetailPage() {
             <div className="text-sm text-gray-700">
               {formData.gender} • {formData.age}
             </div>
-            <div className="text-xs text-gray-500">
-              ABHA No: {formData.abhaNumber}
-            </div>
-            <div className="text-xs text-gray-500">
-              ABHA Address: {formData.abhaAddress}
-            </div>
+            {formData.abhaNumber && (
+              <div className="text-xs text-gray-500">
+                ABHA No: {formData.abhaNumber}
+              </div>
+            )}
+
+            {formData.abhaAddress && (
+              <div className="text-xs text-gray-500">
+                ABHA Address: {formData.abhaAddress}
+              </div>
+            )}
           </div>
         </div>
 
@@ -194,6 +199,17 @@ export default function PatientDetailPage() {
             icon={<FileSignature size={14} />}
             color="purple"
           />
+
+          {/* ✅ Conditionally show Create ABHA button */}
+          {!formData.abhaAddress && (
+            <button
+              onClick={() => alert("Redirect to ABHA creation flow")}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-green-200 text-green-800 hover:bg-green-300 transition"
+              type="button"
+            >
+              + Create ABHA
+            </button>
+          )}
         </div>
       )}
 
@@ -553,7 +569,7 @@ function ActionBtn({
   };
   return (
     <button
-      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm ${colors[color]}`}
+      className={`flex items-center drop-shadow-sm gap-1 px-3 py-1.5 rounded-md text-sm ${colors[color]}`}
     >
       {icon} {label}
     </button>
