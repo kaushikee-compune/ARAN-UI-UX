@@ -10,12 +10,11 @@ type QueueData = {
 };
 
 export default function QueuePage() {
-  // Mock role check (replace with real user context later)
-  const [userRole] = useState<"doctor" | "staff">("staff");
+  // In real app, fetch doctor info from context
+  const [doctorName] = useState("Dr. Hira Mardi");
 
   const [data, setData] = useState<QueueData | null>(null);
   const [search, setSearch] = useState("");
-  const [doctor, setDoctor] = useState("All");
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -132,49 +131,38 @@ export default function QueuePage() {
 
   /* ------------------------- JSX ------------------------- */
   return (
-    <div className="space-y-5">
-      {/* ---------- Top Control Bar ---------- */}
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Date Picker */}
-          <div className="relative">
-            <CalendarDays className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="pl-9 ui-input w-[160px]"
-            />
-          </div>
-
-          {/* Search + Filter inline */}
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Search Name / UHID / ABHA / Phone"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 ui-input w-[360px]"
-              />
-            </div>
-
-            {userRole !== "doctor" && (
-              <select
-                value={doctor}
-                onChange={(e) => setDoctor(e.target.value)}
-                className="ui-input w-[180px]"
-              >
-                <option>All Doctors</option>
-                <option>Dr. Hira Mardi</option>
-                <option>Dr. A. Banerjee</option>
-                <option>Dr. Vasanth Shetty</option>
-              </select>
-            )}
-          </div>
+    <div className="space-y-2">
+      {/* ---------- Unified Top Bar ---------- */}
+      <div className="flex items-center justify-between bg-white-  rounded-xl px-4 py-3 shadow-md">
+        {/* Date Picker */}
+        <div className="relative">
+          <CalendarDays className="absolute right-2.5 top-2.5 h-4 w-4 text-pink-400" />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="pl-9 ui-input w-[160px]"
+          />
         </div>
 
+        {/* Search */}
+        <div className="relative w-[440px]">
+          <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
+          <input
+            type="search"
+            placeholder="Search Name / UHID / ABHA / Phone"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 ui-input w-full"
+          />
+        </div>
+
+        {/* Doctor Name */}
+        <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          {doctorName}
+        </div>
+
+        {/* Add Walk-in */}
         <button
           onClick={handleAddToQueue}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition"
@@ -234,7 +222,9 @@ export default function QueuePage() {
             >
               <X className="w-4 h-4" />
             </button>
-            <h3 className="text-base font-semibold mb-3">Add Walk-in Patient</h3>
+            <h3 className="text-base font-semibold mb-3">
+              Add Walk-in Patient
+            </h3>
 
             <div className="space-y-3">
               <div>
@@ -242,7 +232,9 @@ export default function QueuePage() {
                 <input
                   type="text"
                   value={walkin.name}
-                  onChange={(e) => setWalkin({ ...walkin, name: e.target.value })}
+                  onChange={(e) =>
+                    setWalkin({ ...walkin, name: e.target.value })
+                  }
                   className="ui-input w-full mt-1"
                   placeholder="Enter name"
                 />
@@ -268,7 +260,9 @@ export default function QueuePage() {
                 <input
                   type="number"
                   value={walkin.age}
-                  onChange={(e) => setWalkin({ ...walkin, age: e.target.value })}
+                  onChange={(e) =>
+                    setWalkin({ ...walkin, age: e.target.value })
+                  }
                   className="ui-input w-full mt-1"
                   placeholder="Enter age"
                 />
