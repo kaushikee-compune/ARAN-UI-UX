@@ -1,6 +1,6 @@
 "use client";
 
-import ProfileManagement from "@/components/doctor/ProfileManagement/page";
+import ProfileManagement from "@/components/doctor/ProfileManagement/page-old";
 
 export default function DoctorProfilePage() {
   return (
