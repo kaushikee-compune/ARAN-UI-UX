@@ -111,7 +111,13 @@ const MENU: Record<Role, Item[]> = {
   ],
   staff: [
     {
-      href: "/doctor/appointments",
+      href: "/staff/console",
+      label: "Rx",
+      icon: MonitorCog,
+      color: "text-emerald-600",
+    },
+    {
+      href: "/staff/appointments",
       label: "Appointments",
       icon: CalendarDays,
       color: "text-purple-600",

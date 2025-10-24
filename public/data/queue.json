@@ -1,36 +1,51 @@
 {
   "waiting": [
+   
     {
-      "uhid": "UHID001",
-      "token": "T01",
-      "name": "Anita Sharma",
-      "gender": "Female",
-      "abhaAddress": "anita@sbx"
-    },
-    {
-      "uhid": "UHID002",
-      "token": "T02",
+      "uhid": "UHID232",
+      "token": "T04",
       "name": "Rajesh Kumar",
       "gender": "Male",
       "abhaAddress": "rajesh@sbx"
-    }
-  ],
-  "current": [
+    },
     {
-      "uhid": "UHID003",
-      "token": "T03",
+      "uhid": "UHID345",
+      "token": "T05",
       "name": "Suman Das",
       "gender": "Female",
       "abhaAddress": "suman@sbx"
+    },
+    {
+      "uhid": "UHID351",
+      "token": "T06",
+      "name": "Salman Khan",
+      "gender": "Male",
+      "abhaAddress": "salman@sbx"
+    }
+  ],
+  "current": [
+     {
+      "uhid": "UHID123",
+      "token": "T03",
+      "name": "Anita Sharma",
+      "gender": "Female",
+      "abhaAddress": "anita@sbx"
     }
   ],
   "completed": [
     {
-      "uhid": "UHID004",
-      "token": "T04",
+      "uhid": "UHID765",
+      "token": "T01",
       "name": "Vikram Singh",
       "gender": "Male",
       "abhaAddress": "vikram@sbx"
+    },
+    {
+      "uhid": "UHID312",
+      "token": "T02",
+      "name": "Ambica Soni",
+      "gender": "Female",
+      "abhaAddress": "ambica@sbx"
     }
   ]
 }

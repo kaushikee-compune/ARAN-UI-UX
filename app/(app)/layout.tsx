@@ -3,22 +3,53 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import NextImage from "next/image";
-import RoleAwareSidebar from "@/components/shell/RoleAwareSidebar";
+import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
 import { Toaster } from "react-hot-toast";
 
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;
 
-/* ... your ProfileMenu component stays unchanged ... */
+/* ---------- Decode & read role from cookie ---------- */
+function base64UrlDecode(str: string): string {
+  try {
+    const norm =
+      str.replace(/-/g, "+").replace(/_/g, "/") +
+      "===".slice((str.length + 3) % 4);
+    const bin = atob(norm);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+function readClientRoleFromCookie(): Role {
+  const cookie = typeof document !== "undefined" ? document.cookie : "";
+  const part = cookie.split("; ").find((c) => c.startsWith("aran.session="));
+  if (!part) return "doctor";
+  const raw = part.split("=")[1];
+  if (!raw) return "doctor";
+  try {
+    const obj = JSON.parse(base64UrlDecode(raw));
+    const role = obj?.role as Role | undefined;
+    return role === "doctor" || role === "staff" || role === "admin"
+      ? role
+      : "doctor";
+  } catch {
+    return "doctor";
+  }
+}
 
+/* ---------- Main shared layout ---------- */
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [role, setRole] = useState<Role>("doctor");
 
   useEffect(() => {
     setMounted(true);
     setCollapsed(readCollapsedFromStorage());
+    setRole(readClientRoleFromCookie());
   }, []);
 
   const toggleSidebar = useMemo(
@@ -66,7 +97,8 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           )}
         </div>
 
-        <ProfileMenu role="doctor" />
+        {/* Dynamically show role-specific avatar */}
+        <ProfileMenu role={role} />
       </header>
 
       {/* Grid: sidebar + main */}
@@ -84,7 +116,9 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
             collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
           ].join(" ")}
         >
-          <RoleAwareSidebar />
+          {/* 🔹 Role-aware sidebar */}
+          <RoleAwareSidebar role={role} />
+
           {!collapsed && (
             <div
               aria-hidden
@@ -103,7 +137,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* ✅ Toast renderer — must be here, not inside another html/body */}
+      {/* Toast renderer */}
       <Toaster
         position="top-center"
         toastOptions={{
@@ -122,7 +156,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
   );
 }
 
-/* ---------------- Utility ---------------- */
+/* ---------- Utilities ---------- */
 function readCollapsedFromStorage(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -133,11 +167,12 @@ function readCollapsedFromStorage(): boolean {
   }
 }
 
+/* ---------- Profile menu (unchanged except role-aware avatar) ---------- */
 function ProfileMenu({
   role = "doctor",
-  name = "Dr. Hira Mardi",
+  name = role === "staff" ? "Clinic Staff" : "Dr. Hira Mardi",
 }: {
-  role?: "doctor" | "staff" | "admin";
+  role?: Role;
   name?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -186,7 +221,13 @@ function ProfileMenu({
         aria-expanded={open}
       >
         <NextImage
-          src={role === "doctor" ? "/icons/doctor.png" : "/icons/logo.png"}
+          src={
+            role === "staff"
+              ? "/icons/staff.png"
+              : role === "admin"
+              ? "/icons/admin.png"
+              : "/icons/doctor.png"
+          }
           alt="User Profile"
           width={24}
           height={24}
