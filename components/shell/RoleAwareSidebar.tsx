@@ -61,7 +61,7 @@ type Item = {
 const MENU: Record<Role, Item[]> = {
   doctor: [
     {
-      href: "/doctor/dashboard",
+      href: "/doctor/",
       label: "Dashboard",
       icon: LayoutDashboard,
       color: "text-sky-600",

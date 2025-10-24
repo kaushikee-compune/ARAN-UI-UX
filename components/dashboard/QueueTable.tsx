@@ -16,11 +16,28 @@ export default function QueueTable({ queue }: { queue?: QueueEntry[] }) {
 
   return (
     <div className="ui-card p-4">
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold">Live OPD Queue</h3>
-        <button className="text-xs text-[--secondary]">View All</button>
+        {/* “Live OPD Queue” now acts as a styled button */}
+        <button
+          onClick={() => router.push("/queue")}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full 
+                      text-white bg-amber-600 text-sm font-semibold shadow-sm 
+                     hover:opacity-90 transition"
+          title="Go to full OPD Queue panel"
+        >
+          🩺 Live OPD Queue
+        </button>
+
+        <button
+          onClick={() => router.push("/queue")}
+          className="text-xs text-[--secondary] hover:underline"
+        >
+          View All
+        </button>
       </div>
 
+      {/* Content */}
       {loading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (

@@ -31,16 +31,29 @@ export default function ClinicLoginPage() {
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const user = USERS[email as keyof typeof USERS];
-    if (!user || user.password !== password) {
-      setError("Invalid credentials");
-      return;
-    }
-    setSessionCookie({ id: email, role: user.role, name: email });
+  e.preventDefault();
+  setError(null);
+
+  const user = USERS[email as keyof typeof USERS];
+  if (!user || user.password !== password) {
+    setError("Invalid credentials");
+    return;
+  }
+
+  setSessionCookie({ id: email, role: user.role, name: email });
+
+  // Redirect based on role
+  if (user.role === "doctor") {
+    router.push("/doctor"); // ✅ sends doctor to dashboard
+  } else if (user.role === "staff") {
+    router.push("/staff");
+  } else if (user.role === "admin") {
+    router.push("/admin");
+  } else {
     router.push("/");
   }
+}
+
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-gray-50">
