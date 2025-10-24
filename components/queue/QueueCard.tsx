@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Play,
   Pause,
@@ -31,11 +32,11 @@ export type QueueEntry = {
 
 /* ---------- Color Mapping ---------- */
 const STATUS_COLORS: Record<QueueStatus, string> = {
-  waiting: "#FACC15",      // Yellow
-  inconsult: "#3B82F6",    // Blue
-  paused: "#F59E0B",       // Amber
-  completed: "#22C55E",    // Green
-  noshow: "#EF4444",       // Red
+  waiting: "#FACC15", // Yellow
+  inconsult: "#3B82F6", // Blue
+  paused: "#F59E0B", // Amber
+  completed: "#22C55E", // Green
+  noshow: "#EF4444", // Red
 };
 
 /* ---------- Component ---------- */
@@ -52,11 +53,13 @@ export default function QueueCard({
 }) {
   const [menu, setMenu] = useState(false);
   const color = STATUS_COLORS[entry.status || "waiting"];
+  const router = useRouter();
 
-
-  
   /* ---------- Status Handlers ---------- */
-  const handleStart = () => onStatusChange?.(entry.uhid, "inconsult");
+  const handleStart = () => {
+    onStatusChange?.(entry.uhid, "inconsult");
+    router.push("/doctor/console");
+  };
   const handlePause = () => onStatusChange?.(entry.uhid, "paused");
   const handleResume = () => onStatusChange?.(entry.uhid, "inconsult");
   const handleEnd = () => onStatusChange?.(entry.uhid, "completed");
@@ -227,8 +230,6 @@ function IconBtn({
     </button>
   );
 }
-
-
 
 function MenuItem({ label }: { label: string }) {
   return (

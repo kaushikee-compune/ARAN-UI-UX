@@ -2,6 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { CalendarDays, Search, Plus, X } from "lucide-react";
+import {
+  Paper,
+  Box,
+  TextField,
+  Typography,
+  MenuItem,
+} from "@mui/material";
 import QueueCard, { QueueEntry, QueueStatus } from "@/components/queue/QueueCard";
 
 type QueueData = {
@@ -10,16 +17,13 @@ type QueueData = {
 };
 
 export default function QueuePage() {
-  // In real app, fetch doctor info from context
   const [doctorName] = useState("Dr. Hira Mardi");
-
   const [data, setData] = useState<QueueData | null>(null);
   const [search, setSearch] = useState("");
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [walkin, setWalkin] = useState({ name: "", gender: "Female", age: "" });
 
@@ -113,7 +117,6 @@ export default function QueuePage() {
     return 0;
   });
 
-  /* ------------------------- Filters ------------------------- */
   const filteredQueue = sortedQueue.filter((p) =>
     [p.name, p.uhid, p.abhaAddress]
       .join(" ")
@@ -131,47 +134,90 @@ export default function QueuePage() {
 
   /* ------------------------- JSX ------------------------- */
   return (
-    <div className="space-y-2">
-      {/* ---------- Unified Top Bar ---------- */}
-      <div className="flex items-center justify-between bg-white-  rounded-xl px-4 py-3 shadow">
+    <Paper
+      sx={{
+        p: 2.5,
+        borderRadius: 3,
+        boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* ---------- Top Bar (Patient List Style) ---------- */}
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          backgroundColor: "#f9fafb",
+          borderRadius: 2,
+          px: 1.5,
+          py: 1.2,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        }}
+      >
         {/* Date Picker */}
-        <div className="relative">
-          <CalendarDays className="absolute right-2.5 top-2.5 h-4 w-4 text-pink-400" />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="pl-9 ui-input w-[160px]"
-          />
-        </div>
+        <TextField
+          type="date"
+          size="small"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          sx={{ width: 160, background: "white", borderRadius: 1 }}
+          InputProps={{
+            startAdornment: (
+              <CalendarDays
+                size={16}
+                style={{ marginRight: 6, color: "#6b7280" }}
+              />
+            ),
+          }}
+        />
 
         {/* Search */}
-        <div className="relative w-[440px]">
-          <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-gray-400" />
-          <input
-            type="search"
-            placeholder="Search Name / UHID / ABHA / Phone"
+        <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+          <Search
+            size={16}
+            style={{ marginRight: 8, color: "#6b7280", flexShrink: 0 }}
+          />
+          <TextField
+            size="small"
+            placeholder="Search (name, UHID, ABHA, phone)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 ui-input w-full"
+            sx={{ flex: 1, background: "white", borderRadius: 1 }}
           />
-        </div>
+        </Box>
 
         {/* Doctor Name */}
-        <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-          {doctorName}
-        </div>
-
-        {/* Add Walk-in */}
-        <button
-          onClick={handleAddToQueue}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition"
-          style={{ background: "var(--secondary)" }}
+        <Typography
+          sx={{
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            color: "#374151",
+            minWidth: 160,
+            textAlign: "center",
+          }}
         >
-          <Plus className="w-4 h-4" />
+          {doctorName}
+        </Typography>
+
+        {/* Add Walk-in Button */}
+        <button
+          style={{
+            background: "var(--secondary, #64ac44)",
+            color: "#fff",
+            padding: "7px 16px",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+          }}
+          onClick={handleAddToQueue}
+        >
+          
           Add Walk-in
         </button>
-      </div>
+      </Box>
 
       {/* ---------- Columns ---------- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -287,6 +333,6 @@ export default function QueuePage() {
           </div>
         </div>
       )}
-    </div>
+    </Paper>
   );
 }

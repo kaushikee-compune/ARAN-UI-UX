@@ -2,6 +2,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Paper, Box, TextField as MuiTextField, MenuItem } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 
 /* =============================================================================
    Types
@@ -151,13 +154,14 @@ const SINGLE_DOCTOR_DEFAULT: Doctor = {
    Page
 ============================================================================= */
 export default function AppointmentsPage() {
-  // Doctor (local until wired to scheduler)
   const [doctor, setDoctor] = useState<Doctor>(SINGLE_DOCTOR_DEFAULT);
-
-  // Patients loaded from /public/data/patients.json
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientsLoaded, setPatientsLoaded] = useState(false);
   const [patientsError, setPatientsError] = useState<string | null>(null);
+
+  // Header bar state
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "booked" | "available">("all");
 
   useEffect(() => {
     let mounted = true;
@@ -219,14 +223,96 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
+    <Paper
+      sx={{
+        p: 3,
+        borderRadius: 3,
+        boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+        backgroundColor: "#fff",
+        minHeight: "calc(100vh - 80px)",
+      }}
+    >
+      {/* ---------- Header Bar (Search / Filter / Quick Booking) ---------- */}
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          alignItems: "center",
+          backgroundColor: "#f9fafb",
+          borderRadius: 2,
+          px: 1.5,
+          py: 1.2,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          mb: 3,
+        }}
+      >
+        {/* Search patients (by name, UHID, phone, ABHA) */}
+        <MuiTextField
+          size="small"
+          placeholder="Search (name, UHID, phone, ABHA no/address)…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          sx={{ flex: 1, background: "white", borderRadius: 1 }}
+        />
+
+        {/* Filter (optional — by slot type or doctor) */}
+        <MuiTextField
+          select
+          size="small"
+          label="Filter"
+          value={filter}
+          onChange={(e) =>
+            setFilter(e.target.value as "all" | "booked" | "available")
+          }
+          sx={{ minWidth: 150, background: "white", borderRadius: 1 }}
+        >
+          <MenuItem value="all">All Slots</MenuItem>
+          <MenuItem value="booked">Booked</MenuItem>
+          <MenuItem value="available">Available</MenuItem>
+        </MuiTextField>
+
+        {/* Quick Booking button */}
+        <button
+          style={{
+            background: "var(--secondary, #64ac44)",
+            color: "#fff",
+            padding: "7px 16px",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            border: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+          onClick={() =>
+            window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: "smooth",
+            })
+          }
+        >
+          <Plus size={16} />
+          Quick Booking
+        </button>
+      </Box>
+
+      {/* ---------- Section Header (Title + Slot length) ---------- */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
         <h1 className="text-lg font-semibold">Appointments</h1>
         <div className="text-sm text-gray-600">
           Slot length: <span className="font-medium">30 minutes</span>
         </div>
-      </div>
+      </Box>
 
+      {/* ---------- Main Content ---------- */}
       {!patientsLoaded && !patientsError && (
         <div className="text-sm text-gray-600 mb-4">Loading patient index…</div>
       )}
@@ -234,10 +320,9 @@ export default function AppointmentsPage() {
         <div className="text-sm text-red-600 mb-4">Error: {patientsError}</div>
       )}
 
-      {/* 2-column layout: left calendar, right booking panel */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* LEFT: Doctor card + slot grid */}
-        <div className="ui-card p-4 flex flex-col gap-4">
+        <div className="ui-card p-4 flex flex-col gap-4 border border-gray-100 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-base font-semibold">{doctor.name}</div>
@@ -343,7 +428,7 @@ export default function AppointmentsPage() {
           onConfirm={commitBooking}
         />
       </div>
-    </div>
+    </Paper>
   );
 }
 
@@ -385,6 +470,8 @@ function RightBookingPanel({
 
   const confirmDisabled =
     !draft || !(draft.patientName?.trim() && draft.mobile?.trim());
+  const router = useRouter();
+  const [filter, setFilter] = useState<"all" | "booked" | "available">("all");
 
   return (
     <div className="ui-card p-4 sticky top-4">
