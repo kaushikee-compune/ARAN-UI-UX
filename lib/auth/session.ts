@@ -2,6 +2,8 @@
 import { cookies } from "next/headers";
 import type { Role } from "./role";
 
+export type { Role };
+
 export type CurrentUser = {
   id: string;
   role: Role;

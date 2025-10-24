@@ -170,7 +170,7 @@ function readCollapsedFromStorage(): boolean {
 /* ---------- Profile menu (unchanged except role-aware avatar) ---------- */
 function ProfileMenu({
   role = "doctor",
-  name = role === "staff" ? "Clinic Staff" : "Dr. Hira Mardi",
+  name = role === "staff" ? "Clinic Staff" : "Dr. Vasanth Shetty",
 }: {
   role?: Role;
   name?: string;

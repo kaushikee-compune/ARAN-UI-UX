@@ -10,6 +10,7 @@ import {
   Users,
   UserCircle,
   CreditCard,
+  CopyCheck,
   Settings,
 } from "lucide-react";
 import { GraphIcon, QueueIcon } from "@phosphor-icons/react";
@@ -117,11 +118,17 @@ const MENU: Record<Role, Item[]> = {
       color: "text-emerald-600",
     },
     {
-      href: "/staff/appointments",
+      href: "/appointments",
       label: "Appointments",
       icon: CalendarDays,
       color: "text-purple-600",
     },
+    {
+      href: "/queue",
+      label: "OPD Queue",
+      icon: QueueListIcon,
+      color: "text-blue-600",
+    },    
     {
       href: "/patient/patientlist",
       label: "Patients",
@@ -129,11 +136,18 @@ const MENU: Record<Role, Item[]> = {
       color: "text-pink-600",
     },
     {
+      href: "/",
+      label: "Payments",
+      icon: BiRupee,
+      color: "text-green-600",
+    },
+    {
       href: "/billing",
-      label: "Billing",
-      icon: CreditCard,
+      label: "Inventory",
+      icon: CopyCheck,
       color: "text-amber-600",
     },
+    
   ],
   admin: [
     {
