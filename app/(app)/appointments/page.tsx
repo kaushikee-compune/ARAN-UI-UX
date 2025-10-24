@@ -11,10 +11,10 @@ type Patient = {
   gender: "Male" | "Female" | "Other" | string;
   age: number;
   phone: string;
-  abhanumber: string;    // ABHA Number from /public/data/patients.json
-  abhaaddress: string;    // ABHA Address from /public/data/patients.json
+  abhanumber: string; // ABHA Number from /public/data/patients.json
+  abhaaddress: string; // ABHA Address from /public/data/patients.json
   regDate: string; // YYYY-MM-DD
-  uhid: string;    // e.g., UHID-0001
+  uhid: string; // e.g., UHID-0001
 };
 
 type Doctor = {
@@ -25,14 +25,14 @@ type Doctor = {
   bio?: string;
   room?: string;
   startTime: string; // "09:00"
-  endTime: string;   // "17:00"
+  endTime: string; // "17:00"
   breakStart?: string; // "13:00"
-  breakEnd?: string;   // "14:00"
-  booked: string[];  // array of "HH:MM" booked starts
+  breakEnd?: string; // "14:00"
+  booked: string[]; // array of "HH:MM" booked starts
 };
 
 type Slot = {
-  time: string;         // "HH:MM"
+  time: string; // "HH:MM"
   available: boolean;
   withinWorking: boolean;
 };
@@ -41,8 +41,8 @@ type BookingDraft = {
   time: string;
   patientName: string;
   mobile: string;
-  abhaNumber?: string;   // new
-  abhaAddress?: string;  // e.g., name@abdm (optional)
+  abhaNumber?: string; // new
+  abhaAddress?: string; // e.g., name@abdm (optional)
   uhid?: string;
   note?: string;
 };
@@ -347,9 +347,6 @@ export default function AppointmentsPage() {
   );
 }
 
-/* =============================================================================
-   Right-side Booking Panel
-============================================================================= */
 function RightBookingPanel({
   doctor,
   selectedSlot,
@@ -370,14 +367,6 @@ function RightBookingPanel({
   const [query, setQuery] = useState("");
   const [detected, setDetected] = useState<QueryType>("EMPTY");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
-
-  // Reset panel state when slot changes
-  useEffect(() => {
-    setQuery("");
-    setDetected("EMPTY");
-    setSelectedPatient(null);
-  }, [selectedSlot]);
 
   useEffect(() => {
     setDetected(detectQueryType(query));
@@ -394,215 +383,156 @@ function RightBookingPanel({
       .map(({ p }) => p);
   }, [patients, query, detected]);
 
-  function applyPatient(p: Patient) {
-    setSelectedPatient(p);
-    if (!draft) return;
-    onDraftChange({
-      ...draft,
-      patientName: p.name,
-      mobile: p.phone,
-      abhaNumber: p.abhanumber, // ABHA Number from mock
-      abhaAddress:p.abhaaddress,
-      // abhaAddress left empty (not present in mock)
-      uhid: p.uhid,
-    });
-  }
-
-  function clearPatient() {
-    setSelectedPatient(null);
-    if (!draft) return;
-    onDraftChange({
-      ...draft,
-      patientName: "",
-      mobile: "",
-      abhaNumber: "",
-      abhaAddress: "",
-      uhid: "",
-    });
-  }
-
-  function handleQueryKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && matches.length > 0) {
-      e.preventDefault();
-      applyPatient(matches[0]);
-    }
-  }
-
   const confirmDisabled =
     !draft || !(draft.patientName?.trim() && draft.mobile?.trim());
 
   return (
     <div className="ui-card p-4 sticky top-4">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="font-semibold">New Appointment</div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-sm">New Appointment</h2>
         {selectedSlot && (
           <button
-            type="button"
             onClick={onClearSlot}
             className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
           >
-            Change slot
+            Change Slot
           </button>
         )}
       </div>
 
-      {/* Info */}
-      <div className="text-sm text-gray-700 mb-3">
-        <div>
-          <span className="font-medium">Doctor:</span>{" "}
-          <span className="font-semibold">{doctor.name}</span>
-        </div>
-        <div>
-          <span className="font-medium">Slot:</span>{" "}
-          <span className="font-semibold">
-            {selectedSlot ? selectedSlot : "— select a slot —"}
-          </span>
-        </div>
-      </div>
-
-      {/* If no slot selected yet */}
       {!selectedSlot && (
         <div className="text-sm text-gray-600 py-10 text-center">
           Select an available slot from the left to start booking.
         </div>
       )}
 
-      {/* Intelligent patient search + form (active only if a slot is selected) */}
       {selectedSlot && draft && (
         <>
-          {/* Smart search */}
-          <div className="grid gap-1 text-sm mb-2">
-            <label className="text-gray-700">
-              UHID / Name / Mobile (smart search)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleQueryKeyDown}
-                placeholder="Type UHID (e.g., UHID-0001), patient name, or mobile…"
-                className="flex-1 border-1 border-gray-400 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
-              />
-              {/* <DetectBadge kind={detected} /> */}
+          <div className="text-sm text-gray-700 mb-3">
+            <div>
+              <span className="font-medium">Doctor:</span>{" "}
+              <span className="font-semibold">{doctor.name}</span>
             </div>
-
-            {/* Suggestions */}
-            {query && matches.length > 0 && (
-              <ul
-                ref={listRef}
-                className="mt-2 max-h-56 overflow-auto border rounded"
-              >
-                {matches.map((m) => (
-                  <li
-                    key={m.uhid}
-                    className="p-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                    onClick={() => applyPatient(m)}
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {m.name}
-                      </div>
-                      <div className="text-xs text-gray-600 truncate">
-                        {m.uhid} • {m.phone} • ABHA: {m.abhaaddress}
-                      </div>
-                    </div>
-                    <span className="text-[10px] px-1.5 py-0.5 border rounded">
-                      Select
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {query && matches.length === 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                No matches found. Keep typing or add manually below.
-              </div>
-            )}
+            <div>
+              <span className="font-medium">Slot:</span>{" "}
+              <span className="font-semibold">{selectedSlot}</span>
+            </div>
           </div>
 
-          {/* --- FORM LAYOUT CHANGES --- */}
-          {/* Row 1: Name & Mobile (2 columns) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <TextField
-              label="Patient Name"
-              value={draft.patientName}
-              onChange={(v) => onDraftChange({ ...draft, patientName: v })}
-            />
-            <TextField
-              label="Mobile"
-              value={draft.mobile}
-              onChange={(v) => onDraftChange({ ...draft, mobile: v })}
-              inputMode="tel"
-              placeholder="10-digit mobile"
-            />
-          </div>
-
-          {/* Row 2: ABHA Number, ABHA Address, UHID (3 columns) */}
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <TextField
-              label="ABHA Number"
-              value={draft.abhaNumber ?? ""}
-              onChange={(v) => onDraftChange({ ...draft, abhaNumber: v })}
-              placeholder="XXXX-XXXX-XXXX-XXXX"
-            />
-            <TextField
-              label="ABHA Address"
-              value={draft.abhaAddress ?? ""}
-              onChange={(v) => onDraftChange({ ...draft, abhaAddress: v })}
-              placeholder="e.g., name@abdm"
-            />
-            <TextField
-              label="UHID"
-              value={draft.uhid ?? ""}
-              onChange={(v) => onDraftChange({ ...draft, uhid: v })}
-              placeholder="UHID-0000"
-            />
-          </div>
-
-          {/* Rest as-is */}
-          <div className="mt-3 grid gap-3">
-            <TextArea
-              label="Note (optional)"
-              value={draft.note ?? ""}
-              onChange={(v) => onDraftChange({ ...draft, note: v })}
-              rows={3}
-            />
-
-            <div className="flex items-center gap-2">
-              {selectedPatient ? (
-                <button
-                  type="button"
+          {/* Smart search */}
+          <label className="text-xs font-medium text-gray-700 mb-1 block">
+            UHID / Name / Mobile
+          </label>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search patient..."
+            className="ui-input w-full mb-2"
+          />
+          {query && matches.length > 0 && (
+            <ul className="rounded-md max-h-40 overflow-auto mb-3">
+              {matches.map((m) => (
+                <li
+                  key={m.uhid}
                   onClick={() => {
-                    // clear selected visual + fields
-                    setSelectedPatient(null);
+                    setSelectedPatient(m);
                     onDraftChange({
                       ...draft,
-                      patientName: "",
-                      mobile: "",
-                      abhaNumber: "",
-                      abhaAddress: "",
-                      uhid: "",
+                      patientName: m.name,
+                      mobile: m.phone,
+                      abhaNumber: m.abhanumber,
+                      abhaAddress: m.abhaaddress,
+                      uhid: m.uhid,
                     });
                   }}
-                  className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                  className="p-2 hover:bg-gray-50 cursor-pointer text-sm  last:border-0"
                 >
-                  Clear selected patient
-                </button>
-              ) : null}
-            </div>
+                  <div className="font-medium">{m.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {m.uhid} • {m.phone} • {m.abhaaddress}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Material-style table form */}
+          <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium"></th>
+                  <th className="text-left px-3 py-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody className="">
+                <FormRow
+                  label="Patient Name"
+                  value={draft.patientName}
+                  onChange={(v) => onDraftChange({ ...draft, patientName: v })}
+                />
+                <FormRow
+                  label="Mobile"
+                  value={draft.mobile}
+                  onChange={(v) => onDraftChange({ ...draft, mobile: v })}
+                />
+                <FormRow
+                  label="ABHA Number"
+                  value={draft.abhaNumber ?? ""}
+                  onChange={(v) => onDraftChange({ ...draft, abhaNumber: v })}
+                />
+                <FormRow
+                  label="ABHA Address"
+                  value={draft.abhaAddress ?? ""}
+                  onChange={(v) => onDraftChange({ ...draft, abhaAddress: v })}
+                />
+                <FormRow
+                  label="UHID"
+                  value={draft.uhid ?? ""}
+                  onChange={(v) => onDraftChange({ ...draft, uhid: v })}
+                />
+                <FormRow
+                  label="Note"
+                  textarea
+                  value={draft.note ?? ""}
+                  onChange={(v) => onDraftChange({ ...draft, note: v })}
+                />
+              </tbody>
+            </table>
           </div>
 
-          {/* Footer actions */}
-          <div className="mt-4 flex items-center justify-end gap-2">
+          <div className="mt-4 flex items-center justify-between">
+            {/* Left: Clear selected patient (only if one is selected) */}
+            {selectedPatient ? (
+              <button
+                onClick={() => {
+                  setSelectedPatient(null);
+                  onDraftChange({
+                    ...draft,
+                    patientName: "",
+                    mobile: "",
+                    abhaNumber: "",
+                    abhaAddress: "",
+                    uhid: "",
+                  });
+                }}
+                className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+              >
+                Clear selected patient
+              </button>
+            ) : (
+              <span /> // keeps spacing even when no button
+            )}
+
+            {/* Right: Confirm Booking */}
             <button
-              type="button"
               onClick={onConfirm}
               disabled={confirmDisabled}
               className={[
-                "text-sm px-3 py-1.5 rounded",
+                "px-4 py-2 text-sm rounded-md font-medium shadow-sm",
                 confirmDisabled
-                  ? "bg-gray-200 text-blue-500 cursor-not-allowed"
-                  : "bg-blue-900 text-white hover:brightness-110",
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[--secondary] text-gray-400 hover:opacity-100",
               ].join(" ")}
             >
               Confirm Booking
@@ -611,6 +541,41 @@ function RightBookingPanel({
         </>
       )}
     </div>
+  );
+}
+
+/* Material table row component */
+function FormRow({
+  label,
+  value,
+  onChange,
+  textarea = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  textarea?: boolean;
+}) {
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-3 py-2 text-gray-700 w-40 align-top">{label}</td>
+      <td className="px-3 py-2">
+        {textarea ? (
+          <textarea
+            rows={2}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="ui-textarea w-full"
+          />
+        ) : (
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="ui-input w-full"
+          />
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -676,11 +641,16 @@ function TextArea({
 ============================================================================= */
 function DetectBadge({ kind }: { kind: QueryType }) {
   const label =
-    kind === "UHID" ? "UHID"
-      : kind === "MOBILE" ? "Mobile"
-      : kind === "NAME" ? "Name"
+    kind === "UHID"
+      ? "UHID"
+      : kind === "MOBILE"
+      ? "Mobile"
+      : kind === "NAME"
+      ? "Name"
       : "—";
   return (
-    <span className="text-[10px] px-2 py-1 border rounded bg-white">{label}</span>
+    <span className="text-[10px] px-2 py-1 border rounded bg-white">
+      {label}
+    </span>
   );
 }

@@ -133,7 +133,7 @@ export default function QueuePage() {
   return (
     <div className="space-y-2">
       {/* ---------- Unified Top Bar ---------- */}
-      <div className="flex items-center justify-between bg-white-  rounded-xl px-4 py-3 shadow-md">
+      <div className="flex items-center justify-between bg-white-  rounded-xl px-4 py-3 shadow">
         {/* Date Picker */}
         <div className="relative">
           <CalendarDays className="absolute right-2.5 top-2.5 h-4 w-4 text-pink-400" />
