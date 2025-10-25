@@ -26,8 +26,11 @@ export type QueueEntry = {
   name: string;
   gender: string;
   abhaAddress: string;
-  status?: QueueStatus;
+  status: QueueStatus;
   isNew?: boolean;
+  doctorId?: string;
+  docname?: string; // ✅ NEW: consulting doctor
+  vitalsCaptured?: boolean;
 };
 
 /* ---------- Color Mapping ---------- */
@@ -45,11 +48,13 @@ export default function QueueCard({
   onMoveUp,
   onMoveDown,
   onStatusChange,
+  onStart, // ✅ added
 }: {
   entry: QueueEntry;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onStatusChange?: (uhid: string, status: QueueStatus) => void;
+  onStart?: () => void; // ✅ added
 }) {
   const [menu, setMenu] = useState(false);
   const color = STATUS_COLORS[entry.status || "waiting"];
@@ -57,9 +62,15 @@ export default function QueueCard({
 
   /* ---------- Status Handlers ---------- */
   const handleStart = () => {
-    onStatusChange?.(entry.uhid, "inconsult");
-    router.push("/doctor/console");
-  };
+  // mark patient as in consultation
+  onStatusChange?.(entry.uhid, "inconsult");
+
+  // use parent's handler (role-based) if provided
+  if (onStart) {
+    onStart();
+  }
+};
+
   const handlePause = () => onStatusChange?.(entry.uhid, "paused");
   const handleResume = () => onStatusChange?.(entry.uhid, "inconsult");
   const handleEnd = () => onStatusChange?.(entry.uhid, "completed");
@@ -71,9 +82,11 @@ export default function QueueCard({
       case "waiting":
         return (
           <div className="flex gap-2 text-gray-600">
+            {onStart && (
             <IconBtn title="Start Consultation" onClick={handleStart}>
               <Play />
             </IconBtn>
+            )}
             <IconBtn title="Mark No Show" onClick={handleNoShow}>
               <X />
             </IconBtn>
@@ -173,6 +186,9 @@ export default function QueueCard({
         <div className="text-xs text-gray-500 truncate">
           ABHA: {entry.abhaAddress}
         </div>
+        {entry.docname && (
+          <div className="text-xs text-gray-500 mt-0.5">{entry.docname}</div>
+        )}
       </div>
 
       {/* ---------- Right Actions ---------- */}

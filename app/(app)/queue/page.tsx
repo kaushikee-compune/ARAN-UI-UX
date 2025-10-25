@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { CalendarDays, Search, Plus, X } from "lucide-react";
-import {
-  Paper,
-  Box,
-  TextField,
-  Typography,
-  MenuItem,
-} from "@mui/material";
-import QueueCard, { QueueEntry, QueueStatus } from "@/components/queue/QueueCard";
+import React, { useEffect, useState, useMemo } from "react";
+import { CalendarDays, Search, X } from "lucide-react";
+import { Paper, Box, TextField, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { readClientSession } from "@/lib/auth/client-session";
+import QueueCard, {
+  QueueEntry,
+  QueueStatus,
+} from "@/components/queue/QueueCard";
 
 type QueueData = {
   queue: QueueEntry[];
@@ -17,17 +16,51 @@ type QueueData = {
 };
 
 export default function QueuePage() {
-  const [doctorName] = useState("Dr. Hira Mardi");
+  const router = useRouter();
   const [data, setData] = useState<QueueData | null>(null);
   const [search, setSearch] = useState("");
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-
   const [showModal, setShowModal] = useState(false);
   const [walkin, setWalkin] = useState({ name: "", gender: "Female", age: "" });
 
-  /* ------------------------- Load mock data ------------------------- */
+  // -------------------- ROLE INFO (from client-session) --------------------
+  const [user, setUser] = useState<{
+    role?: string;
+    name?: string;
+    id?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadSession() {
+      try {
+        const session = await readClientSession();
+        // console.log("Session:", session); // 🔍 temporary debug
+        if (session) {
+          setUser({
+            role: session.role ?? "staff", // default staff (safer)
+            id: session.id ?? "staff@example.com", // fallback for doctor queues
+            name: session.name ?? "staff@example.com",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load session", err);
+        setUser({
+          role: "staff",
+          id: "staff@example.com",
+          name: "staff@example.com",
+        }); // safe fallback
+      }
+    }
+    loadSession();
+  }, []);
+
+  useEffect(() => {
+    console.log("Loaded user:", user);
+  }, [user]);
+
+  // -------------------- Load queue data (mock for now) --------------------
   useEffect(() => {
     fetch("/data/queue.json")
       .then((r) => r.json())
@@ -49,7 +82,7 @@ export default function QueuePage() {
       .catch((e) => console.error("Failed to load queue data", e));
   }, []);
 
-  /* ------------------------- Add Walk-in ------------------------- */
+  // -------------------- Add Walk-in --------------------
   const handleAddToQueue = () => setShowModal(true);
 
   const handleSaveWalkin = () => {
@@ -68,6 +101,9 @@ export default function QueuePage() {
       abhaAddress: "—",
       status: "waiting" as QueueStatus,
       isNew: true,
+      doctorId: user?.id || "dr_vasanth",
+      docname: "Dr. Vasanth Shetty", // ✅ added
+      vitalsCaptured: false,
     };
 
     setData((d) => d && { ...d, queue: [...d.queue, newEntry] });
@@ -75,7 +111,7 @@ export default function QueuePage() {
     setWalkin({ name: "", gender: "Female", age: "" });
   };
 
-  /* ------------------------- Move Up / Down ------------------------- */
+  // -------------------- Move Up / Down --------------------
   const moveEntry = (index: number, direction: "up" | "down") => {
     if (!data) return;
     const newList = [...data.queue];
@@ -88,7 +124,7 @@ export default function QueuePage() {
     setData({ ...data, queue: newList });
   };
 
-  /* ------------------------- Status Change ------------------------- */
+  // -------------------- Status Change --------------------
   const updateStatus = (uhid: string, status: QueueEntry["status"]) => {
     if (!data) return;
     const patient = data.queue.find((p) => p.uhid === uhid);
@@ -110,14 +146,39 @@ export default function QueuePage() {
     setData({ ...data, queue: newList });
   };
 
-  /* ------------------------- Sort Queue (InConsult on top) ------------------------- */
+  // -------------------- Start Consultation (Role Based) --------------------
+  const onStart = () => {
+    console.log("Session:I am here1");
+  if (!user?.role) return;
+console.log("Session:I am here2");
+    const targetPath =
+    user.role === "staff"
+      ? "/staff/console"
+      : "/doctor/console";
+
+  router.push(targetPath);
+  console.log("Session:", user.role);
+};
+
+
+  // -------------------- Sort & Filter --------------------
   const sortedQueue = [...(data?.queue || [])].sort((a, b) => {
     if (a.status === "inconsult" && b.status !== "inconsult") return -1;
     if (a.status !== "inconsult" && b.status === "inconsult") return 1;
     return 0;
   });
 
-  const filteredQueue = sortedQueue.filter((p) =>
+  // 🔹 Filter queue by role (doctor → only their patients)
+  const roleFilteredQueue = useMemo(() => {
+    if (!data || !user) return sortedQueue;
+    if (user.role === "doctor") {
+      // Hardcode doctor's OPD queue for this phase
+      return sortedQueue.filter((p) => p.docname === "Dr. Vasanth Shetty");
+    }
+    return sortedQueue;
+  }, [sortedQueue, user, data]);
+
+  const filteredQueue = roleFilteredQueue.filter((p) =>
     [p.name, p.uhid, p.abhaAddress]
       .join(" ")
       .toLowerCase()
@@ -130,9 +191,13 @@ export default function QueuePage() {
       .includes(search.toLowerCase())
   );
 
-  if (!data) return <p className="text-sm text-gray-600">Loading queue…</p>;
-
-  /* ------------------------- JSX ------------------------- */
+  if (!user) {
+    return <p className="text-sm text-gray-600">Loading user session…</p>;
+  }
+  if (!data) {
+    return <p className="text-sm text-gray-600">Loading queue…</p>;
+  }
+  // -------------------- JSX --------------------
   return (
     <Paper
       sx={{
@@ -141,7 +206,7 @@ export default function QueuePage() {
         boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
       }}
     >
-      {/* ---------- Top Bar (Patient List Style) ---------- */}
+      {/* ---------- Top Bar ---------- */}
       <Box
         sx={{
           mb: 2,
@@ -155,7 +220,6 @@ export default function QueuePage() {
           boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
         }}
       >
-        {/* Date Picker */}
         <TextField
           type="date"
           size="small"
@@ -187,7 +251,7 @@ export default function QueuePage() {
           />
         </Box>
 
-        {/* Doctor Name */}
+        {/* Doctor name or role */}
         <Typography
           sx={{
             fontSize: "0.9rem",
@@ -197,26 +261,27 @@ export default function QueuePage() {
             textAlign: "center",
           }}
         >
-          {doctorName}
+          {user?.role === "staff" ? "All Doctors" : user?.name || "Doctor"}
         </Typography>
 
-        {/* Add Walk-in Button */}
-        <button
-          style={{
-            background: "var(--secondary, #64ac44)",
-            color: "#fff",
-            padding: "7px 16px",
-            borderRadius: "8px",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer",
-          }}
-          onClick={handleAddToQueue}
-        >
-          
-          Add Walk-in
-        </button>
+        {/* Add Walk-in (only for staff) */}
+        {user?.role === "staff" && (
+          <button
+            style={{
+              background: "var(--secondary, #64ac44)",
+              color: "#fff",
+              padding: "7px 16px",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+            }}
+            onClick={handleAddToQueue}
+          >
+            Add Walk-in
+          </button>
+        )}
       </Box>
 
       {/* ---------- Columns ---------- */}
@@ -228,13 +293,26 @@ export default function QueuePage() {
           </h2>
           <div className="space-y-2">
             {filteredQueue.map((entry, idx) => (
-              <QueueCard
-                key={entry.uhid}
-                entry={entry}
-                onMoveUp={() => moveEntry(idx, "up")}
-                onMoveDown={() => moveEntry(idx, "down")}
-                onStatusChange={updateStatus}
-              />
+              <div key={entry.uhid} className="relative">
+                <QueueCard
+                  entry={entry}
+                  onMoveUp={() => moveEntry(idx, "up")}
+                  onMoveDown={() => moveEntry(idx, "down")}
+                  onStatusChange={updateStatus}
+                 onStart={onStart}
+                />
+                <div className="absolute top-2 right-3">
+                  {entry.vitalsCaptured ? (
+                    <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                      Vitals Done
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      Pending
+                    </span>
+                  )}
+                </div>
+              </div>
             ))}
             {filteredQueue.length === 0 && (
               <p className="text-xs text-gray-500">No patients in queue.</p>

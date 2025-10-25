@@ -6,22 +6,35 @@
       "token": "T04",
       "name": "Rajesh Kumar",
       "gender": "Male",
-      "abhaAddress": "rajesh@sbx"
+      "abhaAddress": "rajesh@sbx",
+      "docname": "Dr. Vasanth Shetty"
     },
     {
-      "uhid": "UHID345",
+      "uhid": "UHID233",
       "token": "T05",
-      "name": "Suman Das",
+      "name": "Anita Verma",
       "gender": "Female",
-      "abhaAddress": "suman@sbx"
+      "abhaAddress": "anita@sbx",
+      "docname": "Dr. Vasanth Shetty"
     },
     {
       "uhid": "UHID351",
       "token": "T06",
       "name": "Salman Khan",
       "gender": "Male",
-      "abhaAddress": "salman@sbx"
+      "abhaAddress": "salman@sbx",
+      "docname": "Dr. Hira Mardi"
+    },
+    {
+      "uhid": "UHID235",
+      "token": "T09",
+      "name": "Akshay ",
+      "gender": "Male",
+      "abhaAddress": "akshay@sbx",
+      "docname": "Dr. Hira Mardi"
     }
+    
+    
   ],
   "current": [
      {
@@ -29,7 +42,8 @@
       "token": "T03",
       "name": "Anita Sharma",
       "gender": "Female",
-      "abhaAddress": "anita@sbx"
+      "abhaAddress": "anita@sbx",
+       "docname": "Dr. Hira Mardi"
     }
   ],
   "completed": [
@@ -38,14 +52,16 @@
       "token": "T01",
       "name": "Vikram Singh",
       "gender": "Male",
-      "abhaAddress": "vikram@sbx"
+      "abhaAddress": "vikram@sbx",
+       "docname": "Dr. Hira Mardi"
     },
     {
       "uhid": "UHID312",
       "token": "T02",
       "name": "Ambica Soni",
       "gender": "Female",
-      "abhaAddress": "ambica@sbx"
+      "abhaAddress": "ambica@sbx",
+       "docname": "Dr. Hira Mardi"
     }
   ]
 }
