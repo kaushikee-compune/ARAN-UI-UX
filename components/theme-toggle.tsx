@@ -11,10 +11,11 @@ type ThemeMeta = {
 };
 
 const THEMES: ThemeMeta[] = [
-  { key: "t1", name: "Teal/Aqua",     secondary: "#02c39a", tertiary: "#028090" },
-  { key: "t2", name: "Blue/Navy",     secondary: "#0189bb", tertiary: "#014576" },
+  { key: "t1", name: "deep navy/orange accent",     secondary: "#11224E", tertiary: "#F87B1B" },
+  { key: "t2", name: "Blue/Navy",     secondary: "#10B981", tertiary: "#014576" },
   { key: "t3", name: "Lavender/Plum", secondary: "#caabd5", tertiary: "#83749f" },
-  { key: "t4", name: "Violet/Cyan",   secondary: "#7c3aed", tertiary: "#0ea5e9" },
+  { key: "t4", name: "Violet/Cyan",   secondary: "#7c3aed", tertiary: "#0ea5e9" }, 
+  
 ];
 
 export default function ThemeToggle() {

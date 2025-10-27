@@ -5,8 +5,8 @@
 
 /* ---------- Color Themes (unchanged) ---------- */
 :root {
-  --secondary: #02c39a;
-  --tertiary: #028090;
+  --secondary: #11224E;
+  --tertiary: #F87B1B;
   --on-secondary: #ffffff;
   --on-tertiary: #ffffff;
 
@@ -18,10 +18,10 @@
   --surface-2: #f9fafb;   /* gray-50 */
 }
 
-/* Theme 1 — Teal/Aqua */
+/* Theme 1 — deep navy/vibrant orange */
 [data-theme="t1"] {
-  --secondary: #02c39a;
-  --tertiary:  #028090;
+  --secondary: #11224E;
+  --tertiary:  #F87B1B;
   --on-secondary: #ffffff;
   --on-tertiary:  #ffffff;
 }
@@ -76,7 +76,7 @@
   --neumorph-shadow-in: inset 3px 3px 6px var(--neumorph-dark), inset -3px -3px 6px var(--neumorph-light);
 
   /* paper */
-  --paper-surface: #fffdf7;   /* warm white */
+  --paper-surface: #FAF7F6;   /* warm white */
   --paper-surface-2: #fffaf0; /* subtle sheet contrast */
   --paper-border: #e7e1d5;    /* paper edge */
   --paper-shadow: 0 1px 0 rgba(0,0,0,.04), 0 6px 14px rgba(0,0,0,.08);
@@ -86,7 +86,7 @@
 [data-ui="material"] {
   --radius: 12px;
   --radius-chip: 9999px;
-  --surface: #ffffff;
+  --surface: #FAF7F6;
   --surface-2: #f9fafb;
   --border: #e5e7eb;
 }
@@ -254,3 +254,10 @@
 [data-ui="paper"] .ui-chip { background: var(--surface-2); border: 1px solid var(--paper-border); box-shadow: var(--paper-shadow); }
 
 .sidebar-nav svg { color: var(--secondary); }
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  transition: background 0.5s ease, color 0.5s ease;
+}
+

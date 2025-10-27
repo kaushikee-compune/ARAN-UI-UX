@@ -9,6 +9,7 @@ import ImmunizationForm from "@/components/doctor/ImmunizationForm";
 import DaycareSummary from "@/components/doctor/DaycareSummary";
 import LabRequestForm from "@/components/lab/LabRequestForm";
 import { useRouter } from "next/navigation";
+import UploadModal from "@/components/common/UploadModal";
 //import { generatePrescriptionPdf } from "@/lib/pdf/generatePrescriptionPdf";
 import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 
@@ -75,7 +76,7 @@ function groupByDate<T extends { dateISO: string }>(rows: T[]) {
 }
 
 /* -------------------------------- Constants -------------------------------- */
-type TopMenuKey = "consultation" | "consent" | "queue";
+type TopMenuKey = "upload" | "consent" | "queue";
 type CompanionMode = "off" | "form" | "voice" | "scribe";
 type ActiveTool = "none" | "digitalrx" | "immunization" | "daycare" | "lab";
 
@@ -131,10 +132,10 @@ type ImmunizationState = {
 
 export default function DoctorConsolePage() {
   /* Header */
-  const [activeTop, setActiveTop] = useState<TopMenuKey>("consultation");
+  const [activeTop, setActiveTop] = useState<TopMenuKey>("upload");
 
   const router = useRouter();
-
+  const [showUpload, setShowUpload] = useState(false);
   /* Companion */
   const [companionMode, setCompanionMode] = useState<CompanionMode>("off");
   const companionOn = companionMode !== "off";
@@ -155,11 +156,11 @@ export default function DoctorConsolePage() {
   /* Patient header (placeholder) */
   const patient = useMemo(
     () => ({
-      name: "Ms Shampa Goswami",
-      age: "52 yrs",
+      name: "Ms Ananya Sharma",
+      age: "34 yrs",
       gender: "Female",
       abhaNumber: "91-5510-2061-4469",
-      abhaAddress: "shampa.go@sbx",
+      abhaAddress: "ananya.sharma@sbx",
     }),
     []
   );
@@ -363,7 +364,7 @@ export default function DoctorConsolePage() {
 
     await generatePrescriptionPdf({
       rx: {
-        medications: rxForm?.medications  || [], // your form array
+        medications: rxForm?.medications || [], // your form array
       },
       patient: {
         name: patient?.name || "Unknown",
@@ -431,6 +432,18 @@ export default function DoctorConsolePage() {
     collapseSidebar(true);
   }, []);
 
+  const [consultStatus, setConsultStatus] = useState<
+    "idle" | "paused" | "active" | "done"
+  >("idle");
+  const [doctorIn, setDoctorIn] = useState(true);
+
+  const handlePause = () => setConsultStatus("paused");
+  const handleResume = () => setConsultStatus("active");
+  const handleFinish = () => {
+    setConsultStatus("done");
+    // TODO: implement logic to mark consultation as complete and call next
+  };
+
   /* Layout (kept from your base file, but simplified for no tabs/filters) */
   const layout =
     companionMode === "scribe"
@@ -448,28 +461,28 @@ export default function DoctorConsolePage() {
   return (
     <div className="space-y-3">
       {/* ------------------------------- Header Panel ------------------------------- */}
-      <div className="ui-card px-5 py-1  mt-2 mx-4">
+      <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
           <TopMenuButton
-            active={activeTop === "consultation"}
-            onClick={() => setActiveTop("consultation")}
+            //active={activeTop === "upload"}
+            onClick={() => setShowUpload(true)}
           >
-            Consultation
+            Upload
           </TopMenuButton>
           <TopMenuButton
-            active={activeTop === "consent"}
+            //active={activeTop === "consent"}
             onClick={() => setActiveTop("consent")}
           >
             Consent
           </TopMenuButton>
           <TopMenuButton
-            active={activeTop === "queue"}
+            //active={activeTop === "queue"}
             onClick={() => setActiveTop("queue")}
           >
             OPD Queue
           </TopMenuButton>
 
-          {/* Companion cluster (right) */}
+          {/* ---------------- Companion Cluster (right) ---------------- */}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-gray-600">Companion Mode</span>
             <CompanionToggle
@@ -477,23 +490,13 @@ export default function DoctorConsolePage() {
               onChange={(v) => handleCompanionSwitch(!!v)}
               onCheckedChange={(v) => handleCompanionSwitch(!!v)}
             />
-            {/* Commented for this version we dont need  */}
-            {/* <IconButton
-              label="Form"
-              disabled={!companionOn}
-              pressed={companionMode === "form"}
-              onClick={() => pickCompanion("form")}
-            >
-              <FormIcon className="w-4 h-4" />
-            </IconButton> */}
+
             <IconButton
               label="Voice"
               disabled={!companionOn}
               pressed={companionMode === "voice"}
               onClick={() => {
-                // keep your current companion selection behavior
                 pickCompanion("voice");
-                // open the voice overlay modal
                 setVoiceOpen(true);
               }}
             >
@@ -507,6 +510,73 @@ export default function DoctorConsolePage() {
             >
               <ScribeIcon className="w-4 h-4" />
             </IconButton>
+
+            {/* ---------------- Doctor Control Icons ---------------- */}
+            <div className="flex items-center gap-2 ml-3">
+              {/* Doctor In/Out toggle */}
+              <button
+                onClick={() => setDoctorIn((v) => !v)}
+                className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
+                title="Toggle doctor in/out"
+              >
+                {doctorIn ? "Set Out" : "Set In"}
+              </button>
+
+              {/* Control buttons */}
+              {(consultStatus as string) !== "paused" ? (
+                <IconButton
+                  label="Pause Consultation"
+                  pressed={consultStatus === "paused"}
+                  onClick={() => setConsultStatus("paused")}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                  >
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                </IconButton>
+              ) : (
+                <IconButton
+                  label="Resume Consultation"
+                  pressed={consultStatus === "active"}
+                  onClick={() => setConsultStatus("active")}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                  >
+                    <polygon points="5,3 19,12 5,21 5,3" />
+                  </svg>
+                </IconButton>
+              )}
+
+              <IconButton
+                label="Finish & Next"
+                pressed={consultStatus === "done"}
+                onClick={() => {
+                  setConsultStatus("done");
+                  // TODO: trigger call-next logic
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </IconButton>
+            </div>
           </div>
         </div>
       </div>
@@ -517,7 +587,6 @@ export default function DoctorConsolePage() {
           {/* LEFT: Preview paper (NO tabs, NO filter) */}
           <PreviewPaper
             patient={patient}
-            /* Embed form inside paper body depending on active tool */
             bodyOverride={
               virtIdx === 0 && companionMode === "off" ? (
                 activeTool === "digitalrx" ? (
@@ -549,11 +618,9 @@ export default function DoctorConsolePage() {
                 ) : undefined
               ) : undefined
             }
-            /* Only show live DigitalRx preview when the DigitalRx tool is active */
             payload={
               virtIdx === 0 && activeTool === "digitalrx" ? rxForm : undefined
             }
-            /* Past records control & data (derived from virtual slot) */
             past={{
               active: virtIdx > 0,
               index: virtIdx > 0 ? virtIdx - 1 : 0,
@@ -568,7 +635,7 @@ export default function DoctorConsolePage() {
             }}
           />
 
-          {/* RIGHT panel appears ONLY in Companion modes (split screen) */}
+          {/* RIGHT panel in companion modes */}
           {companionMode === "form" && (
             <SectionCard ariaLabel="Consultation form (Companion)">
               <DigitalRxForm
@@ -585,20 +652,14 @@ export default function DoctorConsolePage() {
                 onSubmit={({ complaints, advice }) => {
                   setPreviewChiefComplaints(complaints);
                   setPreviewDoctorNote(advice);
-                  setRxForm((prev) => {
-                    const next: DigitalRxFormState = {
-                      ...prev,
-                      chiefComplaints: mergeUniqueBullets(
-                        prev.chiefComplaints,
-                        complaints
-                      ),
-                      followUpText: mergeUniqueBullets(
-                        prev.followUpText,
-                        advice
-                      ),
-                    };
-                    return next;
-                  });
+                  setRxForm((prev) => ({
+                    ...prev,
+                    chiefComplaints: mergeUniqueBullets(
+                      prev.chiefComplaints,
+                      complaints
+                    ),
+                    followUpText: mergeUniqueBullets(prev.followUpText, advice),
+                  }));
                 }}
                 onCancel={() => {}}
               />
@@ -661,7 +722,6 @@ export default function DoctorConsolePage() {
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
         onSubmit={({ complaints, advice }) => {
-          // Update DigitalRx form fields (Chief Complaints + Doctor’s Note + Advice)
           setRxForm((prev) => ({
             ...prev,
             chiefComplaints: mergeUniqueBullets(
@@ -670,14 +730,23 @@ export default function DoctorConsolePage() {
             ),
             followUpText: mergeUniqueBullets(prev.followUpText, advice),
           }));
-
           setVoiceOpen(false);
+        }}
+      />
+
+      <UploadModal
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        patient={{ name: "Ananya Sharma", uhid: "UHID1001" }} // 🔹 Replace with actual patient state
+        onUpload={(formData) => {
+          console.log("Uploaded:", Object.fromEntries(formData));
+          // Later: call your upload API
+          // await fetch("/api/reports/upload", { method: "POST", body: formData });
         }}
       />
     </div>
   );
 }
-
 /* -------------------------------- Preview -------------------------------- */
 function PreviewPaper({
   patient,
@@ -723,7 +792,7 @@ function PreviewPaper({
           {/* Patient demography header */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-start">
             <div className="min-w-0 pr-3">
-              <div className="text-xs text-gray-500 mb-1">Patient</div>
+              {/* <div className="text-xs text-gray-500 mb-1">Patient</div> */}
               <div className="text-sm font-semibold">{patient.name}</div>
               <div className="text-xs text-gray-700 mt-0.5">
                 {patient.gender} • {patient.age}
@@ -1045,21 +1114,21 @@ function Block({ k, v }: { k: string; v?: string }) {
 
 /* --------------------------------- UI bits -------------------------------- */
 function TopMenuButton({
-  active,
+  //active,
   onClick,
   children,
 }: {
-  active: boolean;
+  //active: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      aria-pressed={active}
+      //aria-pressed={active}
       className={[
         "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
-        active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
+        //active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
       ].join(" ")}
       type="button"
     >
@@ -1115,7 +1184,7 @@ function IconButton({
       type="button"
     >
       {children}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[8px] bg-white-900 text-black px-2 py-0.5 rounded">
         {label}
       </span>
     </button>

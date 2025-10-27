@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 export default function QuickActions() {
   const router = useRouter();
   const actions = [
-    { label: "New Appointment", path: "/doctor/appointments" },
-    { label: "Register Patient", path: "/patient/register" },
-    { label: "Start Consultation", path: "/doctor/console/page" },
-    { label: "Billing", path: "/doctor/payments" },
+    { label: "New Appointment", path: "/appointments" },
+    { label: "Register Patient", path: "/patient/registration" },
+    { label: "Start Consultation", path: "/doctor/console" },
+    { label: "Billing", path: "/billing" },
     { label: "Reports", path: "/doctor/reports" },
-    { label: "Settings", path: "/doctor/settings" },
+    { label: "Settings", path: "/doctor/profile" },
   ];
 
   return (

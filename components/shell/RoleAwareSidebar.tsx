@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { GraphIcon, QueueIcon } from "@phosphor-icons/react";
 import { QueueListIcon } from "@heroicons/react/16/solid";
-import { Analytics, AnalyticsOutlined, People, PeopleAlt, PeopleAltOutlined, Folder } from "@mui/icons-material";
+import { Analytics, AnalyticsOutlined, People, PeopleAlt, PeopleAltOutlined, Folder, Bed } from "@mui/icons-material";
 import { FaRupeeSign } from "react-icons/fa6";
 import { BiRupee } from "react-icons/bi";
 
@@ -109,6 +109,12 @@ const MENU: Record<Role, Item[]> = {
       icon: UserCircle,
       color: "text-gray-600",
     },
+    {
+      href: "/daycare",
+      label: "Daycare Panel",
+      icon: Bed,
+      color: "text-blue-600",
+    }
   ],
   staff: [
     {
@@ -141,11 +147,17 @@ const MENU: Record<Role, Item[]> = {
       icon: BiRupee,
       color: "text-green-600",
     },
-     {
+    {
       href: "/reports",
       label: "Reports",
       icon: Folder,
       color: "text-amber-600",
+    },
+    {
+      href: "/daycare",
+      label: "Daycare Panel",
+      icon: Bed,
+      color: "text-blue-600",
     }
        
   ],

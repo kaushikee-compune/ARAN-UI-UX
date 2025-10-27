@@ -12,22 +12,23 @@ import {
   CheckCircle,
 } from "lucide-react";
 import OtpPopup from "@/components/common/OtpPopup";
+import UploadModal from "@/components/common/UploadModal";
 
 /* -------------------------------------------------------------------------- */
 /*                            Mock Patient Details                            */
 /* -------------------------------------------------------------------------- */
 const MOCK_PATIENT = {
   patientId: "pat_001",
-  name: "Shampa Goswami",
+  name: "Ananya Sharma",
   gender: "Female",
-  age: "52 yrs",
-  dob: "1973-01-20",
+  age: "34 yrs",
+  dob: "1991-01-20",
   mobile: "9972826000",
-  email: "shampa@mail.com",
+  email: "ananya@mail.com",
   abhaNumber: "91 1234 1234 1234",
-  abhaAddress: "shampa@addm",
+  abhaAddress: "ananya@addm",
   address: "123, Park Street, Kolkata",
-  emergencyContact: "R. Goswami • +91-9876543210",
+  emergencyContact: "R. Sharma • +91-9876543210",
   allergy: "Penicillin",
   chronicIssues: "Diabetes, Hypertension",
   pastProcedures: "Hysterectomy (2015)",
@@ -45,6 +46,7 @@ export default function PatientDetailPage() {
   >(null);
   const [formData, setFormData] = useState({ ...MOCK_PATIENT });
   const [showPastRecords, setShowPastRecords] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   /* ---------------- OTP State ---------------- */
   const [otpOpen, setOtpOpen] = useState(false);
@@ -182,7 +184,12 @@ export default function PatientDetailPage() {
       {/* -------------------------- Action Bar -------------------------- */}
       {!showPastRecords && (
         <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
-          <ActionBtn label="Upload" icon={<Upload size={14} />} color="gray" />
+          <ActionBtn
+            label="Upload"
+            icon={<Upload size={14} />}
+            color="gray"
+            onClick={() => setShowUpload(true)}
+          />
           <ActionBtn
             label="Chat"
             icon={<MessageSquare size={14} />}
@@ -413,6 +420,15 @@ export default function PatientDetailPage() {
         contact={otpTarget}
         type={otpType}
       />
+
+      <UploadModal
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        patient={{ name: "Ananya Sharma", uhid: "UHID1001" }}
+        onUpload={(formData) =>
+          console.log("Uploaded:", Object.fromEntries(formData))
+        }
+      />
     </div>
   );
 }
@@ -555,23 +571,29 @@ function ActionBtn({
   label,
   icon,
   color,
+  onClick,
 }: {
   label: string;
   icon: React.ReactNode;
   color: "gray" | "sky" | "pink" | "amber" | "purple";
+  onClick?: () => void;
 }) {
-  const colors: Record<string, string> = {
-    gray: "bg-gray-200 text-gray-800",
-    sky: "bg-sky-200 text-sky-800",
-    pink: "bg-pink-200 text-pink-800",
-    amber: "bg-amber-200 text-amber-800",
-    purple: "bg-purple-200 text-purple-800",
+  const colors: Record<"gray" | "sky" | "pink" | "amber" | "purple", string> = {
+    gray: "bg-gray-200 text-gray-800 hover:bg-gray-300",
+    sky: "bg-sky-200 text-sky-800 hover:bg-sky-300",
+    pink: "bg-pink-200 text-pink-800 hover:bg-pink-300",
+    amber: "bg-amber-200 text-amber-800 hover:bg-amber-300",
+    purple: "bg-purple-200 text-purple-800 hover:bg-purple-300",
   };
+
   return (
     <button
-      className={`flex items-center drop-shadow-sm gap-1 px-3 py-1.5 rounded-md text-sm ${colors[color]}`}
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium drop-shadow-sm transition ${colors[color]}`}
     >
-      {icon} {label}
+      {icon}
+      <span>{label}</span>
     </button>
   );
 }

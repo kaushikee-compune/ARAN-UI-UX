@@ -26,15 +26,10 @@ export default function QueueTable({ queue }: { queue?: QueueEntry[] }) {
                      hover:opacity-90 transition"
           title="Go to full OPD Queue panel"
         >
-          🩺 Live OPD Queue
+          🩺 Today's OPD Queue
         </button>
 
-        <button
-          onClick={() => router.push("/queue")}
-          className="text-xs text-[--secondary] hover:underline"
-        >
-          View All
-        </button>
+        
       </div>
 
       {/* Content */}
@@ -62,9 +57,10 @@ export default function QueueTable({ queue }: { queue?: QueueEntry[] }) {
                 <td>{p.time}</td>
                 <td className="text-right">
                   <button
-                    className="text-xs bg-[--secondary] text-white px-2 py-1 rounded-md hover:opacity-90"
+                    className="text-sm bg-[--secondary]  text-purple-800 px-2 py-1 rounded-md hover:opacity-90"
                     onClick={() =>
-                      router.push(`/doctor/console/page?patientId=${p.patientId}`)
+                      //router.push(`/doctor/console/page?patientId=${p.patientId}`)
+                      router.push(`/doctor/console/`)
                     }
                   >
                     Start Consultation
