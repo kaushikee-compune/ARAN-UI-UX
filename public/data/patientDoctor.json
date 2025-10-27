@@ -1,0 +1,20 @@
+[
+  {
+    "patientId": "pat_001",
+    "doctorId": "d1",
+    "assignedBy": "system",
+    "assignedAt": "2025-10-23T10:15:00Z"
+  },
+  {
+    "patientId": "pat_002",
+    "doctorId": "d1",
+    "assignedBy": "system",
+    "assignedAt": "2025-10-24T09:30:00Z"
+  },
+  {
+    "patientId": "pat_003",
+    "doctorId": "d2",
+    "assignedBy": "system",
+    "assignedAt": "2025-10-24T11:10:00Z"
+  }
+]

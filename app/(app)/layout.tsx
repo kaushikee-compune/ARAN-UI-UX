@@ -223,7 +223,7 @@ function ProfileMenu({
         <NextImage
           src={
             role === "staff"
-              ? "/icons/staff.png"
+              ? "/icons/nurse.png"
               : role === "admin"
               ? "/icons/admin.png"
               : "/icons/doctor.png"

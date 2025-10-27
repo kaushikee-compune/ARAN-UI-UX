@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { GraphIcon, QueueIcon } from "@phosphor-icons/react";
 import { QueueListIcon } from "@heroicons/react/16/solid";
-import { Analytics, AnalyticsOutlined, People, PeopleAlt, PeopleAltOutlined } from "@mui/icons-material";
+import { Analytics, AnalyticsOutlined, People, PeopleAlt, PeopleAltOutlined, Folder } from "@mui/icons-material";
 import { FaRupeeSign } from "react-icons/fa6";
 import { BiRupee } from "react-icons/bi";
 
@@ -83,13 +83,13 @@ const MENU: Record<Role, Item[]> = {
       href: "/queue",
       label: "OPD Queue",
       icon: QueueListIcon,
-      color: "text-blue-600",
+      color: "text-pink-600",
     },
     {
       href: "/patient/patientlist",
       label: "Patients",
       icon: PeopleAlt,
-      color: "text-pink-600",
+      color: "text-blue-600",
     },
     {
       href: "/billing",
@@ -127,27 +127,27 @@ const MENU: Record<Role, Item[]> = {
       href: "/queue",
       label: "OPD Queue",
       icon: QueueListIcon,
-      color: "text-blue-600",
+      color: "text-pink-600",
     },    
     {
       href: "/patient/patientlist",
       label: "Patients",
       icon: Users,
-      color: "text-pink-600",
+      color: "text-blue-600",
     },
     {
-      href: "/",
+      href: "/billing",
       label: "Payments",
       icon: BiRupee,
       color: "text-green-600",
     },
-    {
-      href: "/billing",
-      label: "Inventory",
-      icon: CopyCheck,
+     {
+      href: "/reports",
+      label: "Reports",
+      icon: Folder,
       color: "text-amber-600",
-    },
-    
+    }
+       
   ],
   admin: [
     {

@@ -1,416 +1,600 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { CalendarDays, Search, X } from "lucide-react";
-import { Paper, Box, TextField, Typography } from "@mui/material";
-import { useRouter } from "next/navigation";
-import { readClientSession } from "@/lib/auth/client-session";
-import QueueCard, {
-  QueueEntry,
-  QueueStatus,
-} from "@/components/queue/QueueCard";
+import React, { useEffect, useState } from "react";
+import {
+  Paper,
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Button,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
+import {
+  Play,
+  Pause,
+  Check,
+  X,
+  ArrowUp,
+  ArrowDown,
+  Upload,
+  CreditCard,
+  UserPlus,
+} from "lucide-react";
 
-type QueueData = {
-  queue: QueueEntry[];
-  completed: QueueEntry[];
+type Patient = {
+  name: string;
+  phone: string;
+  abha: string;
+  gender: string;
 };
 
-export default function QueuePage() {
-  const router = useRouter();
-  const [data, setData] = useState<QueueData | null>(null);
-  const [search, setSearch] = useState("");
-  const [date, setDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
-  const [showModal, setShowModal] = useState(false);
-  const [walkin, setWalkin] = useState({ name: "", gender: "Female", age: "" });
+type Slot = {
+  slotStart: string;
+  slotEnd: string;
+  status: "empty" | "waiting" | "inconsult" | "completed" | "noshow";
+  type: "appointment" | "walkin" | null;
+  patient: Patient | null;
+  doctor: string;
+};
 
-  // -------------------- ROLE INFO (from client-session) --------------------
-  const [user, setUser] = useState<{
-    role?: string;
-    name?: string;
-    id?: string;
-  } | null>(null);
+type Session = {
+  sessionName: string;
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  doctor: string;
+  slots: Slot[];
+};
 
-  useEffect(() => {
-    async function loadSession() {
-      try {
-        const session = await readClientSession();
-        // console.log("Session:", session); // 🔍 temporary debug
-        if (session) {
-          setUser({
-            role: session.role ?? "staff", // default staff (safer)
-            id: session.id ?? "staff@example.com", // fallback for doctor queues
-            name: session.name ?? "staff@example.com",
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load session", err);
-        setUser({
-          role: "staff",
-          id: "staff@example.com",
-          name: "staff@example.com",
-        }); // safe fallback
+type QueueData = {
+  date: string;
+  sessions: Session[];
+};
+
+/* ---------- Utility to find first empty slot after now ---------- */
+function findNextSlot(sessions: Session[], now: Date) {
+  for (const session of sessions) {
+    const sessionStart = new Date();
+    const [sh, sm] = session.startTime.split(":").map(Number);
+    sessionStart.setHours(sh, sm, 0, 0);
+    const sessionEnd = new Date();
+    const [eh, em] = session.endTime.split(":").map(Number);
+    sessionEnd.setHours(eh, em, 0, 0);
+
+    if (now >= sessionStart && now <= sessionEnd) {
+      for (const s of session.slots) {
+        const [h, m] = s.slotStart.split(":").map(Number);
+        const slotTime = new Date();
+        slotTime.setHours(h, m, 0, 0);
+        if (s.status === "empty" && slotTime >= now)
+          return { session, slot: s };
       }
     }
-    loadSession();
-  }, []);
+  }
+  // if none in current session, pick first empty of next
+  for (const session of sessions) {
+    const next = session.slots.find((s) => s.status === "empty");
+    if (next) return { session, slot: next };
+  }
+  return null;
+}
 
-  useEffect(() => {
-    console.log("Loaded user:", user);
-  }, [user]);
+export default function QueuePage() {
+  const [data, setData] = useState<QueueData | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState("All");
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [walkin, setWalkin] = useState({
+    name: "",
+    phone: "",
+    gender: "Female",
+    doctor: "",
+  });
+  const [userRole] = useState<"staff" | "doctor">("staff");
+  const [doctorName] = useState("Dr. Hira Mardi");
 
-  // -------------------- Load queue data (mock for now) --------------------
   useEffect(() => {
     fetch("/data/queue.json")
       .then((r) => r.json())
-      .then((raw) => {
-        const waiting = (raw.waiting || []).map((p: any) => ({
-          ...p,
-          status: "waiting" as QueueStatus,
-        }));
-        const current = (raw.current || []).map((p: any) => ({
-          ...p,
-          status: "inconsult" as QueueStatus,
-        }));
-        const completed = (raw.completed || []).map((p: any) => ({
-          ...p,
-          status: "completed" as QueueStatus,
-        }));
-        setData({ queue: [...waiting, ...current], completed });
-      })
-      .catch((e) => console.error("Failed to load queue data", e));
+      .then(setData)
+      .catch((e) => console.error("Failed to load OPD data", e));
   }, []);
 
-  // -------------------- Add Walk-in --------------------
-  const handleAddToQueue = () => setShowModal(true);
+  if (!data) return <Typography>Loading OPD queue…</Typography>;
 
-  const handleSaveWalkin = () => {
-    if (!data) return;
-    if (!walkin.name.trim()) return alert("Please enter patient name");
+  const sessions =
+    userRole === "doctor"
+      ? data.sessions.filter((s) => s.doctor === doctorName)
+      : selectedDoctor === "All"
+      ? data.sessions
+      : data.sessions.filter((s) => s.doctor === selectedDoctor);
 
-    const nextToken = `T${(data.queue.length + data.completed.length + 1)
-      .toString()
-      .padStart(2, "0")}`;
+  /* ---------- Statistics ---------- */
+  const waitingCount = sessions.reduce(
+    (acc, s) => acc + s.slots.filter((x) => x.status === "waiting").length,
+    0
+  );
+  const completedCount = sessions.reduce(
+    (acc, s) => acc + s.slots.filter((x) => x.status === "completed").length,
+    0
+  );
+ const noShowSlots = sessions
+  .flatMap((s) =>
+    s.slots
+      .filter((sl) => sl.status === "noshow")
+      .map((sl) => ({ ...sl, session: s.sessionName }))
+  );
+  const currentToken =
+    sessions.flatMap((s) => s.slots).find((x) => x.status === "inconsult")
+      ?.slotStart || "--";
 
-    const newEntry: QueueEntry = {
-      uhid: `UHID${Math.floor(Math.random() * 900 + 100)}`,
-      token: nextToken,
-      name: walkin.name,
-      gender: walkin.gender,
-      abhaAddress: "—",
-      status: "waiting" as QueueStatus,
-      isNew: true,
-      doctorId: user?.id || "dr_vasanth",
-      docname: "Dr. Vasanth Shetty", // ✅ added
-      vitalsCaptured: false,
-    };
-
-    setData((d) => d && { ...d, queue: [...d.queue, newEntry] });
-    setShowModal(false);
-    setWalkin({ name: "", gender: "Female", age: "" });
-  };
-
-  // -------------------- Move Up / Down --------------------
-  const moveEntry = (index: number, direction: "up" | "down") => {
-    if (!data) return;
-    const newList = [...data.queue];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newList.length) return;
-    [newList[index], newList[targetIndex]] = [
-      newList[targetIndex],
-      newList[index],
-    ];
-    setData({ ...data, queue: newList });
-  };
-
-  // -------------------- Status Change --------------------
-  const updateStatus = (uhid: string, status: QueueEntry["status"]) => {
-    if (!data) return;
-    const patient = data.queue.find((p) => p.uhid === uhid);
-    if (!patient) return;
-
-    if (status === "completed") {
-      const updatedPatient = { ...patient, status: "completed" as QueueStatus };
-      const remainingQueue = data.queue.filter((p) => p.uhid !== uhid);
-      setData({
-        queue: remainingQueue,
-        completed: [updatedPatient, ...data.completed],
-      });
+  /* ---------- Walk-in insertion ---------- */
+  const handleAddWalkin = () => {
+    const now = new Date();
+    const doc = userRole === "doctor" ? doctorName : (walkin as any).doctor;
+    if (!doc) {
+      alert("Please select a doctor");
       return;
     }
 
-    const newList = data.queue.map((p) =>
-      p.uhid === uhid ? { ...p, status } : p
+    const next = findNextSlot(
+      data.sessions.filter((s) => s.doctor === doc),
+      now
     );
-    setData({ ...data, queue: newList });
+    if (!next) {
+      alert("No slots available for this doctor.");
+      return;
+    }
+
+    const { session, slot } = next;
+    slot.status = "waiting";
+    slot.type = "walkin";
+    slot.patient = {
+      name: walkin.name,
+      phone: walkin.phone,
+      abha: "-",
+      gender: walkin.gender,
+    };
+    setData({ ...data });
+    setShowModal(false);
+    setWalkin({ name: "", phone: "", gender: "Female", doctor: "" });
   };
 
-  // -------------------- Start Consultation (Role Based) --------------------
-  const onStart = () => {
-    console.log("Session:I am here1");
-  if (!user?.role) return;
-console.log("Session:I am here2");
-    const targetPath =
-    user.role === "staff"
-      ? "/staff/console"
-      : "/doctor/console";
+  /* ---------- Actions ---------- */
+  const updateSlotStatus = (
+    sessionIdx: number,
+    slotIdx: number,
+    status: Slot["status"]
+  ) => {
+    const updated = { ...data };
+    updated.sessions[sessionIdx].slots[slotIdx].status = status;
+    setData(updated);
+  };
 
-  router.push(targetPath);
-  console.log("Session:", user.role);
-};
-
-
-  // -------------------- Sort & Filter --------------------
-  const sortedQueue = [...(data?.queue || [])].sort((a, b) => {
-    if (a.status === "inconsult" && b.status !== "inconsult") return -1;
-    if (a.status !== "inconsult" && b.status === "inconsult") return 1;
-    return 0;
-  });
-
-  // 🔹 Filter queue by role (doctor → only their patients)
-  const roleFilteredQueue = useMemo(() => {
-    if (!data || !user) return sortedQueue;
-    if (user.role === "doctor") {
-      // Hardcode doctor's OPD queue for this phase
-      return sortedQueue.filter((p) => p.docname === "Dr. Vasanth Shetty");
-    }
-    return sortedQueue;
-  }, [sortedQueue, user, data]);
-
-  const filteredQueue = roleFilteredQueue.filter((p) =>
-    [p.name, p.uhid, p.abhaAddress]
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-  const filteredCompleted = data?.completed.filter((p) =>
-    [p.name, p.uhid, p.abhaAddress]
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
-  if (!user) {
-    return <p className="text-sm text-gray-600">Loading user session…</p>;
-  }
-  if (!data) {
-    return <p className="text-sm text-gray-600">Loading queue…</p>;
-  }
-  // -------------------- JSX --------------------
   return (
-    <Paper
-      sx={{
-        p: 2.5,
-        borderRadius: 3,
-        boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-      }}
-    >
-      {/* ---------- Top Bar ---------- */}
-      <Box
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* ---------- Header Stats ---------- */}
+      <Paper
         sx={{
-          mb: 2,
+          p: 2,
+          borderRadius: 3,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "#f9fafb",
+        }}
+      >
+        <Typography variant="subtitle2">
+          <b>Current Token:</b> {currentToken}
+        </Typography>
+        <Typography variant="subtitle2">
+          <b>Waiting:</b> {waitingCount}
+        </Typography>
+        <Typography variant="subtitle2">
+          <b>Completed:</b> {completedCount}
+        </Typography>
+        <Typography variant="subtitle2">
+          <b>Avg Time:</b> 12 min
+        </Typography>
+        <Typography variant="subtitle2">
+          <b>Doctor:</b> 🟢 In
+        </Typography>
+      </Paper>
+
+      {/* ---------- Filter Bar ---------- */}
+      <Paper
+        sx={{
+          p: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           display: "flex",
           alignItems: "center",
           gap: 2,
-          backgroundColor: "#f9fafb",
-          borderRadius: 2,
-          px: 1.5,
-          py: 1.2,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          justifyContent: "space-between",
         }}
       >
-        <TextField
-          type="date"
-          size="small"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          sx={{ width: 160, background: "white", borderRadius: 1 }}
-          InputProps={{
-            startAdornment: (
-              <CalendarDays
-                size={16}
-                style={{ marginRight: 6, color: "#6b7280" }}
-              />
-            ),
-          }}
-        />
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          {userRole === "staff" && (
+            <Select
+              size="small"
+              value={selectedDoctor}
+              onChange={(e) => setSelectedDoctor(e.target.value)}
+              sx={{ minWidth: 180, background: "white", borderRadius: 1 }}
+            >
+              <MenuItem value="All">All Doctors</MenuItem>
+              {[...new Set(data.sessions.map((s) => s.doctor))].map((d) => (
+                <MenuItem key={d} value={d}>
+                  {d}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
 
-        {/* Search */}
-        <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <Search
-            size={16}
-            style={{ marginRight: 8, color: "#6b7280", flexShrink: 0 }}
-          />
-          <TextField
-            size="small"
-            placeholder="Search (name, UHID, ABHA, phone)…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ flex: 1, background: "white", borderRadius: 1 }}
-          />
+          {/* Search field for staff */}
+          {userRole === "staff" && (
+            <TextField
+              size="small"
+              placeholder="Search patient (name / phone / ABHA)…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ width: 260, background: "white", borderRadius: 1 }}
+            />
+          )}
         </Box>
 
-        {/* Doctor name or role */}
-        <Typography
+        <Button
+          variant="contained"
+          startIcon={<UserPlus size={16} />}
           sx={{
-            fontSize: "0.9rem",
+            background: "var(--secondary,#64ac44)",
+            textTransform: "none",
             fontWeight: 600,
-            color: "#374151",
-            minWidth: 160,
-            textAlign: "center",
+            fontSize: "0.85rem",
+            px: 2.5,
           }}
+          onClick={() => setShowModal(true)}
         >
-          {user?.role === "staff" ? "All Doctors" : user?.name || "Doctor"}
-        </Typography>
+          Add Walk-in
+        </Button>
+      </Paper>
 
-        {/* Add Walk-in (only for staff) */}
-        {user?.role === "staff" && (
-          <button
-            style={{
-              background: "var(--secondary, #64ac44)",
-              color: "#fff",
-              padding: "7px 16px",
-              borderRadius: "8px",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-            }}
-            onClick={handleAddToQueue}
-          >
-            Add Walk-in
-          </button>
-        )}
-      </Box>
+      {/* ---------- OPD + Completed Panels ---------- */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+        {/* LEFT: OPD Queues */}
+        <Box>
+          {sessions.map((session, sIdx) => (
+            <Paper
+              key={sIdx}
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              }}
+            >
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1,
+                  borderBottom: "1px solid #e5e7eb",
+                  backgroundColor: "#f3f4f6",
+                }}
+              >
+                <Typography fontWeight={600}>
+                  {session.doctor} — {session.sessionName} Session
+                </Typography>
+              </Box>
 
-      {/* ---------- Columns ---------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* LEFT: OPD Queue */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">
-            OPD Queue
-          </h2>
-          <div className="space-y-2">
-            {filteredQueue.map((entry, idx) => (
-              <div key={entry.uhid} className="relative">
-                <QueueCard
-                  entry={entry}
-                  onMoveUp={() => moveEntry(idx, "up")}
-                  onMoveDown={() => moveEntry(idx, "down")}
-                  onStatusChange={updateStatus}
-                 onStart={onStart}
-                />
-                <div className="absolute top-2 right-3">
-                  {entry.vitalsCaptured ? (
-                    <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
-                      Vitals Done
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
-                      Pending
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-            {filteredQueue.length === 0 && (
-              <p className="text-xs text-gray-500">No patients in queue.</p>
-            )}
-          </div>
-        </div>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Slot</TableCell>
+                    <TableCell>Patient</TableCell>
+                    <TableCell>Doctor</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {session.slots
+                    .filter((sl) => sl.status !== "completed")
+                    .map((slot, idx) => (
+                      <TableRow
+                        key={idx}
+                        sx={{
+                          backgroundColor:
+                            slot.status === "inconsult"
+                              ? "#e0f2fe"
+                              : slot.status === "waiting"
+                              ? "#fff"
+                              : "#f9fafb",
+                        }}
+                      >
+                        <TableCell sx={{ width: 90 }}>
+                          {slot.slotStart} – {slot.slotEnd}
+                        </TableCell>
+                        <TableCell>
+                          {slot.patient ? (
+                            <>
+                              <Typography fontWeight={600} fontSize="0.9rem">
+                                {slot.patient.name}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                fontSize="0.75rem"
+                              >
+                                {slot.patient.phone} | {slot.patient.abha} |
+                                {slot.patient.gender}
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography color="text.disabled" fontSize="0.8rem">
+                              (empty slot)
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>{slot.doctor}</TableCell>
+                        <TableCell>
+                          {slot.type === "walkin"
+                            ? "Walk-in"
+                            : slot.type === "appointment"
+                            ? "Appt."
+                            : ""}
+                        </TableCell>
+                        <TableCell>
+                          {slot.status === "waiting" && (
+                            <>
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  updateSlotStatus(sIdx, idx, "inconsult")
+                                }
+                              >
+                                <Play size={14} />
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  updateSlotStatus(sIdx, idx, "noshow")
+                                }
+                              >
+                                <X size={14} />
+                              </Button>
+                            </>
+                          )}
+                          {slot.status === "inconsult" && (
+                            <>
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  updateSlotStatus(sIdx, idx, "completed")
+                                }
+                              >
+                                <Check size={14} />
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  updateSlotStatus(sIdx, idx, "waiting")
+                                }
+                              >
+                                <Pause size={14} />
+                              </Button>
+                            </>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </Paper>
+          ))}
+        </Box>
 
         {/* RIGHT: Completed */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">
-            Completed Consultations
-          </h2>
-          <div className="space-y-2">
-            {filteredCompleted?.map((entry) => (
-              <QueueCard key={entry.uhid} entry={entry} />
-            ))}
-            {filteredCompleted?.length === 0 && (
-              <p className="text-xs text-gray-500">No completed visits.</p>
-            )}
-          </div>
-        </div>
-      </div>
+        <Box>
+          <Paper
+            sx={{ borderRadius: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                py: 1,
+                borderBottom: "1px solid #e5e7eb",
+                backgroundColor: "#f3f4f6",
+              }}
+            >
+              <Typography fontWeight={600}>Completed Consultations</Typography>
+            </Box>
+
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Slot</TableCell>
+                  <TableCell>Patient</TableCell>
+                  <TableCell>Doctor</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sessions
+                  .flatMap((s) =>
+                    s.slots
+                      .filter((sl) => sl.status === "completed")
+                      .map((sl) => ({ ...sl, session: s.sessionName }))
+                  )
+                  .map((slot, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell sx={{ width: 90 }}>
+                        {slot.slotStart} – {slot.slotEnd}
+                      </TableCell>
+                      <TableCell>
+                        <Typography fontWeight={600} fontSize="0.9rem">
+                          {slot.patient?.name}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          fontSize="0.75rem"
+                        >
+                          {slot.patient?.phone} | {slot.patient?.abha}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{slot.doctor}</TableCell>
+                      <TableCell>
+                        <Button size="small">
+                          <CreditCard size={14} />
+                        </Button>
+                        <Button size="small">
+                          <Upload size={14} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </Paper>
+
+          {/* ---------- No-Show Queue ---------- */}
+        <Paper
+          sx={{
+            mt: 2,
+            borderRadius: 2,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderBottom: "1px solid #e5e7eb",
+              backgroundColor: "#f3f4f6",
+            }}
+          >
+            <Typography fontWeight={600}>No-Show Queue</Typography>
+          </Box>
+
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Slot</TableCell>
+                <TableCell>Patient</TableCell>
+                <TableCell>Doctor</TableCell>
+                <TableCell>Session</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {noShowSlots.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      align="center"
+                      sx={{ py: 1 }}
+                    >
+                      No patients marked as no-show
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {noShowSlots.map((slot, idx) => (
+                <TableRow key={idx}>
+                  <TableCell sx={{ width: 90 }}>
+                    {slot.slotStart} – {slot.slotEnd}
+                  </TableCell>
+                  <TableCell>
+                    <Typography fontWeight={600} fontSize="0.9rem">
+                      {slot.patient?.name}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontSize="0.75rem"
+                    >
+                      {slot.patient?.phone} | {slot.patient?.abha}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{slot.doctor}</TableCell>
+                  <TableCell>{slot.session}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+        </Box>
+        
+      </Box>
 
       {/* ---------- Walk-in Modal ---------- */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-[380px] relative">
-            <button
-              className="absolute top-2 right-2 p-1 text-gray-500 hover:text-gray-700"
-              onClick={() => setShowModal(false)}
+      <Dialog open={showModal} onClose={() => setShowModal(false)}>
+        <DialogTitle>Add Walk-in Patient</DialogTitle>
+        <DialogContent sx={{ pt: 1, pb: 0 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            {/* Doctor selector only for staff */}
+            {userRole === "staff" && (
+              <Select
+                label="Doctor"
+                size="small"
+                value={(walkin as any).doctor || ""}
+                onChange={(e) =>
+                  setWalkin({ ...walkin, doctor: e.target.value as string })
+                }
+                displayEmpty
+              >
+                <MenuItem value="">Select Doctor</MenuItem>
+                {[...new Set(data.sessions.map((s) => s.doctor))].map((d) => (
+                  <MenuItem key={d} value={d}>
+                    {d}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
+
+            <TextField
+              label="Name"
+              size="small"
+              value={walkin.name}
+              onChange={(e) => setWalkin({ ...walkin, name: e.target.value })}
+            />
+            <TextField
+              label="Phone"
+              size="small"
+              value={walkin.phone}
+              onChange={(e) => setWalkin({ ...walkin, phone: e.target.value })}
+            />
+            <Select
+              size="small"
+              value={walkin.gender}
+              onChange={(e) =>
+                setWalkin({ ...walkin, gender: e.target.value as string })
+              }
             >
-              <X className="w-4 h-4" />
-            </button>
-            <h3 className="text-base font-semibold mb-3">
-              Add Walk-in Patient
-            </h3>
+              <MenuItem value="Female">Female</MenuItem>
+              <MenuItem value="Male">Male</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+            </Select>
+          </Box>
+        </DialogContent>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Name</label>
-                <input
-                  type="text"
-                  value={walkin.name}
-                  onChange={(e) =>
-                    setWalkin({ ...walkin, name: e.target.value })
-                  }
-                  className="ui-input w-full mt-1"
-                  placeholder="Enter name"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Gender</label>
-                <select
-                  value={walkin.gender}
-                  onChange={(e) =>
-                    setWalkin({ ...walkin, gender: e.target.value })
-                  }
-                  className="ui-input w-full mt-1"
-                >
-                  <option>Female</option>
-                  <option>Male</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Age</label>
-                <input
-                  type="number"
-                  value={walkin.age}
-                  onChange={(e) =>
-                    setWalkin({ ...walkin, age: e.target.value })
-                  }
-                  className="ui-input w-full mt-1"
-                  placeholder="Enter age"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveWalkin}
-                className="px-4 py-2 text-sm rounded-md text-white"
-                style={{ background: "var(--secondary)" }}
-              >
-                Add to Queue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </Paper>
+        <DialogActions>
+          <Button onClick={() => setShowModal(false)}>Cancel</Button>
+          <Button onClick={handleAddWalkin} variant="contained">
+            Add to Queue
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

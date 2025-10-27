@@ -1,6 +1,23 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import {
+  Paper,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Button,
+  TextField,
+  Typography,
+  Box,
+  Drawer,
+  IconButton,
+  Divider,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 /* ---------------- Types ---------------- */
 type Invoice = {
@@ -9,7 +26,7 @@ type Invoice = {
   patientUHID: string;
   abhaAddress: string;
   phone: string;
-  date: string; // yyyy-mm-dd
+  date: string;
   amount: number;
   status: "Paid" | "Unpaid";
 };
@@ -72,7 +89,7 @@ const MOCK_PAYMENTS: Payment[] = [
   },
 ];
 
-/* ---------------- Components ---------------- */
+/* ---------------- Header ---------------- */
 function HeaderPanel({
   date,
   onDateChange,
@@ -87,41 +104,50 @@ function HeaderPanel({
   onCreateInvoice: () => void;
 }) {
   return (
-    <div className="ui-card p-3 flex flex-wrap gap-3 items-end justify-between">
-      {/* Date filter */}
-      <div>
-        <label className="text-[11px] text-gray-600 block">Date</label>
-        <input
-          type="date"
-          className="ui-input"
-          value={date}
-          onChange={(e) => onDateChange(e.target.value)}
-        />
-      </div>
-
-      {/* Smart search */}
-      <div className="flex-1 min-w-[220px]">
-        <label className="text-[11px] text-gray-600 block">Search Patient</label>
-        <input
-          type="text"
-          placeholder="Name, UHID, ABHA, Phone"
-          className="ui-input w-full"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-
-      {/* Create invoice */}
-      <button
+    <Paper
+      elevation={1}
+      sx={{
+        p: 2,
+        mb: 2,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 2,
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <TextField
+        label="Date"
+        type="date"
+        size="small"
+        value={date}
+        onChange={(e) => onDateChange(e.target.value)}
+        sx={{ minWidth: 180 }}
+        InputLabelProps={{ shrink: true }}
+      />
+      <TextField
+        label="Search Patient"
+        placeholder="Name, UHID, ABHA, Phone"
+        size="small"
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        sx={{ flex: 1, minWidth: 220 }}
+      />
+      <Button
+        variant="contained"
         onClick={onCreateInvoice}
-        className="px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700"
+        sx={{
+          bgcolor: "var(--secondary)",
+          "&:hover": { bgcolor: "var(--tertiary)" },
+        }}
       >
         + Create Invoice
-      </button>
-    </div>
+      </Button>
+    </Paper>
   );
 }
 
+/* ---------------- Invoice List ---------------- */
 function InvoiceList({
   invoices,
   onShowHistory,
@@ -130,49 +156,66 @@ function InvoiceList({
   onShowHistory: (uhid: string) => void;
 }) {
   return (
-    <div className="ui-card p-4">
-      <h2 className="text-lg font-semibold mb-3">Invoices</h2>
-      <table className="w-full border text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <Th>Invoice</Th>
-            <Th>Patient</Th>
-            <Th>UHID</Th>
-            <Th>ABHA</Th>
-            <Th>Phone</Th>
-            <Th>Date</Th>
-            <Th>Amount</Th>
-            <Th>Status</Th>
-            <Th>Action</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map((inv) => (
-            <tr key={inv.id} className="border-t">
-              <Td>{inv.id}</Td>
-              <Td>{inv.patientName}</Td>
-              <Td>{inv.patientUHID}</Td>
-              <Td>{inv.abhaAddress}</Td>
-              <Td>{inv.phone}</Td>
-              <Td>{inv.date}</Td>
-              <Td>₹{inv.amount}</Td>
-              <Td>{inv.status}</Td>
-              <Td>
-                <button
-                  className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
-                  onClick={() => onShowHistory(inv.patientUHID)}
+    <Paper elevation={1} sx={{ p: 2 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Invoices
+      </Typography>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "grey.100" }}>
+              {[
+                "Invoice",
+                "Patient",
+                "UHID",
+                "ABHA",
+                "Phone",
+                "Date",
+                "Amount",
+                "Status",
+                "Action",
+              ].map((head) => (
+                <TableCell key={head}>{head}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {invoices.map((inv) => (
+              <TableRow key={inv.id} hover>
+                <TableCell>{inv.id}</TableCell>
+                <TableCell>{inv.patientName}</TableCell>
+                <TableCell>{inv.patientUHID}</TableCell>
+                <TableCell>{inv.abhaAddress}</TableCell>
+                <TableCell>{inv.phone}</TableCell>
+                <TableCell>{inv.date}</TableCell>
+                <TableCell>₹{inv.amount}</TableCell>
+                <TableCell
+                  sx={{
+                    color: inv.status === "Paid" ? "green" : "red",
+                    fontWeight: 600,
+                  }}
                 >
-                  Payment History
-                </button>
-              </Td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  {inv.status}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => onShowHistory(inv.patientUHID)}
+                  >
+                    View Payments
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 }
 
+/* ---------------- Payment History ---------------- */
 function PaymentHistory({
   payments,
   patientUHID,
@@ -184,57 +227,59 @@ function PaymentHistory({
 }) {
   if (!patientUHID) return null;
   const filtered = payments.filter((p) => p.patientUHID === patientUHID);
-
   return (
-    <div className="ui-card p-4 mt-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-md font-semibold">
+    <Paper elevation={1} sx={{ p: 2 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="subtitle1">
           Payment History for {patientUHID}
-        </h3>
-        <button
-          onClick={onClose}
-          className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
-        >
+        </Typography>
+        <Button size="small" variant="outlined" onClick={onClose}>
           Close
-        </button>
-      </div>
+        </Button>
+      </Box>
       {filtered.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">No payments found.</p>
+        <Typography variant="body2" sx={{ mt: 2, color: "text.secondary" }}>
+          No payments found.
+        </Typography>
       ) : (
-        <table className="w-full border text-sm mt-3">
-          <thead className="bg-gray-50">
-            <tr>
-              <Th>Payment ID</Th>
-              <Th>Invoice</Th>
-              <Th>Date</Th>
-              <Th>Method</Th>
-              <Th>Amount</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((pay) => (
-              <tr key={pay.id} className="border-t">
-                <Td>{pay.id}</Td>
-                <Td>{pay.invoiceId}</Td>
-                <Td>{pay.date}</Td>
-                <Td>{pay.method}</Td>
-                <Td>₹{pay.amount}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TableContainer sx={{ mt: 2 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "grey.100" }}>
+                {["Payment ID", "Invoice", "Date", "Method", "Amount"].map(
+                  (head) => (
+                    <TableCell key={head}>{head}</TableCell>
+                  )
+                )}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map((p) => (
+                <TableRow key={p.id} hover>
+                  <TableCell>{p.id}</TableCell>
+                  <TableCell>{p.invoiceId}</TableCell>
+                  <TableCell>{p.date}</TableCell>
+                  <TableCell>{p.method}</TableCell>
+                  <TableCell>₹{p.amount}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </div>
+    </Paper>
   );
 }
 
-/* -------- Floating Invoice Panel -------- */
-function InvoicePanel({
-  patientName,
+/* ---------------- Invoice Drawer ---------------- */
+function InvoiceDrawer({
+  open,
   onClose,
+  patientName,
 }: {
-  patientName: string;
+  open: boolean;
   onClose: () => void;
+  patientName: string;
 }) {
   const [items, setItems] = useState<InvoiceItem[]>([
     { service: "Consultation", qty: 1, price: 500 },
@@ -255,130 +300,130 @@ function InvoicePanel({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex justify-end z-50">
-      <div className="w-full max-w-md bg-white h-full shadow-lg p-4 overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Create Invoice</h2>
-          <button
-            onClick={onClose}
-            className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
-          >
-            Close
-          </button>
-        </div>
-        <div className="text-sm mb-4">
-          <div>Patient: <strong>{patientName || "—"}</strong></div>
-          <div>Date: {new Date().toLocaleDateString()}</div>
-        </div>
+    <Drawer anchor="right" open={open} onClose={onClose}>
+      <Box sx={{ width: { xs: "100vw", sm: 420 }, p: 3 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Typography variant="h6">Create Invoice</Typography>
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Divider sx={{ my: 2 }} />
 
-        {/* Items */}
-        <table className="w-full border text-sm mb-3">
-          <thead className="bg-gray-50">
-            <tr>
-              <Th>Service</Th>
-              <Th>Qty</Th>
-              <Th>Price</Th>
-              <Th>Total</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it, idx) => (
-              <tr key={idx} className="border-t">
-                <Td>
-                  <input
-                    className="ui-input w-full"
-                    value={it.service}
-                    onChange={(e) =>
-                      updateItem(idx, { service: e.target.value })
-                    }
-                  />
-                </Td>
-                <Td>
-                  <input
-                    type="number"
-                    className="ui-input w-16"
-                    value={it.qty}
-                    onChange={(e) =>
-                      updateItem(idx, { qty: Number(e.target.value) })
-                    }
-                  />
-                </Td>
-                <Td>
-                  <input
-                    type="number"
-                    className="ui-input w-20"
-                    value={it.price}
-                    onChange={(e) =>
-                      updateItem(idx, { price: Number(e.target.value) })
-                    }
-                  />
-                </Td>
-                <Td>₹{it.qty * it.price}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <button
-          className="text-xs px-2 py-1 border rounded hover:bg-gray-50 mb-3"
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Patient: <strong>{patientName || "—"}</strong>
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Date: {new Date().toLocaleDateString()}
+        </Typography>
+
+        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+          <Table size="small">
+            <TableHead sx={{ backgroundColor: "grey.50" }}>
+              <TableRow>
+                <TableCell>Service</TableCell>
+                <TableCell>Qty</TableCell>
+                <TableCell>Price</TableCell>
+                <TableCell>Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {items.map((it, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      value={it.service}
+                      onChange={(e) =>
+                        updateItem(idx, { service: e.target.value })
+                      }
+                      fullWidth
+                    />
+                  </TableCell>
+                  <TableCell width={60}>
+                    <TextField
+                      variant="standard"
+                      type="number"
+                      value={it.qty}
+                      onChange={(e) =>
+                        updateItem(idx, { qty: Number(e.target.value) })
+                      }
+                      inputProps={{ min: 1 }}
+                    />
+                  </TableCell>
+                  <TableCell width={80}>
+                    <TextField
+                      variant="standard"
+                      type="number"
+                      value={it.price}
+                      onChange={(e) =>
+                        updateItem(idx, { price: Number(e.target.value) })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>₹{it.qty * it.price}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Button
           onClick={() => setItems([...items, { service: "", qty: 1, price: 0 }])}
+          variant="outlined"
+          size="small"
+          sx={{ mb: 2 }}
         >
           + Add Item
-        </button>
+        </Button>
 
-        {/* Totals */}
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between">
+        <Divider sx={{ my: 2 }} />
+
+        <Box display="grid" gap={1}>
+          <Box display="flex" justifyContent="space-between">
             <span>Subtotal</span>
             <span>₹{subtotal}</span>
-          </div>
-          <div className="flex justify-between items-center">
+          </Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
             <span>GST (%)</span>
-            <input
+            <TextField
               type="number"
-              className="ui-input w-16 text-right"
+              size="small"
               value={gst}
               onChange={(e) => setGst(Number(e.target.value))}
+              sx={{ width: 80 }}
             />
-          </div>
-          <div className="flex justify-between items-center">
+          </Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
             <span>Discount</span>
-            <input
+            <TextField
               type="number"
-              className="ui-input w-20 text-right"
+              size="small"
               value={discount}
               onChange={(e) => setDiscount(Number(e.target.value))}
+              sx={{ width: 80 }}
             />
-          </div>
-          <div className="flex justify-between font-semibold border-t pt-2">
+          </Box>
+          <Divider sx={{ my: 1 }} />
+          <Box display="flex" justifyContent="space-between" fontWeight={600}>
             <span>Total</span>
             <span>₹{total}</span>
-          </div>
-        </div>
+          </Box>
+        </Box>
 
-        {/* Save button */}
-        <div className="mt-4 text-right">
-          <button className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+        <Box textAlign="right" sx={{ mt: 3 }}>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: "var(--secondary)",
+              "&:hover": { bgcolor: "var(--tertiary)" },
+            }}
+          >
             Save Invoice
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- Helpers ---------------- */
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th className="px-2 py-1.5 text-left text-gray-700 border text-xs sm:text-sm">
-      {children}
-    </th>
-  );
-}
-function Td({ children }: { children: React.ReactNode }) {
-  return (
-    <td className="px-2 py-1.5 text-gray-900 break-words whitespace-normal align-top">
-      {children}
-    </td>
+          </Button>
+        </Box>
+      </Box>
+    </Drawer>
   );
 }
 
@@ -388,7 +433,7 @@ export default function BillingPage() {
   const [date, setDate] = useState(today);
   const [search, setSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
-  const [showInvoicePanel, setShowInvoicePanel] = useState(false);
+  const [showInvoiceDrawer, setShowInvoiceDrawer] = useState(false);
 
   const filteredInvoices = useMemo(() => {
     return MOCK_INVOICES.filter(
@@ -407,27 +452,29 @@ export default function BillingPage() {
       : search;
 
   return (
-    <div className="space-y-4">
+    <Box sx={{ display: "grid", gap: 2 }}>
       <HeaderPanel
         date={date}
         onDateChange={setDate}
         search={search}
         onSearchChange={setSearch}
-        onCreateInvoice={() => setShowInvoicePanel(true)}
+        onCreateInvoice={() => setShowInvoiceDrawer(true)}
       />
-      <InvoiceList invoices={filteredInvoices} onShowHistory={setSelectedPatient} />
+      <InvoiceList
+        invoices={filteredInvoices}
+        onShowHistory={setSelectedPatient}
+      />
       <PaymentHistory
         payments={MOCK_PAYMENTS}
         patientUHID={selectedPatient}
         onClose={() => setSelectedPatient(null)}
       />
 
-      {showInvoicePanel && (
-        <InvoicePanel
-          patientName={patientName || ""}
-          onClose={() => setShowInvoicePanel(false)}
-        />
-      )}
-    </div>
+      <InvoiceDrawer
+        open={showInvoiceDrawer}
+        onClose={() => setShowInvoiceDrawer(false)}
+        patientName={patientName || ""}
+      />
+    </Box>
   );
 }
