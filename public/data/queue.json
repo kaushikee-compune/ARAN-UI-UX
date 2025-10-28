@@ -11,8 +11,9 @@
         {
           "slotStart": "09:00",
           "slotEnd": "09:15",
-          "status": "waiting",
+          "status": "inconsult",
           "type": "appointment",
+          "paymentStatus": "paid",
           "patient": {
             "name": "Anita Sharma",
             "phone": "9876543210",
@@ -34,6 +35,7 @@
           "slotEnd": "09:45",
           "status": "waiting",
           "type": "walkin",
+          "paymentStatus": "unpaid",
           "patient": {
             "name": "Rajesh Kumar",
             "phone": "9811112345",
@@ -45,8 +47,9 @@
         {
           "slotStart": "09:45",
           "slotEnd": "10:00",
-          "status": "inconsult",
+          "status": "waiting",
           "type": "appointment",
+          "paymentStatus": "paid",
           "patient": {
             "name": "Priya Verma",
             "phone": "9822002200",
@@ -60,6 +63,7 @@
           "slotEnd": "10:15",
           "status": "waiting",
           "type": "appointment",
+          "paymentStatus": "paid",
           "patient": {
             "name": "Sourav Ghosh",
             "phone": "9898989898",
@@ -81,6 +85,7 @@
           "slotEnd": "10:45",
           "status": "completed",
           "type": "appointment",
+          "paymentStatus": "unpaid",
           "patient": {
             "name": "Suman Das",
             "phone": "9888899999",
@@ -94,6 +99,7 @@
           "slotEnd": "11:00",
           "status": "completed",
           "type": "walkin",
+          "paymentStatus": "paid",
           "patient": {
             "name": "Kiran Patel",
             "phone": "9812312312",
@@ -116,6 +122,7 @@
           "slotEnd": "09:15",
           "status": "waiting",
           "type": "appointment",
+          "paymentStatus": "paid",
           "patient": {
             "name": "Rohit Sen",
             "phone": "9823456789",

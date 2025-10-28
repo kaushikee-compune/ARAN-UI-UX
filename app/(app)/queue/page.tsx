@@ -43,6 +43,7 @@ type Slot = {
   slotEnd: string;
   status: "empty" | "waiting" | "inconsult" | "completed" | "noshow";
   type: "appointment" | "walkin" | null;
+  paymentStatus?: "paid" | "unpaid";
   patient: Patient | null;
   doctor: string;
 };
@@ -102,6 +103,7 @@ export default function QueuePage() {
   });
   const [userRole] = useState<"staff" | "doctor">("staff");
   const [doctorName] = useState("Dr. Hira Mardi");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/data/queue.json")
@@ -128,8 +130,7 @@ export default function QueuePage() {
     (acc, s) => acc + s.slots.filter((x) => x.status === "completed").length,
     0
   );
- const noShowSlots = sessions
-  .flatMap((s) =>
+  const noShowSlots = sessions.flatMap((s) =>
     s.slots
       .filter((sl) => sl.status === "noshow")
       .map((sl) => ({ ...sl, session: s.sessionName }))
@@ -182,252 +183,289 @@ export default function QueuePage() {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="flex flex-col gap-4 p-3">
       {/* ---------- Header Stats ---------- */}
-      <Paper
-        sx={{
-          p: 2,
-          borderRadius: 3,
-          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: "#f9fafb",
-        }}
-      >
-        <Typography variant="subtitle2">
-          <b>Current Token:</b> {currentToken}
-        </Typography>
-        <Typography variant="subtitle2">
-          <b>Waiting:</b> {waitingCount}
-        </Typography>
-        <Typography variant="subtitle2">
-          <b>Completed:</b> {completedCount}
-        </Typography>
-        <Typography variant="subtitle2">
-          <b>Avg Time:</b> 12 min
-        </Typography>
-        <Typography variant="subtitle2">
-          <b>Doctor:</b> 🟢 In
-        </Typography>
-      </Paper>
+      <div className="flex justify-between items-center rounded-xl bg-[#f9fafb] shadow-sm px-4 py-2">
+        <span className="text-sm font-semibold">
+          Current Token: {currentToken}
+        </span>
+        <span className="text-sm font-semibold">Waiting: {waitingCount}</span>
+        <span className="text-sm font-semibold">
+          Completed: {completedCount}
+        </span>
+        <span className="text-sm font-semibold">Avg Time: 12 min</span>
+        <span className="text-sm font-semibold">Doctor: 🟢 In</span>
+      </div>
 
       {/* ---------- Filter Bar ---------- */}
-      <Paper
-        sx={{
-          p: 1.5,
-          borderRadius: 2,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+      <div className="flex items-center justify-between rounded-lg border border-gray-200 shadow-sm px-2 py-2 bg-white">
+        <div className="flex items-center gap-3 p-3">
           {userRole === "staff" && (
-            <Select
-              size="small"
-              value={selectedDoctor}
-              onChange={(e) => setSelectedDoctor(e.target.value)}
-              sx={{ minWidth: 180, background: "white", borderRadius: 1 }}
-            >
-              <MenuItem value="All">All Doctors</MenuItem>
-              {[...new Set(data.sessions.map((s) => s.doctor))].map((d) => (
-                <MenuItem key={d} value={d}>
-                  {d}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+            <>
+              <select
+                className="ui-input w-full"
+                value={selectedDoctor}
+                onChange={(e) => setSelectedDoctor(e.target.value)}
+                style={{ minWidth: 160 }}
+              >
+                <option value="All">All Doctors</option>
+                {[...new Set(data.sessions.map((s) => s.doctor))].map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
 
-          {/* Search field for staff */}
-          {userRole === "staff" && (
-            <TextField
-              size="small"
-              placeholder="Search patient (name / phone / ABHA)…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ width: 260, background: "white", borderRadius: 1 }}
-            />
+              <input
+                type="text"
+                className="ui-input flex-auto"
+                placeholder="Search patient (name / phone / ABHA)…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </>
           )}
-        </Box>
+        </div>
 
-        <Button
-          variant="contained"
-          startIcon={<UserPlus size={16} />}
-          sx={{
-            background: "var(--secondary,#64ac44)",
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "0.85rem",
-            px: 2.5,
-          }}
+        <button
+          className="btn-primary flex items-center gap-2 text-sm font-semibold"
           onClick={() => setShowModal(true)}
         >
+          <img src="/icons/UserPlus.png" alt="" className="w-4 h-4" />
           Add Walk-in
-        </Button>
-      </Paper>
+        </button>
+      </div>
 
       {/* ---------- OPD + Completed Panels ---------- */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-        {/* LEFT: OPD Queues */}
-        <Box>
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+        {/* LEFT: OPD Queue */}
+        <div>
           {sessions.map((session, sIdx) => (
-            <Paper
+            <div
               key={sIdx}
-              sx={{
-                mb: 2,
-                borderRadius: 2,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              }}
+              className="rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden"
             >
-              <Box
-                sx={{
-                  px: 2,
-                  py: 1,
-                  borderBottom: "1px solid #e5e7eb",
-                  backgroundColor: "#f3f4f6",
-                }}
-              >
-                <Typography fontWeight={600}>
-                  {session.doctor} — {session.sessionName} Session
-                </Typography>
-              </Box>
+              <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
+                {session.doctor} — {session.sessionName} Session
+              </div>
 
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Slot</TableCell>
-                    <TableCell>Patient</TableCell>
-                    <TableCell>Doctor</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 text-gray-600">
+                  <tr>
+                    <th className="p-2 text-left w-[110px]">Slot</th>
+                    <th className="p-2 text-left">Patient</th>
+                    <th className="p-2 text-left w-[140px]">Start / Pause</th>
+                    <th className="p-2 text-left w-[110px]">Type</th>
+                    <th className="p-2 text-left w-[150px]">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
                   {session.slots
                     .filter((sl) => sl.status !== "completed")
                     .map((slot, idx) => (
-                      <TableRow
+                      <tr
                         key={idx}
-                        sx={{
-                          backgroundColor:
-                            slot.status === "inconsult"
-                              ? "#e0f2fe"
-                              : slot.status === "waiting"
-                              ? "#fff"
-                              : "#f9fafb",
-                        }}
+                        className={[
+                          "border-t border-gray-300",
+                          slot.status === "inconsult"
+                            ? "bg-white"
+                            : slot.status === "waiting"
+                            ? "bg-white"
+                            : "bg-green-100",
+                        ].join(" ")}
                       >
-                        <TableCell sx={{ width: 90 }}>
+                        {/* Slot */}
+                        <td className="p-2">
                           {slot.slotStart} – {slot.slotEnd}
-                        </TableCell>
-                        <TableCell>
+                        </td>
+
+                        {/* Patient Details */}
+                        <td className="p-2">
                           {slot.patient ? (
                             <>
-                              <Typography fontWeight={600} fontSize="0.9rem">
+                              <div className="font-semibold text-sm">
                                 {slot.patient.name}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                fontSize="0.75rem"
-                              >
-                                {slot.patient.phone} | {slot.patient.abha} |
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {slot.patient.phone} | {slot.patient.abha} |{" "}
                                 {slot.patient.gender}
-                              </Typography>
+                              </div>
                             </>
                           ) : (
-                            <Typography color="text.disabled" fontSize="0.8rem">
+                            <div className="text-xs text-gray-500 italic">
                               (empty slot)
-                            </Typography>
+                            </div>
                           )}
-                        </TableCell>
-                        <TableCell>{slot.doctor}</TableCell>
-                        <TableCell>
+                        </td>
+
+                        {/* Start / Pause */}
+                        <td className="p-2 text-left">
+                          {slot.patient && (
+                            <>
+                              {slot.status === "waiting" && (
+                                <div
+                                  className="inline-flex items-left gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
+                                  onClick={() =>
+                                    updateSlotStatus(sIdx, idx, "inconsult")
+                                  }
+                                  title="Start Consultation"
+                                >
+                                  <span>Start</span>
+                                  <img
+                                    src="/icons/Start.png"
+                                    alt="Start"
+                                    className="w-4 h-4"
+                                  />
+                                </div>
+                              )}
+
+                              {slot.status === "inconsult" && (
+                                <div
+                                  className="inline-flex items-left gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
+                                  onClick={() =>
+                                    updateSlotStatus(sIdx, idx, "waiting")
+                                  }
+                                  title="Pause Consultation"
+                                >
+                                  <span>Pause</span>
+                                  <img
+                                    src="/icons/pause.png"
+                                    alt="Pause"
+                                    className="w-4 h-4"
+                                  />
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </td>
+
+                        {/* Appointment Type */}
+                        <td className="p-2 text-left">
                           {slot.type === "walkin"
                             ? "Walk-in"
                             : slot.type === "appointment"
                             ? "Appt."
                             : ""}
-                        </TableCell>
-                        <TableCell>
-                          {slot.status === "waiting" && (
-                            <>
-                              <Button
-                                size="small"
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-2 text-left justify-left">
+                          {slot.patient && (
+                            <div className="relative inline-block text-left">
+                              {/* 3-dot trigger — vertical */}
+                              <button
                                 onClick={() =>
-                                  updateSlotStatus(sIdx, idx, "inconsult")
+                                  setOpenMenu(
+                                    openMenu === `${sIdx}-${idx}`
+                                      ? null
+                                      : `${sIdx}-${idx}`
+                                  )
                                 }
+                                className="p-1 rounded hover:bg-gray-100 transition"
                               >
-                                <Play size={14} />
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  updateSlotStatus(sIdx, idx, "noshow")
-                                }
-                              >
-                                <X size={14} />
-                              </Button>
-                            </>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={1.8}
+                                  stroke="currentColor"
+                                  className="w-5 h-5 text-gray-600"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 6.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 18.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+                                  />
+                                </svg>
+                              </button>
+
+                              {/* Dropdown menu */}
+                              {openMenu === `${sIdx}-${idx}` && (
+                                <div
+                                  className="absolute right-0 mt-1 w-36 origin-top-right rounded-md bg-white border border-gray-200 shadow-lg z-10"
+                                  onMouseLeave={() => setOpenMenu(null)}
+                                >
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      updateSlotStatus(sIdx, idx, "noshow");
+                                      setOpenMenu(null);
+                                    }}
+                                  >
+                                    🟥 No-Show
+                                  </button>
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      alert(
+                                        `Collect payment for ${slot.patient?.name}`
+                                      );
+                                      setOpenMenu(null);
+                                    }}
+                                  >
+                                    💰 Payment
+                                  </button>
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      alert(
+                                        `Open vitals for ${slot.patient?.name}`
+                                      );
+                                      setOpenMenu(null);
+                                    }}
+                                  >
+                                    ❤️ Vitals
+                                  </button>
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      alert(
+                                        `Upload report for ${slot.patient?.name}`
+                                      );
+                                      setOpenMenu(null);
+                                    }}
+                                  >
+                                    📤 Upload
+                                  </button>
+                                  <button
+                                    className="menu-item"
+                                    onClick={() => {
+                                      alert(`Move up ${slot.patient?.name}`);
+                                      setOpenMenu(null);
+                                    }}
+                                  >
+                                    ⬆️ Move Up
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
-                          {slot.status === "inconsult" && (
-                            <>
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  updateSlotStatus(sIdx, idx, "completed")
-                                }
-                              >
-                                <Check size={14} />
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  updateSlotStatus(sIdx, idx, "waiting")
-                                }
-                              >
-                                <Pause size={14} />
-                              </Button>
-                            </>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                </TableBody>
-              </Table>
-            </Paper>
+                </tbody>
+              </table>
+            </div>
           ))}
-        </Box>
+        </div>
 
-        {/* RIGHT: Completed */}
-        <Box>
-          <Paper
-            sx={{ borderRadius: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
-          >
-            <Box
-              sx={{
-                px: 2,
-                py: 1,
-                borderBottom: "1px solid #e5e7eb",
-                backgroundColor: "#f3f4f6",
-              }}
-            >
-              <Typography fontWeight={600}>Completed Consultations</Typography>
-            </Box>
-
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Slot</TableCell>
-                  <TableCell>Patient</TableCell>
-                  <TableCell>Doctor</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+        {/* RIGHT: Completed & No-Show */}
+        <div>
+          {/* Completed Consultations */}
+          <div className="rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
+            <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
+              Completed Consultations
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 text-gray-600">
+                <tr>
+                  <th className="p-3 text-left w-[100px]">Slot</th>
+                  <th className="p-2 text-left">Patient</th>
+                  <th className="p-2 text-Left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {sessions
                   .flatMap((s) =>
                     s.slots
@@ -435,166 +473,98 @@ export default function QueuePage() {
                       .map((sl) => ({ ...sl, session: s.sessionName }))
                   )
                   .map((slot, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell sx={{ width: 90 }}>
+                    <tr className="border-t border-gray-300" key={idx}>
+                      <td className="p-2 w-[90px]">
                         {slot.slotStart} – {slot.slotEnd}
-                      </TableCell>
-                      <TableCell>
-                        <Typography fontWeight={600} fontSize="0.9rem">
+                      </td>
+                      <td className="p-2">
+                        <div className="font-semibold text-sm">
                           {slot.patient?.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          fontSize="0.75rem"
-                        >
+                        </div>
+                        <div className="text-xs text-gray-500">
                           {slot.patient?.phone} | {slot.patient?.abha}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{slot.doctor}</TableCell>
-                      <TableCell>
-                        <Button size="small">
-                          <CreditCard size={14} />
-                        </Button>
-                        <Button size="small">
-                          <Upload size={14} />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </div>
+                      </td>
+                      <td className="p-2 flex gap-3 justify-left items-center">
+                        {slot.paymentStatus === "paid" ? (
+                          <span className="inline-flex items-center text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded">
+                            PAID
+                          </span>
+                        ) : (
+                          <button
+                            className="hover:opacity-90"
+                            title="Collect Payment"
+                            onClick={() =>
+                              alert(`Collect payment for ${slot.patient?.name}`)
+                            }
+                          >
+                            <img
+                              src="/icons/rupee.png"
+                              alt="Payment"
+                              className="w-5 h-5"
+                            />
+                          </button>
+                        )}
+
+                        <button
+                          className="hover:opacity-90"
+                          title="Upload Documents"
+                        >
+                          <img
+                            src="/icons/upload.png"
+                            alt="Upload"
+                            className="w-5 h-5"
+                          />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-              </TableBody>
-            </Table>
-          </Paper>
+              </tbody>
+            </table>
+          </div>
 
-          {/* ---------- No-Show Queue ---------- */}
-        <Paper
-          sx={{
-            mt: 2,
-            borderRadius: 2,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          }}
-        >
-          <Box
-            sx={{
-              px: 2,
-              py: 1,
-              borderBottom: "1px solid #e5e7eb",
-              backgroundColor: "#f3f4f6",
-            }}
-          >
-            <Typography fontWeight={600}>No-Show Queue</Typography>
-          </Box>
-
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Slot</TableCell>
-                <TableCell>Patient</TableCell>
-                <TableCell>Doctor</TableCell>
-                <TableCell>Session</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {noShowSlots.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      align="center"
-                      sx={{ py: 1 }}
-                    >
+          {/* No-Show Queue */}
+          <div className="rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
+              No-Show Queue
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 text-gray-600">
+                <tr>
+                  <th className="p-2 text-left w-[100px]">Slot</th>
+                  <th className="p-2 text-left">Patient</th>
+                  <th className="p-2 text-left">Session</th>
+                </tr>
+              </thead>
+              <tbody>
+                {noShowSlots.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="text-center text-gray-500 py-2">
                       No patients marked as no-show
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {noShowSlots.map((slot, idx) => (
-                <TableRow key={idx}>
-                  <TableCell sx={{ width: 90 }}>
-                    {slot.slotStart} – {slot.slotEnd}
-                  </TableCell>
-                  <TableCell>
-                    <Typography fontWeight={600} fontSize="0.9rem">
-                      {slot.patient?.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      fontSize="0.75rem"
-                    >
-                      {slot.patient?.phone} | {slot.patient?.abha}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{slot.doctor}</TableCell>
-                  <TableCell>{slot.session}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Paper>
-        </Box>
-        
-      </Box>
-
-      {/* ---------- Walk-in Modal ---------- */}
-      <Dialog open={showModal} onClose={() => setShowModal(false)}>
-        <DialogTitle>Add Walk-in Patient</DialogTitle>
-        <DialogContent sx={{ pt: 1, pb: 0 }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            {/* Doctor selector only for staff */}
-            {userRole === "staff" && (
-              <Select
-                label="Doctor"
-                size="small"
-                value={(walkin as any).doctor || ""}
-                onChange={(e) =>
-                  setWalkin({ ...walkin, doctor: e.target.value as string })
-                }
-                displayEmpty
-              >
-                <MenuItem value="">Select Doctor</MenuItem>
-                {[...new Set(data.sessions.map((s) => s.doctor))].map((d) => (
-                  <MenuItem key={d} value={d}>
-                    {d}
-                  </MenuItem>
+                    </td>
+                  </tr>
+                )}
+                {noShowSlots.map((slot, idx) => (
+                  <tr className="border-t border-gray-300" key={idx}>
+                    <td className="p-2 w-[90px]">
+                      {slot.slotStart} – {slot.slotEnd}
+                    </td>
+                    <td className="p-2">
+                      <div className="font-semibold text-sm">
+                        {slot.patient?.name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {slot.patient?.phone} | {slot.patient?.abha}
+                      </div>
+                    </td>
+                    <td className="p-2">{slot.session}</td>
+                  </tr>
                 ))}
-              </Select>
-            )}
-
-            <TextField
-              label="Name"
-              size="small"
-              value={walkin.name}
-              onChange={(e) => setWalkin({ ...walkin, name: e.target.value })}
-            />
-            <TextField
-              label="Phone"
-              size="small"
-              value={walkin.phone}
-              onChange={(e) => setWalkin({ ...walkin, phone: e.target.value })}
-            />
-            <Select
-              size="small"
-              value={walkin.gender}
-              onChange={(e) =>
-                setWalkin({ ...walkin, gender: e.target.value as string })
-              }
-            >
-              <MenuItem value="Female">Female</MenuItem>
-              <MenuItem value="Male">Male</MenuItem>
-              <MenuItem value="Other">Other</MenuItem>
-            </Select>
-          </Box>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setShowModal(false)}>Cancel</Button>
-          <Button onClick={handleAddWalkin} variant="contained">
-            Add to Queue
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
