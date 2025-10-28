@@ -48,7 +48,6 @@ type BookingDraft = {
   note?: string;
 };
 
-
 /* =============================================================================
    Utility helpers
 ============================================================================= */
@@ -87,14 +86,12 @@ function buildSlots(d: Doctor): Slot[] {
    Page
 ============================================================================= */
 export default function AppointmentsPage() {
-  
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDept, setSelectedDept] = useState("All");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [query, setQuery] = useState("");
-   const [session, setSession] = useState(() => readClientSession());
-
+  const [session, setSession] = useState(() => readClientSession());
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
@@ -175,8 +172,6 @@ export default function AppointmentsPage() {
     setSelectedSlot(null);
     setDraft(null);
   }
-
-  
 
   /* =============================================================================
      Render
@@ -264,18 +259,7 @@ export default function AppointmentsPage() {
 
           {/* Quick booking */}
           <button
-            style={{
-              background: "var(--secondary, #64ac44)",
-              color: "#fff",
-              padding: "7px 16px",
-              borderRadius: "8px",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              border: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
+            className="btn-primary px-3 py-1 rounded-md text-sm"
             onClick={() =>
               window.scrollTo({
                 top: document.body.scrollHeight,
@@ -283,7 +267,6 @@ export default function AppointmentsPage() {
               })
             }
           >
-            <Plus size={16} />
             Quick Booking
           </button>
         </Box>
@@ -313,7 +296,9 @@ export default function AppointmentsPage() {
                       {doc.qualifications ? ` • ${doc.qualifications}` : ""}
                     </div>
                     {doc.bio && (
-                      <div className="text-xs text-gray-600 mt-1">{doc.bio}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {doc.bio}
+                      </div>
                     )}
                     {doc.room && (
                       <div className="text-xs text-gray-500 mt-1">
@@ -446,7 +431,7 @@ function RightBookingPanel({
         {selectedSlot && (
           <button
             onClick={onClearSlot}
-            className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+            className="btn-accent text-xs px-2 py-1 border rounded hover:bg-gray-50"
           >
             Change Slot
           </button>
@@ -513,11 +498,11 @@ function RightBookingPanel({
 
           <div className="mt-4 flex items-center justify-between">
             <span />
-            <button
+            <button 
               onClick={onConfirm}
               disabled={confirmDisabled}
               className={[
-                "px-4 py-2 text-sm rounded-md font-medium shadow-sm",
+                "btn-primary px-4 py-2 text-sm rounded-md font-medium shadow-sm",
                 confirmDisabled
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-amber-600 text-grey hover:opacity-90",

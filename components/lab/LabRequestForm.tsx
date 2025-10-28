@@ -249,21 +249,9 @@ export default function LabRequestForm({
 
         {/* Action Buttons */}
         <div className="flex gap-2 mt-4">
-          <button className="btn-outline px-3 py-1 text-sm" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            className="bg-emerald-600 text-white px-3 py-1 rounded-md text-sm hover:bg-emerald-700"
-            onClick={handleSubmit}
-          >
-            Submit Request
-          </button>
-          <button
-            className="bg-purple-600 text-white px-3 py-1 rounded-md text-sm hover:bg-emerald-700"
-            onClick={() => alert("Lab request sent successfully!")}
-          >
-            Send
-          </button>
+          <button className="btn-neutral px-3 py-1 rounded-md text-sm">Cancel</button>
+          <button className="btn-primary px-3 py-1 rounded-md text-sm" onClick={handleSubmit}>Submit Request</button>
+          <button className="btn-accent px-3 py-1 rounded-md text-sm" onClick={() => alert("Lab request sent uccessfully!")}>Send</button>
         </div>
       </div>
     </div>

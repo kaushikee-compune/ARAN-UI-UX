@@ -20,7 +20,7 @@ export default function QuickActions() {
         {actions.map((a) => (
           <button
             key={a.label}
-            className="px-3 py-2 rounded-lg border hover:bg-gray-50 text-gray-700"
+            className="btn-neutral"
             onClick={() => router.push(a.path)}
           >
             {a.label}

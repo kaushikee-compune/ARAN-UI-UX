@@ -6,6 +6,9 @@ import NextImage from "next/image";
 import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
 import { Toaster } from "react-hot-toast";
+import "../globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+
 
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;

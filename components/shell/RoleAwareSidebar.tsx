@@ -203,8 +203,8 @@ export default function RoleAwareSidebar(props: { role?: Role }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col items-center gap-6">
-        {" "}
+      <nav className="flex flex-col items-center gap-2">
+        
         {/* gap = distance between menu items */}
         {items.map(({ href, label, icon: Icon, color }) => {
           const active =
@@ -218,9 +218,9 @@ export default function RoleAwareSidebar(props: { role?: Role }) {
                 "flex flex-col items-center gap-1 rounded-md px-2 py-3 text-[13px] leading-tight transition",
                 active
                   ? "text-white" // keep text white
-                  : "hover:bg-gray-100 text-gray-800",
+                  : "hover:bg-gray-100 text-gray-800 drop-shadow-md transition-all",
               ].join(" ")}
-              style={active ? { backgroundColor: "#02066b" } : {}}
+              style={active ? { backgroundColor: "#450693" } : {}}
             >
               {/* Bigger icon */}
               <Icon className={`h-6 w-6 ${active ? "text-white" : color}`} />

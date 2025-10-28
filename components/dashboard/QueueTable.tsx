@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export type QueueEntry = {
   patientId: string;
@@ -21,15 +22,11 @@ export default function QueueTable({ queue }: { queue?: QueueEntry[] }) {
         {/* “Live OPD Queue” now acts as a styled button */}
         <button
           onClick={() => router.push("/queue")}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full 
-                      text-white bg-amber-600 text-sm font-semibold shadow-sm 
-                     hover:opacity-90 transition"
+          className="btn-accent "
           title="Go to full OPD Queue panel"
         >
-          🩺 Today's OPD Queue
+          Today's OPD Queue
         </button>
-
-        
       </div>
 
       {/* Content */}
@@ -51,19 +48,23 @@ export default function QueueTable({ queue }: { queue?: QueueEntry[] }) {
           </thead>
           <tbody>
             {queue.map((p) => (
-              <tr key={p.patientId} className="border-t">
+              <tr key={p.patientId} className="border-t border-gray-300">
                 <td className="py-2">{p.patientName}</td>
                 <td>{p.visitType}</td>
                 <td>{p.time}</td>
                 <td className="text-right">
                   <button
-                    className="text-sm bg-[--secondary]  text-purple-800 px-2 py-1 rounded-md hover:opacity-90"
-                    onClick={() =>
-                      //router.push(`/doctor/console/page?patientId=${p.patientId}`)
-                      router.push(`/doctor/console/`)
-                    }
+                    className="inline-flex items-center gap-1 text-[var(--text-highlight)]  font-semibold px-2 py-1 rounded-md hover:opacity-90"
+                    onClick={() => router.push(`/doctor/console/`)}
                   >
-                    Start Consultation
+                    <span>Start</span>
+                    <Image
+                      src="/icons/Start.png"
+                      alt="Start Icon"
+                      width={16}
+                      height={16}
+                      className="inline-block"
+                    />
                   </button>
                 </td>
               </tr>

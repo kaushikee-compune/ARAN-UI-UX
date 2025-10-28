@@ -5,8 +5,8 @@
 
 /* ---------- Color Themes (unchanged) ---------- */
 :root {
-  --secondary: #11224E;
-  --tertiary: #F87B1B;
+  --secondary: #450693;  /* ARAN Secondary Color*/
+  --tertiary: #F87B1B;   /* ARAN Tertiary Color*/
   --on-secondary: #ffffff;
   --on-tertiary: #ffffff;
 
@@ -20,10 +20,26 @@
 
 /* Theme 1 — deep navy/vibrant orange */
 [data-theme="t1"] {
-  --secondary: #11224E;
+  --secondary: #450693;
   --tertiary:  #F87B1B;
   --on-secondary: #ffffff;
   --on-tertiary:  #ffffff;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
+  --border-color: #E2E8F0;
+
+  /* ✅ New highlight variable */
+  --text-highlight: #3b0394;     
+}
+
+.text-highlight {
+  color: var(--text-highlight);
+  font-weight: 600;          /* makes it semi-bold (same as Tailwind's font-semibold) */
+}
+
+.text-highlight-strong {
+  color: var(--text-highlight);
+  font-weight: 700;          /* stronger bold variant if ever needed */
 }
 
 /* Theme 2 — Blue/Navy */
@@ -152,16 +168,76 @@
     var(--surface);
   background-size: 6px 6px, auto;
 }
-/* Buttons: primary — now uses TERTIARY as the brand button color */
+
+/* ===============================
+   ARAN Global Button Styles
+   =============================== */
+
+/* Primary (uses --secondary / navy) */
 .btn-primary {
-  border-radius: calc(var(--radius) - 4px);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  background: var(--secondary);
+  color: #fff;
+  border: 1px solid var(--secondary);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-s); /* small shadow from your theme */
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: var(--shadow-m); /* medium shadow */
+}
+
+/* Accent (uses --tertiary / orange) */
+.btn-accent {
   background: var(--tertiary);
   color: var(--on-tertiary);
-  transition: transform .05s ease, box-shadow .15s ease, opacity .15s ease;
+  border: 1px solid var(--tertiary);
+  border-radius: 0.5rem;                 /* subtle round corners (8px) */
+  padding: 0.3rem 1rem;                 /* equal top/bottom + left/right padding */
+  font-size: 0.875rem;                  /* text-sm */
+  font-weight: 500;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);  /* base bottom shadow */
+  transform: translateY(0);
 }
+
+.btn-accent:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);           /* gentle lift on hover */
+  box-shadow: 0 3px 2px rgba(0, 0, 0, 0.25);
+}
+
+.btn-accent:active {
+  transform: translateY(1px);            /* pressed effect */
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+
+/* Neutral / Gray button */
+.btn-neutral {
+  background: #ffffff;                 /* clean neutral base */
+  color: #374151;                      /* text-gray-700 */
+  border: 1px solid #d1d5db;           /* border-gray-300 */
+  border-radius: 0.5rem;               /* rounded-lg */
+  padding: 0.5rem 0.75rem;             /* px-3 py-2 */
+  font-size: 0.875rem;                 /* text-sm */
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);  /* drop-shadow-md */
+  transition: all 0.2s ease;
+}
+
+.btn-neutral:hover {
+  background: #f9fafb;                /* hover:bg-gray-50 */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15); /* slightly deeper on hover */
+}
+/* Common button shape */
+.btn {
+  padding: 0.5rem 0.75rem;        /* same as px-3 py-2 */
+  border-radius: 0.375rem;        /* rounded-md */
+  font-size: 0.875rem;            /* text-sm */
+  font-weight: 500;
+}
+
+
 
 /* Material */
 [data-ui="material"] .btn-primary { box-shadow: var(--shadow-s); }

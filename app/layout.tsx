@@ -1,6 +1,6 @@
 // app/layout.tsx
 import type { ReactNode } from "react";
-import "./globals.css"; // if you have Tailwind/global styles
+import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
 
@@ -11,9 +11,10 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // ✅ Apply default data-theme="t1" at HTML level
+    <html lang="en" data-theme="t1">
       <body>
-        {/* Theme + UI style context (needed for theme-toggle, appearance-panel, etc.) */}
+        {/* Theme + UI context */}
         <ThemeProvider>
           {children}
           <Toaster

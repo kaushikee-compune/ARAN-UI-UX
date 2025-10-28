@@ -209,13 +209,13 @@ export default function ImmunizationForm() {
       {/* ---------- Footer ---------- */}
       <div className="pt-3 flex items-center gap-2">
         <button
-          className="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
+          className="btn-accent px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50"
           onClick={onSave}
         >
           Save Draft
         </button>
         <button
-          className="px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
+          className="btn-primary px-3 py-1.5 text-sm rounded-md border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700"
           onClick={onSubmit}
         >
           Submit

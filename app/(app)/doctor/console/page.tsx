@@ -826,7 +826,7 @@ function PreviewPaper({
                   <button
                     type="button"
                     onClick={past.onOpen}
-                    className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
+                    className="btn-primary inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
                   >
                     View Past Record
                   </button>
