@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Paper, Box, TextField as MuiTextField, MenuItem } from "@mui/material";
+import { Paper, Box } from "@mui/material";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { readClientSession } from "@/lib/auth/client-session";
@@ -177,89 +177,25 @@ export default function AppointmentsPage() {
      Render
   ============================================================================= */
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      {/* ---------- Header Filters ---------- */}
-      <Paper
-        sx={{
-          p: 2.5,
-          borderRadius: 3,
-          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-          mb: 3,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            alignItems: "center",
-            backgroundColor: "#f9fafb",
-            borderRadius: 2,
-            px: 1.5,
-            py: 1.2,
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          }}
-        >
-          {!isDoctorLogin && (
-            <>
-              {/* Department filter */}
-              <MuiTextField
-                select
-                size="small"
-                label="Department"
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                sx={{ minWidth: 180, background: "white", borderRadius: 1 }}
-              >
-                <MenuItem value="All">All</MenuItem>
-                {[...new Set(doctors.map((d) => d.specialty))].map((dep) => (
-                  <MenuItem key={dep} value={dep}>
-                    {dep}
-                  </MenuItem>
-                ))}
-              </MuiTextField>
-
-              {/* Doctor filter */}
-              <MuiTextField
-                select
-                size="small"
-                label="Doctor"
-                value={selectedDoctor?.id || "All"}
-                onChange={(e) =>
-                  setSelectedDoctor(
-                    e.target.value === "All"
-                      ? null
-                      : doctors.find((d) => d.id === e.target.value) || null
-                  )
-                }
-                sx={{ minWidth: 200, background: "white", borderRadius: 1 }}
-              >
-                <MenuItem value="All">All Doctors</MenuItem>
-                {doctors
-                  .filter(
-                    (d) =>
-                      selectedDept === "All" || d.specialty === selectedDept
-                  )
-                  .map((d) => (
-                    <MenuItem key={d.id} value={d.id}>
-                      {d.name}
-                    </MenuItem>
-                  ))}
-              </MuiTextField>
-            </>
-          )}
-
-          {/* Search patients */}
-          <MuiTextField
-            size="small"
+    <Paper
+      sx={{
+        p: { xs: 2, sm: 3, md: 4 },
+        borderRadius: 3,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+        backgroundColor: "#fff",
+      }}
+    >
+      <div className="p-2 md:p-4 lg:p-6">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <input
+            type="text"
+            className="ui-input flex-1 max-w-md"
             placeholder="Search (name, UHID, phone, ABHA no/address)…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            sx={{ flex: 1, background: "white", borderRadius: 1 }}
           />
-
-          {/* Quick booking */}
           <button
-            className="btn-primary px-3 py-1 rounded-md text-sm"
+            className="btn-primary whitespace-nowrap"
             onClick={() =>
               window.scrollTo({
                 top: document.body.scrollHeight,
@@ -269,135 +205,207 @@ export default function AppointmentsPage() {
           >
             Quick Booking
           </button>
-        </Box>
-      </Paper>
+        </div>
+        {/* ---------- Header Filters ---------- */}
+        <Paper
+          sx={{
+            p: 2.5,
+            borderRadius: 3,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+              backgroundColor: "#f9fafb",
+              borderRadius: 2,
+              px: 1.5,
+              py: 1.2,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            }}
+          >
+            {!isDoctorLogin && (
+              <>
+                {/* Department filter */}
+                {typeof window !== "undefined" && (
+                  <select
+                    className="ui-input"
+                    value={selectedDept}
+                    onChange={(e) => setSelectedDept(e.target.value)}
+                    style={{ minWidth: 180 }}
+                  >
+                    <option value="All">All</option>
+                    {[...new Set(doctors.map((d) => d.specialty))].map(
+                      (dep) => (
+                        <option key={dep} value={dep}>
+                          {dep}
+                        </option>
+                      )
+                    )}
+                  </select>
+                )}
+                {/* Doctor filter */}
+                {typeof window !== "undefined" && (
+                  <select
+                    className="ui-input"
+                    value={selectedDoctor?.id || "All"}
+                    onChange={(e) =>
+                      setSelectedDoctor(
+                        e.target.value === "All"
+                          ? null
+                          : doctors.find((d) => d.id === e.target.value) || null
+                      )
+                    }
+                    style={{ minWidth: 200 }}
+                  >
+                    <option value="All">All Doctors</option>
+                    {doctors
+                      .filter(
+                        (d) =>
+                          selectedDept === "All" || d.specialty === selectedDept
+                      )
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </>
+            )}
+          </Box>
+        </Paper>
 
-      {/* ---------- Calendars ---------- */}
-      {(selectedDoctor ? [selectedDoctor] : doctors)
-        .filter((d) =>
-          isDoctorLogin
-            ? d.name.toLowerCase() === "dr. vasanth shetty"
-            : selectedDept === "All" || d.specialty === selectedDept
-        )
-        .map((doc) => {
-          const slots = buildSlots(doc);
-          return (
-            <div
-              key={doc.id}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start"
-            >
-              {/* LEFT: Calendar */}
-              <div className="ui-card p-4 flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold">{doc.name}</div>
-                    <div className="text-sm text-gray-700">
-                      {doc.specialty}
-                      {doc.qualifications ? ` • ${doc.qualifications}` : ""}
+        {/* ---------- Calendars ---------- */}
+        {(selectedDoctor ? [selectedDoctor] : doctors)
+          .filter((d) =>
+            isDoctorLogin
+              ? d.name.toLowerCase() === "dr. vasanth shetty"
+              : selectedDept === "All" || d.specialty === selectedDept
+          )
+          .map((doc) => {
+            const slots = buildSlots(doc);
+            return (
+              <div
+                key={doc.id}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start"
+              >
+                {/* LEFT: Calendar */}
+                <div className="ui-card p-4 flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-base font-semibold">{doc.name}</div>
+                      <div className="text-sm text-gray-700">
+                        {doc.specialty}
+                        {doc.qualifications ? ` • ${doc.qualifications}` : ""}
+                      </div>
+                      {doc.bio && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {doc.bio}
+                        </div>
+                      )}
+                      {doc.room && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Room: {doc.room}
+                        </div>
+                      )}
                     </div>
-                    {doc.bio && (
-                      <div className="text-xs text-gray-600 mt-1">
-                        {doc.bio}
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Today</div>
+                      <div className="text-sm font-medium">
+                        {doc.startTime}–{doc.endTime}
                       </div>
-                    )}
-                    {doc.room && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Room: {doc.room}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Today</div>
-                    <div className="text-sm font-medium">
-                      {doc.startTime}–{doc.endTime}
+                      {doc.breakStart && doc.breakEnd && (
+                        <div className="text-xs text-gray-500">
+                          Break {doc.breakStart}–{doc.breakEnd}
+                        </div>
+                      )}
                     </div>
-                    {doc.breakStart && doc.breakEnd && (
-                      <div className="text-xs text-gray-500">
-                        Break {doc.breakStart}–{doc.breakEnd}
-                      </div>
-                    )}
                   </div>
-                </div>
 
-                {/* Legend */}
-                <div className="flex items-center gap-3 text-xs text-gray-600">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-500" />
-                    Available
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block w-3 h-3 rounded bg-red-100 border border-red-500" />
-                    Booked
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-300" />
-                    Unavailable
-                  </span>
-                </div>
+                  {/* Legend */}
+                  <div className="flex items-center gap-3 text-xs text-gray-600">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-500" />
+                      Available
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded bg-red-100 border border-red-500" />
+                      Booked
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-300" />
+                      Unavailable
+                    </span>
+                  </div>
 
-                {/* Slots */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                  {slots.map((s) => {
-                    const base =
-                      "text-xs px-2 py-1.5 rounded border text-center select-none transition";
-                    if (!s.withinWorking)
+                  {/* Slots */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    {slots.map((s) => {
+                      const base =
+                        "text-xs px-2 py-1.5 rounded border text-center select-none transition";
+                      if (!s.withinWorking)
+                        return (
+                          <div
+                            key={s.time}
+                            className={`${base} cursor-not-allowed bg-gray-50 text-gray-400 border-gray-300`}
+                          >
+                            {s.time}
+                          </div>
+                        );
+                      const isBooked = !s.available;
+                      const isSelected = selectedSlot === s.time;
+                      if (isBooked)
+                        return (
+                          <div
+                            key={s.time}
+                            className={`${base} bg-red-50 text-red-900 border-red-500 cursor-not-allowed`}
+                          >
+                            {s.time}
+                          </div>
+                        );
                       return (
-                        <div
+                        <button
                           key={s.time}
-                          className={`${base} cursor-not-allowed bg-gray-50 text-gray-400 border-gray-300`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDoctor(doc);
+                            pickSlot(s.time);
+                          }}
+                          className={[
+                            base,
+                            isSelected
+                              ? "bg-green-600 text-white border-green-700"
+                              : "bg-green-50 text-green-900 border-green-500 hover:bg-green-100",
+                          ].join(" ")}
                         >
                           {s.time}
-                        </div>
+                        </button>
                       );
-                    const isBooked = !s.available;
-                    const isSelected = selectedSlot === s.time;
-                    if (isBooked)
-                      return (
-                        <div
-                          key={s.time}
-                          className={`${base} bg-red-50 text-red-900 border-red-500 cursor-not-allowed`}
-                        >
-                          {s.time}
-                        </div>
-                      );
-                    return (
-                      <button
-                        key={s.time}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDoctor(doc);
-                          pickSlot(s.time);
-                        }}
-                        className={[
-                          base,
-                          isSelected
-                            ? "bg-green-600 text-white border-green-700"
-                            : "bg-green-50 text-green-900 border-green-500 hover:bg-green-100",
-                        ].join(" ")}
-                      >
-                        {s.time}
-                      </button>
-                    );
-                  })}
+                    })}
+                  </div>
                 </div>
+
+                {/* RIGHT: Booking Panel */}
+                {selectedDoctor && selectedDoctor.id === doc.id && (
+                  <RightBookingPanel
+                    doctor={doc}
+                    selectedSlot={selectedSlot}
+                    draft={draft}
+                    patients={patients}
+                    onDraftChange={setDraft}
+                    onClearSlot={clearSlot}
+                    onConfirm={commitBooking}
+                  />
+                )}
               </div>
-
-              {/* RIGHT: Booking Panel */}
-              {selectedDoctor && selectedDoctor.id === doc.id && (
-                <RightBookingPanel
-                  doctor={doc}
-                  selectedSlot={selectedSlot}
-                  draft={draft}
-                  patients={patients}
-                  onDraftChange={setDraft}
-                  onClearSlot={clearSlot}
-                  onConfirm={commitBooking}
-                />
-              )}
-            </div>
-          );
-        })}
-    </div>
+            );
+          })}
+      </div>
+    </Paper>
   );
 }
 
@@ -429,10 +437,7 @@ function RightBookingPanel({
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm">New Appointment</h2>
         {selectedSlot && (
-          <button
-            onClick={onClearSlot}
-            className="btn-accent text-xs px-2 py-1 border rounded hover:bg-gray-50"
-          >
+          <button onClick={onClearSlot} className="btn-accent">
             Change Slot
           </button>
         )}
@@ -498,14 +503,13 @@ function RightBookingPanel({
 
           <div className="mt-4 flex items-center justify-between">
             <span />
-            <button 
+            <button
               onClick={onConfirm}
               disabled={confirmDisabled}
-              className={[
-                "btn-primary px-4 py-2 text-sm rounded-md font-medium shadow-sm",
+              className={["btn-primary",
                 confirmDisabled
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-amber-600 text-grey hover:opacity-90",
+                  : "bg-amber-600 text-grey hover:opacity-100",
               ].join(" ")}
             >
               Confirm Booking

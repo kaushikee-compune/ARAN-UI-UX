@@ -178,12 +178,23 @@
   background: var(--secondary);
   color: #fff;
   border: 1px solid var(--secondary);
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-s); /* small shadow from your theme */
+  border-radius: 0.5rem;                 /* subtle round corners (8px) */
+  padding: 0.3rem 1rem;                 /* equal top/bottom + left/right padding */
+  font-size: 0.875rem;                  /* text-sm */
+  font-weight: 400;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 0 rgba(43, 42, 42, 0.25);  /* base bottom shadow */
+  transform: translateY(0);
 }
 .btn-primary:hover {
-  opacity: 0.9;
-  box-shadow: var(--shadow-m); /* medium shadow */
+  opacity: 0.95;
+  transform: translateY(-1px);           /* gentle lift on hover */
+  box-shadow: 0 3px 2px rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);            /* pressed effect */
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 /* Accent (uses --tertiary / orange) */
@@ -194,7 +205,7 @@
   border-radius: 0.5rem;                 /* subtle round corners (8px) */
   padding: 0.3rem 1rem;                 /* equal top/bottom + left/right padding */
   font-size: 0.875rem;                  /* text-sm */
-  font-weight: 500;
+  font-weight: 400;
   transition: all 0.25s ease;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);  /* base bottom shadow */
   transform: translateY(0);
@@ -285,14 +296,43 @@
 
 /* Inputs */
 .ui-input {
-  width: 100%;
-  border-radius: calc(var(--radius) - 6px);
-  background: #ffffff;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;       /* rounded-md */
+  padding: 0.5rem 0.75rem;       /* same as px-3 py-2 */
+  font-size: 0.875rem;           /* text-sm */
+  color: var(--text-primary);
   outline: none;
-  transition: box-shadow .15s ease, border-color .15s ease, background .2s ease;
+  width: 100%;
+  transition: all 0.2s ease;
+  appearance: none;              /* remove native arrow for styling control */
+  background-image: url("/icons/chevron-down.svg"); /* optional custom arrow */
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 14px;
 }
+
+.ui-input:hover {
+  border-color: var(--secondary);
+}
+
+.ui-input:focus {
+  border-color: var(--tertiary);
+  box-shadow: 0 0 0 2px rgba(248, 123, 27, 0.15);
+}
+
+
+/* ===============================
+   Dropdown Option Styling
+   =============================== */
+.ui-input option {
+  color: var(--text-primary);
+  background-color: #ffffff;      /* dropdown background */
+  font-weight: 500;
+}
+
+
+
 [data-ui="material"] .ui-input { border: 1px solid var(--border); }
 [data-ui="material"] .ui-input:focus { border-color: var(--secondary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--secondary) 25%, transparent); }
 
@@ -336,4 +376,49 @@ body {
   color: var(--text-primary);
   transition: background 0.5s ease, color 0.5s ease;
 }
+
+/* ==============================
+   Global MUI TextField Styles
+   ============================== */
+
+/* Outer form control */
+.MuiTextField-root {
+  border-radius: 0.5rem;            /* rounded corners */
+  background-color: #fff;
+}
+
+/* Outlined input box */
+.MuiOutlinedInput-root {
+  border-radius: 0.5rem;            /* same rounding */
+  transition: all 0.2s ease;
+}
+
+/* Input field text */
+.MuiOutlinedInput-input {
+  padding: 0.55rem 0.75rem;         /* compact look */
+  font-size: 0.875rem;              /* text-sm */
+  color: var(--text-primary);
+}
+
+/* Border color & focus color */
+.MuiOutlinedInput-notchedOutline {
+  border-color: #d1d5db;            /* light gray */
+}
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--secondary);   /* navy on hover */
+}
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--tertiary);    /* orange on focus */
+  box-shadow: 0 0 0 2px rgba(248, 123, 27, 0.1);
+}
+
+/* Label color */
+.MuiInputLabel-root {
+  color: #6b7280;                   /* gray-500 */
+  font-weight: 500;
+}
+.MuiInputLabel-root.Mui-focused {
+  color: var(--tertiary);           /* highlight when active */
+}
+
 
