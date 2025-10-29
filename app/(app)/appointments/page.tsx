@@ -5,6 +5,8 @@ import { Paper, Box } from "@mui/material";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { readClientSession } from "@/lib/auth/client-session";
+import FilterBar from "@/components/common/FilterBar";
+
 
 /* =============================================================================
    Types
@@ -95,6 +97,11 @@ export default function AppointmentsPage() {
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
+
+  // Filter bar state for past records or section filter
+const [recordFilter, setRecordFilter] = useState("all");
+const [sortOrder, setSortOrder] = useState("desc");
+
 
   // ---------- Detect role ----------
   useEffect(() => {

@@ -46,7 +46,6 @@ export default function AdmissionModal({
       alert("Please select a bed and enter patient name");
       return;
     }
-
     onAdmit(form.bedId, {
       id: Date.now().toString(),
       name: form.name,
@@ -59,13 +58,26 @@ export default function AdmissionModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg w-[min(90vw,420px)] p-5 space-y-3">
-        <h2 className="text-base font-semibold">Admit Patient</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="ui-card w-[min(90vw,420px)] p-5 space-y-4 shadow-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">
+            Admit Patient
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
 
-        <div className="grid gap-2 text-sm">
-          <label className="grid gap-1">
-            <span className="text-xs text-gray-600">Bed</span>
+        {/* Form */}
+        <div className="grid gap-3 text-sm">
+          <div className="grid gap-1">
+            <label className="text-[11px] text-gray-600">Bed</label>
             <select
               className="ui-input"
               value={form.bedId}
@@ -77,28 +89,30 @@ export default function AdmissionModal({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-xs text-gray-600">Patient Name</span>
+          <div className="grid gap-1">
+            <label className="text-[11px] text-gray-600">Patient Name</label>
             <input
               className="ui-input"
+              placeholder="Enter full name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
-          </label>
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1">
-              <span className="text-xs text-gray-600">Age</span>
+            <div className="grid gap-1">
+              <label className="text-[11px] text-gray-600">Age</label>
               <input
                 className="ui-input"
+                placeholder="e.g. 45 yrs"
                 value={form.age}
                 onChange={(e) => setForm({ ...form, age: e.target.value })}
               />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-xs text-gray-600">Gender</span>
+            </div>
+            <div className="grid gap-1">
+              <label className="text-[11px] text-gray-600">Gender</label>
               <select
                 className="ui-input"
                 value={form.gender}
@@ -109,36 +123,40 @@ export default function AdmissionModal({
                 <option value="Male">Male</option>
                 <option value="Other">Other</option>
               </select>
-            </label>
+            </div>
           </div>
 
-          <label className="grid gap-1">
-            <span className="text-xs text-gray-600">Consultant Doctor</span>
+          <div className="grid gap-1">
+            <label className="text-[11px] text-gray-600">
+              Consultant Doctor
+            </label>
             <input
               className="ui-input"
+              placeholder="Dr. Name"
               value={form.doctor}
               onChange={(e) => setForm({ ...form, doctor: e.target.value })}
             />
-          </label>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-xs text-gray-600">Diagnosis / Reason</span>
+          <div className="grid gap-1">
+            <label className="text-[11px] text-gray-600">
+              Diagnosis / Reason
+            </label>
             <textarea
-              className="ui-textarea min-h-[60px]"
+              className="ui-textarea min-h-[70px]"
+              placeholder="Enter diagnosis or reason for admission"
               value={form.diagnosis}
               onChange={(e) => setForm({ ...form, diagnosis: e.target.value })}
             />
-          </label>
+          </div>
         </div>
 
+        {/* Footer */}
         <div className="flex justify-end gap-2 pt-2">
           <button className="btn-outline text-sm" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="px-4 py-1.5 text-sm rounded bg-blue-400 text-black hover:opacity-90"
-            onClick={submit}
-          >
+          <button className="btn-primary text-sm px-4" onClick={submit}>
             Admit
           </button>
         </div>

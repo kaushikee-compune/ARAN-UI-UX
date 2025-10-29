@@ -26,17 +26,23 @@ export default function PatientDrawer({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex justify-end z-50">
-      <div className="w-[min(90vw,420px)] bg-white h-full shadow-xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="ui-card w-[min(92vw,600px)] max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="flex items-center justify-between border-b px-5 py-3">
           <div>
-            <div className="font-semibold text-sm">{bed.patient?.name}</div>
+            <div className="font-semibold text-sm text-gray-900">
+              {bed.patient?.name || "Unnamed Patient"}
+            </div>
             <div className="text-xs text-gray-500">
               {bed.label} • {bed.patient?.age} • {bed.patient?.gender}
             </div>
           </div>
-          <button className="text-sm text-gray-500" onClick={onClose}>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
@@ -46,69 +52,73 @@ export default function PatientDrawer({
           {["vitals", "notes", "billing", "reports"].map((t) => (
             <button
               key={t}
-              className={`flex-1 py-2 ${
-                tab === t ? "font-medium border-b-2 border-[--secondary]" : ""
-              }`}
               onClick={() =>
                 setTab(t as "vitals" | "notes" | "billing" | "reports")
               }
+              className={[
+                "flex-1 py-2 capitalize transition-colors",
+                tab === t
+                  ? "font-medium text-[--secondary] border-b-2 border-[--secondary]"
+                  : "text-gray-600 hover:text-gray-900",
+              ].join(" ")}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t}
             </button>
           ))}
         </div>
 
-        {/* Tab Panels */}
-        <div className="flex-1 overflow-y-auto p-4 text-sm">
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 text-sm text-gray-800">
           {tab === "vitals" && (
-            <div>
-              <div className="font-semibold mb-2">Hourly Vitals</div>
+            <section>
+              <h3 className="font-semibold mb-2 text-gray-800">
+                Hourly Vitals
+              </h3>
               <div className="text-xs text-gray-500">
                 (Vitals chart placeholder)
               </div>
-            </div>
+            </section>
           )}
 
           {tab === "notes" && (
-            <div>
-              <div className="font-semibold mb-2">Doctor/Nursing Notes</div>
+            <section>
+              <h3 className="font-semibold mb-2 text-gray-800">
+                Doctor / Nursing Notes
+              </h3>
               <textarea
                 className="ui-textarea w-full min-h-[100px]"
                 placeholder="Add new note..."
               />
-            </div>
+            </section>
           )}
 
           {tab === "billing" && (
-            <div>
-              <div className="font-semibold mb-2">Billing Summary</div>
+            <section>
+              <h3 className="font-semibold mb-2 text-gray-800">
+                Billing Summary
+              </h3>
               <div className="text-xs text-gray-500">
                 (Billing items placeholder)
               </div>
-            </div>
+            </section>
           )}
 
           {tab === "reports" && (
-            <div>
-              <div className="font-semibold mb-2">Reports</div>
+            <section>
+              <h3 className="font-semibold mb-2 text-gray-800">Reports</h3>
               <div className="text-xs text-gray-500">
                 (Upload / preview reports here)
               </div>
-            </div>
+            </section>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t flex justify-between items-center">
-          <button
-            className="text-sm text-gray-600 hover:text-gray-900"
-            onClick={discharge}
-          >
+        <div className="border-t px-5 py-3 flex justify-between items-center">
+          <button className="btn-primary" onClick={discharge}>
             Discharge
           </button>
-          <button className="text-sm bg-[--secondary] text-white px-4 py-1.5 rounded hover:opacity-90">
-            Save
-          </button>
+          <button className="btn-accent text-sm px-4">Save</button>
         </div>
       </div>
     </div>
