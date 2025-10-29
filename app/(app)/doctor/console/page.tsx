@@ -115,7 +115,7 @@ const INITIAL_RX: DigitalRxFormState = {
       instruction: "",
     },
   ],
-  uploads: { files: [], note: "" },
+  // uploads: { files: [], note: "" },
 };
 
 type ImmunizationState = {
@@ -463,24 +463,80 @@ export default function DoctorConsolePage() {
       {/* ------------------------------- Header Panel ------------------------------- */}
       <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
-          <TopMenuButton
-            //active={activeTop === "upload"}
-            onClick={() => setShowUpload(true)}
-          >
-            Upload
-          </TopMenuButton>
-          <TopMenuButton
-            //active={activeTop === "consent"}
-            onClick={() => setActiveTop("consent")}
-          >
-            Consent
-          </TopMenuButton>
-          <TopMenuButton
-            //active={activeTop === "queue"}
+          <div className="flex items-center gap-2 ml-3">
+            {/* Doctor In/Out toggle */}
+            <button
+              onClick={() => setDoctorIn((v) => !v)}
+              className="btn-neutral text-xs rounded px-2 py-1 hover:bg-gray-50"
+              title="Toggle doctor in/out"
+            >
+              {doctorIn ? "Out" : "In"}
+            </button>
+
+            {/* Control buttons */}
+            {(consultStatus as string) !== "paused" ? (
+              <IconButton
+                label=""
+                pressed={consultStatus === "paused"}
+                onClick={() => setConsultStatus("paused")}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                >
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
+              </IconButton>
+            ) : (
+              <IconButton
+                label=""
+                pressed={consultStatus === "active"}
+                onClick={() => setConsultStatus("active")}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                >
+                  <polygon points="5,3 19,12 5,21 5,3" />
+                </svg>
+              </IconButton>
+            )}
+          </div>
+
+          <button
             onClick={() => setActiveTop("queue")}
+            title="OPD Queue"
+            className={[
+              "inline-flex items-center justify-center w-9 h-9 rounded-full border shadow-sm transition",
+              activeTop === "queue"
+                ? "bg-White text-white border-gray-900"
+                : "bg-white text-gray-800 hover:bg-gray-50 border-gray-300",
+            ].join(" ")}
           >
-            OPD Queue
-          </TopMenuButton>
+            <Image
+              src="/icons/queue.png"
+              alt="OPD Queue"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
+          </button>
+
+          {/* ---------------- Consultation Done Button ---------------- */}
+          <button
+            type="button"
+            onClick={() => alert("Consultation done")}
+            className="btn-accent inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
+          >
+            Consultation Done
+          </button>
 
           {/* ---------------- Companion Cluster (right) ---------------- */}
           <div className="ml-auto flex items-center gap-2">
@@ -512,71 +568,6 @@ export default function DoctorConsolePage() {
             </IconButton>
 
             {/* ---------------- Doctor Control Icons ---------------- */}
-            <div className="flex items-center gap-2 ml-3">
-              {/* Doctor In/Out toggle */}
-              <button
-                onClick={() => setDoctorIn((v) => !v)}
-                className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
-                title="Toggle doctor in/out"
-              >
-                {doctorIn ? "Set Out" : "Set In"}
-              </button>
-
-              {/* Control buttons */}
-              {(consultStatus as string) !== "paused" ? (
-                <IconButton
-                  label="Pause Consultation"
-                  pressed={consultStatus === "paused"}
-                  onClick={() => setConsultStatus("paused")}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                  >
-                    <rect x="6" y="4" width="4" height="16" />
-                    <rect x="14" y="4" width="4" height="16" />
-                  </svg>
-                </IconButton>
-              ) : (
-                <IconButton
-                  label="Resume Consultation"
-                  pressed={consultStatus === "active"}
-                  onClick={() => setConsultStatus("active")}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                  >
-                    <polygon points="5,3 19,12 5,21 5,3" />
-                  </svg>
-                </IconButton>
-              )}
-
-              <IconButton
-                label="Finish & Next"
-                pressed={consultStatus === "done"}
-                onClick={() => {
-                  setConsultStatus("done");
-                  // TODO: trigger call-next logic
-                }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              </IconButton>
-            </div>
           </div>
         </div>
       </div>
@@ -813,15 +804,73 @@ function PreviewPaper({
 
             <div className="flex items-start justify-end pl-3">
               <div className="flex flex-col items-end gap-2">
-                <button
-                  className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
-                  title="Open Patient Summary"
-                  type="button"
-                >
-                  <SummaryIcon className="w-4 h-4" />
-                  <span className="font-medium">Patient Summary</span>
-                </button>
-                {/* Just below Patient Summary: either CTA or the pager */}
+                {/* --- Row 1: Patient Summary + Upload + Consent --- */}
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
+                    title="Open Patient Summary"
+                    type="button"
+                  >
+                    <SummaryIcon className="w-4 h-4" />
+                    <span className="font-medium"></span>
+                  </button>
+
+                  {/* Upload icon */}
+                  <button
+                    type="button"
+                    title="Upload Report"
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        d="M12 16V4m0 0-4 4m4-4 4 4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M4 16v4h16v-4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Consent icon */}
+                  <button
+                    type="button"
+                    title="Consent Management"
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        d="M12 21C7 17.5 4 13.5 4 9a8 8 0 1 1 16 0c0 4.5-3 8.5-8 12Z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M12 9v3m0 3h.01"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* --- Row 2: View Past Record or Pager --- */}
                 {!past.active ? (
                   <button
                     type="button"
@@ -836,7 +885,7 @@ function PreviewPaper({
                       active={past.active}
                       index={past.index}
                       total={past.total}
-                      onOpen={past.onClose} /* close back to live */
+                      onOpen={past.onClose}
                       onPrev={past.onPrev}
                       onNext={past.onNext}
                     />
@@ -906,7 +955,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     followUpText = "",
     followUpDate = "",
     medications = [],
-    uploads = { files: [], note: "" },
+    // uploads = { files: [], note: "" },
   } = payload;
 
   const rxRows = compactRows(medications, [
@@ -937,9 +986,9 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
 
   const hasPlan =
     nonEmpty(followUpText) ||
-    nonEmpty(followUpDate) ||
-    (uploads?.files?.length ?? 0) > 0 ||
-    nonEmpty(uploads?.note);
+    nonEmpty(followUpDate) 
+    // (uploads?.files?.length ?? 0) > 0 ||
+    // nonEmpty(uploads?.note);
 
   const showVitals = hasVitals;
   const showClinical = hasClinical;
@@ -1073,7 +1122,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
             <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
           )}
 
-          {(uploads?.files?.length ?? 0) > 0 && (
+          {/* {(uploads?.files?.length ?? 0) > 0 && (
             <div>
               <h4 className="text-xs font-medium text-gray-600 mb-2">
                 Attachments
@@ -1087,7 +1136,7 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
           )}
           {nonEmpty(uploads?.note) && (
             <Block k="Attachment Note" v={safe(uploads?.note)} />
-          )}
+          )} */}
         </div>
       </section>
     </div>
@@ -1113,29 +1162,6 @@ function Block({ k, v }: { k: string; v?: string }) {
 }
 
 /* --------------------------------- UI bits -------------------------------- */
-function TopMenuButton({
-  //active,
-  onClick,
-  children,
-}: {
-  //active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      //aria-pressed={active}
-      className={[
-        "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
-        //active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
-      ].join(" ")}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
 
 function SectionCard({
   ariaLabel,
