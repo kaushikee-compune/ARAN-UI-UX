@@ -9,8 +9,9 @@
       "doctor": "Dr. Hira Mardi",
       "slots": [
         {
-          "slotStart": "09:00",
+          "slotStart": "09:00",         
           "slotEnd": "09:15",
+          "tokenNum": "001",
           "status": "inconsult",
           "type": "appointment",
           "paymentStatus": "paid",
@@ -25,6 +26,7 @@
         {
           "slotStart": "09:15",
           "slotEnd": "09:30",
+          "tokenNum": "",
           "status": "empty",
           "type": null,
           "patient": null,
@@ -33,6 +35,7 @@
         {
           "slotStart": "09:30",
           "slotEnd": "09:45",
+          "tokenNum": "002",
           "status": "waiting",
           "type": "walkin",
           "paymentStatus": "unpaid",
@@ -47,6 +50,7 @@
         {
           "slotStart": "09:45",
           "slotEnd": "10:00",
+          "tokenNum": "003",
           "status": "waiting",
           "type": "appointment",
           "paymentStatus": "paid",
@@ -61,6 +65,7 @@
         {
           "slotStart": "10:00",
           "slotEnd": "10:15",
+          "tokenNum": "005",
           "status": "waiting",
           "type": "appointment",
           "paymentStatus": "paid",
@@ -75,6 +80,7 @@
         {
           "slotStart": "10:15",
           "slotEnd": "10:30",
+          "tokenNum": "006",
           "status": "empty",
           "type": null,
           "patient": null,
@@ -83,6 +89,7 @@
         {
           "slotStart": "10:30",
           "slotEnd": "10:45",
+          "tokenNum": "010",
           "status": "completed",
           "type": "appointment",
           "paymentStatus": "unpaid",
@@ -97,6 +104,7 @@
         {
           "slotStart": "10:45",
           "slotEnd": "11:00",
+          "tokenNum": "014",
           "status": "completed",
           "type": "walkin",
           "paymentStatus": "paid",
@@ -113,6 +121,7 @@
     {
       "sessionName": "Morning",
       "startTime": "09:00",
+      "tokenNum": "001",
       "endTime": "12:00",
       "slotDuration": 15,
       "doctor": "Dr. A. Banerjee",
@@ -134,6 +143,7 @@
         {
           "slotStart": "09:15",
           "slotEnd": "09:30",
+          "tokenNum": "002",
           "status": "empty",
           "type": null,
           "patient": null,
@@ -155,6 +165,7 @@
         {
           "slotStart": "09:45",
           "slotEnd": "10:00",
+          "tokenNum": "",
           "status": "empty",
           "type": null,
           "patient": null,
@@ -165,6 +176,7 @@
     {
       "sessionName": "Evening",
       "startTime": "17:00",
+      "tokenNum": "002",
       "endTime": "20:00",
       "slotDuration": 15,
       "doctor": "Dr. Vasanth Shetty",
@@ -185,6 +197,7 @@
         {
           "slotStart": "17:15",
           "slotEnd": "17:30",
+          "tokenNum": "",
           "status": "empty",
           "type": null,
           "patient": null,
@@ -193,6 +206,7 @@
         {
           "slotStart": "17:30",
           "slotEnd": "17:45",
+          "tokenNum": "005",
           "status": "waiting",
           "type": "walkin",
           "patient": {

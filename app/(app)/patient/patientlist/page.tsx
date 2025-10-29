@@ -1,25 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
-  MenuItem,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem as MenuOption,
-  Typography,
-} from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+
 import { useRouter } from "next/navigation";
 import UploadModal from "@/components/common/UploadModal";
+import FilterBar, { FilterOption } from "@/components/common/FilterBar";
 
 /* ---------------------- Patient Type ---------------------- */
 type Patient = {
@@ -43,6 +28,12 @@ export default function PatientListPage() {
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "abha" | "non-abha">(
+    "all"
+  );
+  const [gender, setGender] = useState("All");
+  const [sortBy, setSortBy] = useState("registrationDate");
 
   // filters
   const [query, setQuery] = useState("");
@@ -69,7 +60,7 @@ export default function PatientListPage() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    return patients.filter((p) => {
+    let list = patients.filter((p) => {
       const matchesQuery =
         !q ||
         p.name.toLowerCase().includes(q) ||
@@ -78,16 +69,38 @@ export default function PatientListPage() {
         (p.abhaNumber || "").toLowerCase().includes(q) ||
         (p.abhaAddress || "").toLowerCase().includes(q);
 
-      const matchesFilter =
-        filter === "all"
+      const matchesAbha =
+        filterType === "all"
           ? true
-          : filter === "abha"
+          : filterType === "abha"
           ? !!p.abhaNumber
           : !p.abhaNumber;
 
-      return matchesQuery && matchesFilter;
+      const matchesGender =
+        gender === "All"
+          ? true
+          : p.gender.toLowerCase() === gender.toLowerCase();
+
+      return matchesQuery && matchesAbha && matchesGender;
     });
-  }, [patients, query, filter]);
+
+    // Sort
+    if (sortBy === "registrationDate") {
+      list = list.sort(
+        (a, b) =>
+          new Date(b.registrationDate).getTime() -
+          new Date(a.registrationDate).getTime()
+      );
+    } else if (sortBy === "lastVisitDate") {
+      list = list.sort(
+        (a, b) =>
+          new Date(b.lastVisitDate || 0).getTime() -
+          new Date(a.lastVisitDate || 0).getTime()
+      );
+    }
+
+    return list;
+  }, [patients, query, filterType, gender, sortBy]);
 
   /* ---------------------- Menu State ---------------------- */
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -104,308 +117,278 @@ export default function PatientListPage() {
 
   /* ---------------------- JSX ---------------------- */
   return (
-  <Paper
-    sx={{
-      p: 2.5,
-      borderRadius: 3,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-    }}
-  >
-    {/* Top bar */}
-    <Box
-      sx={{
-        mb: 2,
-        display: "flex",
-        gap: 2,
-        alignItems: "center",
-        backgroundColor: "#f9fafb",
-        borderRadius: 2,
-        px: 1.5,
-        py: 1.2,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      }}
-    >
-      <TextField
-        size="small"
-        placeholder="Search (name, UHID, phone, ABHA no/address)…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        sx={{ flex: 1, background: "white", borderRadius: 1 }}
-      />
-      <TextField
-        select
-        size="small"
-        label="Filter"
-        value={filter}
-        onChange={(e) =>
-          setFilter(e.target.value as "all" | "abha" | "non-abha")
-        }
-        sx={{ minWidth: 140, background: "white", borderRadius: 1 }}
-      >
-        <MenuItem value="all">All</MenuItem>
-        <MenuItem value="abha">ABHA Linked</MenuItem>
-        <MenuItem value="non-abha">Non-ABHA</MenuItem>
-      </TextField>
-
-      <button
-        style={{
-          background: "var(--secondary, #64ac44)",
-          color: "#fff",
-          padding: "7px 16px",
-          borderRadius: "8px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          border: "none",
-        }}
-        onClick={() => router.push("/patient/registration")}
-      >
-        Register New
-      </button>
-      <button
-        style={{
-          background: "var(--tertiary, #02066b)",
-          color: "#fff",
-          padding: "7px 16px",
-          borderRadius: "8px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          border: "none",
-        }}
-        onClick={() => setShowQR(true)}
-      >
-        Scan Desk
-      </button>
-    </Box>
-
-    {/* Table */}
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>UHID</TableCell>
-            <TableCell>Patient</TableCell>
-            <TableCell>Phone</TableCell>
-            <TableCell>ABHA</TableCell>
-            <TableCell>Last Visit</TableCell>
-            <TableCell>Reg Date</TableCell>
-            <TableCell align="center">Action</TableCell>
-          </TableRow>
-        </TableHead>
-
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={7} align="center">
-                Loading…
-              </TableCell>
-            </TableRow>
-          ) : filtered.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} align="center">
-                No patients found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filtered.map((p) => (
-              <TableRow
-                key={p.patientId}
-                hover
-                sx={{
-                  background: "#fff",
-                  "&:hover": { background: "#f5f9ff" },
-                }}
-              >
-                {/* UHID */}
-                <TableCell>
-                  <Typography fontWeight={300} fontSize={14}>
-                    {p.uhid}
-                  </Typography>
-                </TableCell>
-
-                {/* Patient Info */}
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Typography
-                      color="var(--secondary, #028090)"
-                      fontWeight={600}
-                    >
-                      {p.name}
-                    </Typography>
-
-                    {/* NEW: Badge if patient registered within last 7 days */}
-                    {(() => {
-                      const reg = new Date(p.registrationDate);
-                      const daysDiff =
-                        (Date.now() - reg.getTime()) / (1000 * 60 * 60 * 24);
-                      if (daysDiff <= 7) {
-                        return (
-                          <span
-                            style={{
-                              background: "var(--secondary, #02c39a)",
-                              color: "#fff",
-                              borderRadius: "12px",
-                              padding: "2px 8px",
-                              fontSize: "10px",
-                              fontWeight: 600,
-                              letterSpacing: 0.3,
-                            }}
-                          >
-                            NEW
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-
-                  <Typography variant="caption" color="text.secondary">
-                    {p.age} yrs • {p.gender}
-                  </Typography>
-                </TableCell>
-
-                {/* Phone */}
-                <TableCell>
-                  <Typography fontSize={14}>{p.phone}</Typography>
-                </TableCell>
-
-                {/* ABHA */}
-                <TableCell>
-                  {p.abhaNumber ? (
-                    <>
-                      <Typography fontWeight={600} fontSize={14}>
-                        {p.abhaNumber}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        fontSize={12}
-                      >
-                        {p.abhaAddress}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" color="text.disabled">
-                      — Not Linked —
-                    </Typography>
-                  )}
-                </TableCell>
-
-                {/* Last Visit */}
-                <TableCell>
-                  {p.lastVisitDate ? (
-                    <>
-                      <Typography variant="body2" fontSize={14}>
-                        {p.lastVisitDate}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        fontSize={12}
-                      >
-                        {p.lastVisitType}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" color="text.disabled">
-                      —
-                    </Typography>
-                  )}
-                </TableCell>
-
-                {/* Registration Date */}
-                <TableCell>{p.registrationDate}</TableCell>
-
-                {/* Action Menu */}
-                <TableCell align="center">
-                  <IconButton size="small" onClick={(e) => openMenu(e, p)}>
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-
-    {/* Action Menu */}
-    <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={closeMenu}>
-      <MenuOption
-        onClick={() => {
-          if (selectedPatient)
-            router.push(`/patient/patientlist/${selectedPatient.patientId}`);
-          closeMenu();
-        }}
-      >
-        Details
-      </MenuOption>
-      <MenuOption
-        onClick={() => {
-          closeMenu();
-          setShowUpload(true);
-        }}
-      >
-        Upload
-      </MenuOption>
-      <MenuOption
-        onClick={() => {
-          alert("ABHA clicked");
-          closeMenu();
-        }}
-      >
-        ABHA
-      </MenuOption>
-      <MenuOption
-        onClick={() => {
-          alert("Appointment clicked");
-          closeMenu();
-        }}
-      >
-        Appointment
-      </MenuOption>
-    </Menu>
-
-    {/* QR Overlay */}
-    {showQR && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] text-center">
-          <button
-            onClick={() => setShowQR(false)}
-            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-          <div className="flex justify-center mb-4">
-            <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ABHA-DEMO-PLACEHOLDER"
-              alt="ABHA QR Code"
-              className="rounded-lg border"
-            />
+    <div className="ui-card p-4 md:p-6">
+      {/* ---------- Top Bar ---------- */}
+      <div className="bg-[#f9fafb] rounded-lg shadow-sm px-3 py-3 mb-3 flex flex-col gap-2 md:gap-3">
+        <div className="flex items-center justify-between">
+          <div className="font-semibold text-gray-800 text-sm">
+            Patient List
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">ABHA QR Code</h2>
-          <p className="text-sm text-gray-600 mt-2">
-            Scan this QR code with the ABHA app to share patient profile
-          </p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              className="btn-primary text-sm font-semibold whitespace-nowrap"
+              onClick={() => router.push("/patient/registration")}
+            >
+              Register New
+            </button>
+            <button
+              className="btn-accent text-sm font-semibold whitespace-nowrap"
+              onClick={() => setShowQR(true)}
+            >
+              Scan Desk
+            </button>
+          </div>
         </div>
+
+        <FilterBar
+          fields={[
+            {
+              type: "search",
+              key: "query",
+              placeholder: "Search (name / UHID / phone / ABHA)…",
+              value: query,
+              onChange: setQuery,
+            },
+            {
+              type: "select",
+              key: "filterType",
+              label: "ABHA Status",
+              options: [
+                { label: "All Patients", value: "all" },
+                { label: "ABHA Linked", value: "abha" },
+                { label: "Non-ABHA", value: "non-abha" },
+              ],
+              value: filterType,
+              onChange: (v) => setFilterType(v as "all" | "abha" | "non-abha"),
+            },
+
+            {
+              type: "select",
+              key: "gender",
+              label: "Gender",
+              options: [
+                { label: "All", value: "All" },
+                { label: "Female", value: "Female" },
+                { label: "Male", value: "Male" },
+                { label: "Other", value: "Other" },
+              ],
+              value: gender,
+              onChange: setGender,
+            },
+            {
+              type: "select",
+              key: "sortBy",
+              label: "Sort By",
+              options: [
+                { label: "Registration Date", value: "registrationDate" },
+                { label: "Last Visit", value: "lastVisitDate" },
+              ],
+              value: sortBy,
+              onChange: setSortBy,
+            },
+          ]}
+        />
       </div>
-    )}
 
-    {/* ✅ Upload Modal */}
-    <UploadModal
-      open={showUpload}
-      onClose={() => setShowUpload(false)}
-      patient={
-        selectedPatient
-          ? { name: selectedPatient.name, uhid: selectedPatient.uhid }
-          : undefined
-      }
-      onUpload={(formData) => {
-        console.log("Uploaded:", Object.fromEntries(formData));
-        // TODO: replace with API call later
-        // await fetch("/api/reports/upload", { method: "POST", body: formData });
-      }}
-    />
-  </Paper>
-);
+      {/* ---------- Table ---------- */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 text-gray-700">
+            <tr>
+              <th className="p-2 text-left">UHID</th>
+              <th className="p-2 text-left">Patient</th>
+              <th className="p-2 text-left">Phone</th>
+              <th className="p-2 text-left">ABHA</th>
+              <th className="p-2 text-left">Last Visit</th>
+              <th className="p-2 text-left">Reg Date</th>
+              <th className="p-2 text-center">Action</th>
+            </tr>
+          </thead>
 
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="text-center py-3 text-gray-500">
+                  Loading…
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-3 text-gray-500">
+                  No patients found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((p) => (
+                <tr
+                  key={p.patientId}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
+                >
+                  {/* UHID */}
+                  <td className="p-2 text-gray-700">{p.uhid}</td>
+
+                  {/* Patient Info */}
+                  <td className="p-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[--text-highlight] font-semibold">
+                        {p.name}
+                      </span>
+
+                      {/* New badge */}
+                      {(() => {
+                        const reg = new Date(p.registrationDate);
+                        const daysDiff =
+                          (Date.now() - reg.getTime()) / (1000 * 60 * 60 * 24);
+                        if (daysDiff <= 7)
+                          return (
+                            <span className="bg-[var(--secondary)] text-white text-[10px] font-semibold px-2 py-[1px] rounded-full">
+                              NEW
+                            </span>
+                          );
+                        return null;
+                      })()}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {p.age} yrs • {p.gender}
+                    </div>
+                  </td>
+
+                  {/* Phone */}
+                  <td className="p-2 text-gray-700">{p.phone}</td>
+
+                  {/* ABHA */}
+                  <td className="p-2">
+                    {p.abhaNumber ? (
+                      <>
+                        <div className="font-semibold text-sm">
+                          {p.abhaNumber}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {p.abhaAddress}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-xs text-gray-400 italic">
+                        — Not Linked —
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Last Visit */}
+                  <td className="p-2">
+                    {p.lastVisitDate ? (
+                      <>
+                        <div>{p.lastVisitDate}</div>
+                        <div className="text-xs text-gray-500">
+                          {p.lastVisitType}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-xs text-gray-400">—</div>
+                    )}
+                  </td>
+
+                  {/* Reg Date */}
+                  <td className="p-2 text-gray-700">{p.registrationDate}</td>
+
+                  {/* Action */}
+                  <td className="p-2 text-center">
+                    <button
+                      onClick={(e) => openMenu(e, p)}
+                      className="p-1 rounded hover:bg-gray-100"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.8}
+                        stroke="currentColor"
+                        className="w-5 h-5 text-gray-600"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 6.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 18.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+                        />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ---------- Action Menu ---------- */}
+      {anchorEl && (
+        <div
+          className="absolute z-50 bg-white border border-gray-200 rounded-md shadow-md w-36"
+          style={{
+            top: anchorEl?.getBoundingClientRect().bottom + 8,
+            left: anchorEl?.getBoundingClientRect().left,
+          }}
+        >
+          {["Details", "Upload", "ABHA", "Appointment"].map((label) => (
+            <button
+              key={label}
+              onClick={() => {
+                closeMenu();
+                if (label === "Details" && selectedPatient)
+                  router.push(
+                    `/patient/patientlist/${selectedPatient.patientId}`
+                  );
+                else if (label === "Upload") setShowUpload(true);
+                else alert(`${label} clicked`);
+              }}
+              className="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ---------- QR Overlay ---------- */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] text-center">
+            <button
+              onClick={() => setShowQR(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <div className="flex justify-center mb-4">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ABHA-DEMO-PLACEHOLDER"
+                alt="ABHA QR Code"
+                className="rounded-lg border"
+              />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">
+              ABHA QR Code
+            </h2>
+            <p className="text-sm text-gray-600 mt-2">
+              Scan this QR code with the ABHA app to share patient profile
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Upload Modal ---------- */}
+      <UploadModal
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        patient={
+          selectedPatient
+            ? { name: selectedPatient.name, uhid: selectedPatient.uhid }
+            : undefined
+        }
+        onUpload={(formData) => {
+          console.log("Uploaded:", Object.fromEntries(formData));
+        }}
+      />
+    </div>
+  );
 }
