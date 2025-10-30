@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import OtpPopup from "@/components/common/OtpPopup";
 import UploadModal from "@/components/common/UploadModal";
+import InvoiceModal from "@/components/common/InvoiceModal";
 
 /* -------------------------------------------------------------------------- */
 /*                            Mock Patient Details                            */
@@ -47,6 +48,11 @@ export default function PatientDetailPage() {
   const [formData, setFormData] = useState({ ...MOCK_PATIENT });
   const [showPastRecords, setShowPastRecords] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<{
+    name: string;
+  } | null>(null);
 
   /* ---------------- OTP State ---------------- */
   const [otpOpen, setOtpOpen] = useState(false);
@@ -200,6 +206,7 @@ export default function PatientDetailPage() {
             label="Payment"
             icon={<CreditCard size={14} />}
             color="amber"
+            onClick={() => setShowInvoiceModal(true)}
           />
           <ActionBtn
             label="Consent"
@@ -412,7 +419,7 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {/* -------------------- OTP Popup -------------------- */}
+      {/* -------------------- All Modals-------------------- */}
       <OtpPopup
         open={otpOpen}
         onClose={() => setOtpOpen(false)}
@@ -428,6 +435,20 @@ export default function PatientDetailPage() {
         onUpload={(formData) =>
           console.log("Uploaded:", Object.fromEntries(formData))
         }
+      />
+
+      <InvoiceModal
+        open={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false);
+          setSelectedPatient(null);
+        }}
+        onSave={(amount, patientName) => {
+          console.log("Invoice saved:", { amount, patientName });
+          setShowInvoiceModal(false);
+          setSelectedPatient(null);
+          // optional: add to patient billing records or show toast
+        }}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import FilterBar, { FilterOption } from "@/components/common/FilterBar";
 import { Typography } from "@mui/material";
 import ActionMenu from "@/components/common/ActionMenu";
+import InvoiceModal from "@/components/common/InvoiceModal";
 
 type Patient = {
   name: string;
@@ -70,6 +71,10 @@ export default function QueuePage() {
   const [selectedDoctor, setSelectedDoctor] = useState("All");
   const [selectedDept, setSelectedDept] = useState("All");
   const [search, setSearch] = useState("");
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<{
+    name: string;
+  } | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [walkin, setWalkin] = useState({
@@ -356,10 +361,10 @@ export default function QueuePage() {
                                   },
                                   {
                                     label: "Payment",
-                                    onClick: () =>
-                                      alert(
-                                        `Collect payment for ${slot.patient?.name}`
-                                      ),
+                                    onClick: () => {
+                                      setSelectedPatient(slot.patient);
+                                      setShowInvoiceModal(true);
+                                    },
                                   },
                                   {
                                     label: "Vitals",
@@ -437,10 +442,10 @@ export default function QueuePage() {
                             items={[
                               {
                                 label: "Payment",
-                                onClick: () =>
-                                  alert(
-                                    `Collect payment for ${slot.patient?.name}`
-                                  ),
+                                onClick: () => {
+                                  setSelectedPatient(slot.patient);
+                                  setShowInvoiceModal(true);
+                                },
                               },
                               {
                                 label: "Details",
@@ -598,6 +603,20 @@ export default function QueuePage() {
           </div>
         </div>
       )}
+
+      <InvoiceModal
+        open={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false);
+          setSelectedPatient(null);
+        }}
+        onSave={(amount, patientName) => {
+          console.log("Invoice saved:", { amount, patientName });
+          setShowInvoiceModal(false);
+          setSelectedPatient(null);
+          // optional: add to patient billing records or show toast
+        }}
+      />
     </div>
   );
 }

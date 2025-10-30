@@ -10,7 +10,7 @@ import DaycareSummary from "@/components/doctor/DaycareSummary";
 import LabRequestForm from "@/components/lab/LabRequestForm";
 import { useRouter } from "next/navigation";
 import UploadModal from "@/components/common/UploadModal";
-//import { generatePrescriptionPdf } from "@/lib/pdf/generatePrescriptionPdf";
+import InvoiceModal from "@/components/common/InvoiceModal";
 import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 
 /* External forms */
@@ -142,6 +142,8 @@ export default function DoctorConsolePage() {
 
   /* Right tools */
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const [activeForm, setActiveForm] = useState<
     "digitalRx" | "immunization" | "lab" | null
@@ -699,6 +701,12 @@ export default function DoctorConsolePage() {
                   onClick={onPrint}
                 />
                 <TinyIcon
+                  img="/icons/rupee.png"
+                  label="Payment"
+                  onClick={() => setShowInvoiceModal(true)}
+                />
+
+                <TinyIcon
                   img="/icons/language.png"
                   label="Language"
                   onClick={onLanguage}
@@ -726,13 +734,21 @@ export default function DoctorConsolePage() {
       />
 
       <UploadModal
-        open={showUpload}
-        onClose={() => setShowUpload(false)}
-        patient={{ name: "Ananya Sharma", uhid: "UHID1001" }} // 🔹 Replace with actual patient state
-        onUpload={(formData) => {
-          console.log("Uploaded:", Object.fromEntries(formData));
-          // Later: call your upload API
-          // await fetch("/api/reports/upload", { method: "POST", body: formData });
+  open={showUpload}
+  onClose={() => setShowUpload(false)}
+  patient={{ name: "Ananya Sharma", uhid: "UHID1001" }}
+  onUpload={(formData) => {
+    console.log("Uploaded:", Object.fromEntries(formData));
+  }}
+/>
+
+      <InvoiceModal
+        open={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        onSave={(amount, patientName) => {
+          console.log("Invoice saved:", { amount, patientName });
+          setShowInvoiceModal(false);
+          // optional: trigger toast or refresh invoice list
         }}
       />
     </div>
@@ -756,8 +772,8 @@ function PreviewPaper({
   bodyOverride?: React.ReactNode;
   past: {
     active: boolean;
-    index: number; // 0..total-1 (0 = current)
-    total: number; // total slots incl. current
+    index: number;
+    total: number;
     loading: boolean;
     error?: string;
     day?: DayRecords;
@@ -768,162 +784,178 @@ function PreviewPaper({
   };
 }) {
   const showingPast = past.active;
+  const [showUpload, setShowUpload] = useState(false);
 
   return (
-    <div className="min-w-0 md:sticky md:top-20 self-start">
-      <div
-        className="relative mx-auto bg-white border border-gray-300 rounded-xl shadow-sm overflow-visible"
-        style={{
-          minHeight: 680,
-          background: "linear-gradient(180deg,#ffffff 0%,#fcfcfc 100%)",
-        }}
-      >
-        {/* Paper inner */}
-        <div className="relative z-0 p-4 md:p-6">
-          {/* Patient demography header */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start">
-            <div className="min-w-0 pr-3">
-              {/* <div className="text-xs text-gray-500 mb-1">Patient</div> */}
-              <div className="text-sm font-semibold">{patient.name}</div>
-              <div className="text-xs text-gray-700 mt-0.5">
-                {patient.gender} • {patient.age}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                ABHA No: {patient.abhaNumber}
-              </div>
-              <div className="text-xs text-gray-600">
-                ABHA Address: {patient.abhaAddress}
-              </div>
-            </div>
-            <Image
-              src="/icons/logo.png"
-              alt="Test Clinic"
-              width={40}
-              height={40}
-            />
-
-            <div className="flex items-start justify-end pl-3">
-              <div className="flex flex-col items-end gap-2">
-                {/* --- Row 1: Patient Summary + Upload + Consent --- */}
-                <div className="flex items-center gap-2">
-                  <button
-                    className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
-                    title="Open Patient Summary"
-                    type="button"
-                  >
-                    <SummaryIcon className="w-4 h-4" />
-                    <span className="font-medium"></span>
-                  </button>
-
-                  {/* Upload icon */}
-                  <button
-                    type="button"
-                    title="Upload Report"
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        d="M12 16V4m0 0-4 4m4-4 4 4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M4 16v4h16v-4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Consent icon */}
-                  <button
-                    type="button"
-                    title="Consent Management"
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        d="M12 21C7 17.5 4 13.5 4 9a8 8 0 1 1 16 0c0 4.5-3 8.5-8 12Z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M12 9v3m0 3h.01"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+    <>
+      <div className="min-w-0 md:sticky md:top-20 self-start">
+        <div
+          className="relative mx-auto bg-white border border-gray-300 rounded-xl shadow-sm overflow-visible"
+          style={{
+            minHeight: 680,
+            background: "linear-gradient(180deg,#ffffff 0%,#fcfcfc 100%)",
+          }}
+        >
+          <div className="relative z-0 p-4 md:p-6">
+            {/* Patient demography header */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start">
+              <div className="min-w-0 pr-3">
+                <div className="text-sm font-semibold">{patient.name}</div>
+                <div className="text-xs text-gray-700 mt-0.5">
+                  {patient.gender} • {patient.age}
                 </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  ABHA No: {patient.abhaNumber}
+                </div>
+                <div className="text-xs text-gray-600">
+                  ABHA Address: {patient.abhaAddress}
+                </div>
+              </div>
 
-                {/* --- Row 2: View Past Record or Pager --- */}
-                {!past.active ? (
-                  <button
-                    type="button"
-                    onClick={past.onOpen}
-                    className="btn-primary inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
-                  >
-                    View Past Record
-                  </button>
-                ) : (
-                  <div className="backdrop-blur bg-white/70 border border-gray-200 rounded-full px-2 py-1 shadow-sm">
-                    <PastRecordButton
-                      active={past.active}
-                      index={past.index}
-                      total={past.total}
-                      onOpen={past.onClose}
-                      onPrev={past.onPrev}
-                      onNext={past.onNext}
-                    />
+              <Image
+                src="/icons/logo.png"
+                alt="Clinic Logo"
+                width={40}
+                height={40}
+              />
+
+              <div className="flex items-start justify-end pl-3">
+                <div className="flex flex-col items-end gap-2">
+                  {/* --- Row 1: Patient Summary + Upload + Consent --- */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
+                      title="Open Patient Summary"
+                      type="button"
+                    >
+                      <SummaryIcon className="w-4 h-4" />
+                    </button>
+
+                    {/* Upload icon */}
+                    <button
+                      type="button"
+                      title="Upload Report"
+                      onClick={() => setShowUpload(true)}
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          d="M12 16V4m0 0-4 4m4-4 4 4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M4 16v4h16v-4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Consent icon */}
+                    <button
+                      type="button"
+                      title="Consent Management"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path
+                          d="M12 21C7 17.5 4 13.5 4 9a8 8 0 1 1 16 0c0 4.5-3 8.5-8 12Z"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M12 9v3m0 3h.01"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                )}
+
+                  {/* --- Row 2: View Past Record or Pager --- */}
+                  {!past.active ? (
+                    <button
+                      type="button"
+                      onClick={past.onOpen}
+                      className="btn-primary inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
+                    >
+                      View Past Record
+                    </button>
+                  ) : (
+                    <div className="backdrop-blur bg-white/70 border border-gray-200 rounded-full px-2 py-1 shadow-sm">
+                      <PastRecordButton
+                        active={past.active}
+                        index={past.index}
+                        total={past.total}
+                        onOpen={past.onClose}
+                        onPrev={past.onPrev}
+                        onNext={past.onNext}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="my-3 border-t border-gray-200" />
+            <div className="my-3 border-t border-gray-200" />
 
-          {/* Record body */}
-          <div className="mt-2">
-            {showingPast ? (
-              past.loading ? (
-                <div className="ui-card p-4 text-sm text-gray-500">
-                  Loading past records…
-                </div>
-              ) : past.error ? (
-                <div className="ui-card p-4 text-sm text-red-600">
-                  Error: {past.error}
-                </div>
-              ) : past.total === 0 || !past.day ? (
-                <div className="ui-card p-4 text-sm text-gray-500">
-                  No past records available.
-                </div>
+            {/* Record body */}
+            <div className="mt-2">
+              {showingPast ? (
+                past.loading ? (
+                  <div className="ui-card p-4 text-sm text-gray-500">
+                    Loading past records…
+                  </div>
+                ) : past.error ? (
+                  <div className="ui-card p-4 text-sm text-red-600">
+                    Error: {past.error}
+                  </div>
+                ) : past.total === 0 || !past.day ? (
+                  <div className="ui-card p-4 text-sm text-gray-500">
+                    No past records available.
+                  </div>
+                ) : (
+                  <PastRecordsPanel day={past.day} />
+                )
               ) : (
-                <PastRecordsPanel day={past.day} />
-              )
-            ) : (
-              bodyOverride ?? <LivePreview payload={payload} />
-            )}
+                bodyOverride ?? <LivePreview payload={payload} />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ✅ MOUNT MODAL AT ROOT LEVEL SO IT SHOWS FULL SCREEN */}
+      <UploadModal
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        patient={{
+          name: patient.name,
+          uhid: "UHID1001", // replace with actual ID later
+        }}
+        onUpload={(formData) => {
+          console.log("Uploaded:", Object.fromEntries(formData));
+        }}
+      />
+    </>
   );
 }
+
 
 /* -------------------- Past Records (per selected day) -------------------- */
 function PastRecordsPanel({ day }: { day: DayRecords }) {
@@ -984,11 +1016,9 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
 
   const hasRx = rxRows.length > 0;
 
-  const hasPlan =
-    nonEmpty(followUpText) ||
-    nonEmpty(followUpDate) 
-    // (uploads?.files?.length ?? 0) > 0 ||
-    // nonEmpty(uploads?.note);
+  const hasPlan = nonEmpty(followUpText) || nonEmpty(followUpDate);
+  // (uploads?.files?.length ?? 0) > 0 ||
+  // nonEmpty(uploads?.note);
 
   const showVitals = hasVitals;
   const showClinical = hasClinical;
@@ -1121,22 +1151,6 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
           {nonEmpty(followUpDate) && (
             <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
           )}
-
-          {/* {(uploads?.files?.length ?? 0) > 0 && (
-            <div>
-              <h4 className="text-xs font-medium text-gray-600 mb-2">
-                Attachments
-              </h4>
-              <ul className="list-disc ml-5 space-y-1">
-                {(uploads?.files ?? []).map((f, i) => (
-                  <li key={i}>{(f as any)?.name ?? "File"}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {nonEmpty(uploads?.note) && (
-            <Block k="Attachment Note" v={safe(uploads?.note)} />
-          )} */}
         </div>
       </section>
     </div>
