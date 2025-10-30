@@ -464,7 +464,7 @@ export default function DoctorConsolePage() {
   return (
     
     <div className="space-y-3">
-      <RoundPill img="/icons/plus.svg" label="Add" variant="blue" />
+     
       {/* ------------------------------- Header Panel ------------------------------- */}
       <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
