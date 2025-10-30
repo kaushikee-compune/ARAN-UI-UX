@@ -14,6 +14,7 @@ import {
 import OtpPopup from "@/components/common/OtpPopup";
 import UploadModal from "@/components/common/UploadModal";
 import InvoiceModal from "@/components/common/InvoiceModal";
+import PastRecordsPanel from "@/components/patient/PastRecordsPanel";
 
 /* -------------------------------------------------------------------------- */
 /*                            Mock Patient Details                            */
@@ -489,27 +490,6 @@ function InlineSection({
   );
 }
 
-// function Input({
-//   value,
-//   onChange,
-//   placeholder,
-//   type = "text",
-// }: {
-//   value: string;
-//   onChange: (v: string) => void;
-//   placeholder: string;
-//   type?: string;
-// }) {
-//   return (
-//     <input
-//       className="w-full border-b border-gray-300 focus:border-gray-600 focus:outline-none px-1 py-1 text-sm bg-transparent"
-//       value={value}
-//       onChange={(e) => onChange(e.target.value)}
-//       placeholder={placeholder}
-//       type={type}
-//     />
-//   );
-// }
 function Input({
   value,
   onChange,
@@ -640,43 +620,43 @@ function nonEmpty(v: any) {
 }
 const safe = (v: any) => (nonEmpty(v) ? String(v) : "—");
 
-export function PastRecordsPanel({ patientId }: { patientId: string }) {
-  const [records, setRecords] = useState<CanonicalRecord[]>([]);
-  useEffect(() => {
-    loadMockRecords(patientId)
-      .then(setRecords)
-      .catch((err) => console.error(err));
-  }, [patientId]);
+// export function PastRecordsPanel({ patientId }: { patientId: string }) {
+//   const [records, setRecords] = useState<CanonicalRecord[]>([]);
+//   useEffect(() => {
+//     loadMockRecords(patientId)
+//       .then(setRecords)
+//       .catch((err) => console.error(err));
+//   }, [patientId]);
 
-  if (!records.length)
-    return (
-      <div className="text-center text-sm text-gray-500 py-10">
-        No past records found
-      </div>
-    );
+//   if (!records.length)
+//     return (
+//       <div className="text-center text-sm text-gray-500 py-10">
+//         No past records found
+//       </div>
+//     );
 
-  const grouped: Record<string, CanonicalRecord[]> = {};
-  for (const r of records) {
-    if (!grouped[r.dateISO]) grouped[r.dateISO] = [];
-    grouped[r.dateISO].push(r);
-  }
-  const dates = Object.keys(grouped).sort((a, b) => (a > b ? -1 : 1));
+//   const grouped: Record<string, CanonicalRecord[]> = {};
+//   for (const r of records) {
+//     if (!grouped[r.dateISO]) grouped[r.dateISO] = [];
+//     grouped[r.dateISO].push(r);
+//   }
+//   const dates = Object.keys(grouped).sort((a, b) => (a > b ? -1 : 1));
 
-  return (
-    <div className="space-y-8">
-      {dates.map((date) => (
-        <div key={date} className="space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 border-b pb-1">
-            Records • {date}
-          </h2>
-          {grouped[date].map((rec) => (
-            <RecordBlock key={rec.id} record={rec} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
+//   return (
+//     <div className="space-y-8">
+//       {dates.map((date) => (
+//         <div key={date} className="space-y-4">
+//           <h2 className="text-sm font-semibold text-gray-700 border-b pb-1">
+//             Records • {date}
+//           </h2>
+//           {grouped[date].map((rec) => (
+//             <RecordBlock key={rec.id} record={rec} />
+//           ))}
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }
 function RecordBlock({ record }: { record: CanonicalRecord }) {
   const payload = record.canonical || {};
   const {
