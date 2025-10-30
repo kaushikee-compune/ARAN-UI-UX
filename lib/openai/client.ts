@@ -76,9 +76,10 @@ export async function callOpenAIClassify(
   // The Responses API returns the JSON object in data.output[0].content[0].* (varies by SDK).
   // To be robust, try a couple of paths:
   const parsed =
-    data?.output?.[0]?.content?.[0]?.json ??
-    data?.response?.output?.[0]?.content?.[0]?.json ??
-    data?.output?.[0]?.content?.[0]?.text && safeParse(data.output[0].content[0].text);
+  data?.output?.[0]?.content?.[0]?.json ??
+  data?.response?.output?.[0]?.content?.[0]?.json ??
+  (data?.output?.[0]?.content?.[0]?.text && safeParse(data.output[0].content[0].text));
+
 
   const results: ResultItem[] | undefined = parsed?.results;
   if (!Array.isArray(results)) {
