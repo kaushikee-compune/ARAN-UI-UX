@@ -28,7 +28,7 @@ export default function StaffConsolePage() {
   return (
     <div className="space-y-3">
       {/* ------------------------------- Header Panel ------------------------------- */}
-      <div className="ui-card px-5 py-1 mt-2 mx-4">
+      {/* <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
           <TopMenuButton
             active={activeTop === "Vitals"}
@@ -53,7 +53,7 @@ export default function StaffConsolePage() {
             <span>Staff Console</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* ------------------------------- Main Layout ------------------------------- */}
       <div className="mt-2 px-1 md:px-6 lg:px-8">
