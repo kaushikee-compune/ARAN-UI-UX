@@ -1,4 +1,5 @@
 "use client";
+import SnomedSearchBox from "@/components/common/SnomedSearchBox";
 
 import React, {
   forwardRef,
@@ -33,11 +34,24 @@ export type RxRow = {
 
 export type DigitalRxFormState = {
   vitals: Record<string, string | undefined>;
-  chiefComplaints?: string;
+  chiefComplaintRows?: Array<{
+    symptom: string;
+    since?: string;
+    severity?: string;
+  }>;
+  diagnosisRows?: Array<{
+    diagnosis: string;
+    type?: string;
+    status?: string;
+  }>;
   allergies?: string;
   medicalHistory?: string;
-  investigationAdvice?: string;
-  procedure?: string;
+  investigationRows?: Array<{
+    investigation: string;
+    notes?: string;
+    status?: string;
+  }>;
+  procedureRows?: Array<{ procedure: string; notes?: string; status?: string }>;
   followUpText?: string;
   followUpDate?: string;
   medications?: RxRow[];
@@ -57,7 +71,21 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
     const [showBpTrend, setShowBpTrend] = useState(false);
 
     useEffect(() => {
-      chiefRef.current?.focus();
+      // Focus chief complaint SNOMED search box when form loads
+      chiefSearchRef.current?.focus();
+    }, []);
+
+    useEffect(() => {
+      if (
+        !safeValue.chiefComplaintRows ||
+        safeValue.chiefComplaintRows.length === 0
+      ) {
+        patch("chiefComplaintRows", [{ symptom: "", since: "", severity: "" }]);
+      }
+      if (!safeValue.diagnosisRows || safeValue.diagnosisRows.length === 0) {
+        patch("diagnosisRows", [{ diagnosis: "", type: "", status: "" }]);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const safeValue: DigitalRxFormState = {
@@ -73,6 +101,8 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
         });
       },
     }));
+
+    const chiefSearchRef = useRef<HTMLInputElement | null>(null);
 
     const patch = <K extends keyof DigitalRxFormState>(
       key: K,
@@ -205,153 +235,165 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
           </div>
         </div>
 
-        {/* ----------- Two-column Main Section ----------- */}
-        <div className="grid md:grid-cols-[1fr_2fr] gap-6 items-start">
-          {/* LEFT — Vitals */}
-          <section className="pr-4 border-r border-gray-300">
-            <div className="flex items-center justify-between mb-3 relative">
-              <h3 className="text-sm font-semibold">Vitals</h3>
-              <button
-                type="button"
-                onClick={() => setShowVitalsConfig((v) => !v)}
-                title="Customize vitals fields"
-                className="text-gray-500 hover:text-gray-800"
-              >
-                <Image
-                  src="/icons/settings.png"
-                  alt="settings"
-                  width={18}
-                  height={18}
-                />
-              </button>
+        {/* LEFT — Vitals */}
+        {/* ----------- Vitals Section (full-width, 2-row layout) ----------- */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Vitals</h3>
+            <button
+              type="button"
+              onClick={() => setShowVitalsConfig((v) => !v)}
+              title="Customize vitals fields"
+              className="text-gray-500 hover:text-gray-800"
+            >
+              <Image
+                src="/icons/settings.png"
+                alt="settings"
+                width={18}
+                height={18}
+              />
+            </button>
+          </div>
 
-              {/* ⚙️ Dropdown for custom fields */}
-              {showVitalsConfig && (
-                <div className="absolute right-0 top-6 z-50 w-72 bg-white border border-gray-200 rounded-md shadow-lg p-3 space-y-2">
-                  <p className="text-xs font-semibold text-gray-600">
-                    Select fields to show:
-                  </p>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-                    {Object.keys(vitalOptions).map((key) => (
-                      <label key={key} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={vitalConfig[key]}
-                          onChange={() =>
-                            setVitalConfig((prev) => ({
-                              ...prev,
-                              [key]: !prev[key],
-                            }))
-                          }
-                        />
-                        {vitalOptions[key].label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* ⚙️ Dropdown for custom fields */}
+          {showVitalsConfig && (
+            <div className="absolute right-0 top-8 z-50 w-72 bg-white border border-gray-200 rounded-md shadow-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-600">
+                Select fields to show:
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                {Object.keys(vitalOptions).map((key) => (
+                  <label key={key} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={vitalConfig[key]}
+                      onChange={() =>
+                        setVitalConfig((prev) => ({
+                          ...prev,
+                          [key]: !prev[key],
+                        }))
+                      }
+                    />
+                    {vitalOptions[key].label}
+                  </label>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-2 justify-left">
-              {/* --- Fixed core vitals --- */}
+          {/* 2-row compact vitals layout */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Row 1 */}
+            <div className="grid grid-cols-3 gap-4">
               <CompactVitalInput
                 id="vital-temperature"
-                label="Temperature (°C)"
-                value={safeValue.vitals.temperature || ""}
-                maxLength={3}
+                label="Temp (°C)"
+                value={safeValue.vitals.temperature || "98.4"}
+                maxLength={4}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, temperature: v })
                 }
-                onEnter={() => nextFocus("temperature")}
               />
-
               <CompactVitalInput
                 id="vital-bp"
                 label="BP (mmHg)"
-                placeholder="120/80"
-                value={safeValue.vitals.bp || ""}
+                value={safeValue.vitals.bp || "120/80"}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, bp: v })
                 }
-                onEnter={() => nextFocus("bp")}
               />
-
               <CompactVitalInput
                 id="vital-spo2"
                 label="SpO₂ (%)"
-                maxLength={3}
-                value={safeValue.vitals.spo2 || ""}
+                value={safeValue.vitals.spo2 || "98"}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, spo2: v })
                 }
-                onEnter={() => nextFocus("spo2")}
               />
+            </div>
 
+            {/* Row 2 */}
+            <div className="grid grid-cols-3 gap-4">
               <CompactVitalInput
                 id="vital-pulse"
                 label="Pulse (bpm)"
-                maxLength={3}
-                value={safeValue.vitals.pulse || ""}
+                value={safeValue.vitals.pulse || "76"}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, pulse: v })
                 }
-                onEnter={() => nextFocus("pulse")}
               />
-
               <CompactVitalInput
                 id="vital-weight"
                 label="Weight (kg)"
-                value={safeValue.vitals.weight || ""}
+                value={safeValue.vitals.weight || "65"}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, weight: v })
                 }
               />
-
               <CompactVitalInput
                 id="vital-height"
                 label="Height (cm)"
-                value={safeValue.vitals.height || ""}
+                value={safeValue.vitals.height || "170"}
                 onChange={(v) =>
                   patch("vitals", { ...safeValue.vitals, height: v })
                 }
               />
-
-              {/* --- Optional vitals controlled by config --- */}
-              {Object.entries(vitalConfig)
-                .filter(([key, show]) => show)
-                .map(([key]) => {
-                  const option = vitalOptions[key];
-                  return (
-                    <CompactVitalInput
-                      key={key}
-                      id={`vital-${key}`}
-                      label={option.label}
-                      placeholder={option.placeholder}
-                      value={safeValue.vitals[key] || ""}
-                      onChange={(v) =>
-                        patch("vitals", { ...safeValue.vitals, [key]: v })
-                      }
-                    />
-                  );
-                })}
             </div>
-          </section>
+          </div>
 
-          {/* RIGHT — Chief Complaints */}
-          <section className="pl-4">
-            <h3 className="text-sm font-semibold mb-3">Chief Complaints</h3>
-            <textarea
-              ref={chiefRef}
-              className="w-full bg-transparent outline-none border-b border-gray-300 text-[14px] text-gray-800 placeholder:text-gray-400 focus:border-blue-500 min-h-[140px]"
-              value={safeValue.chiefComplaints || ""}
-              onChange={(e) => patch("chiefComplaints", e.target.value)}
-              placeholder="Enter patient's main complaints..."
-            />
-          </section>
-        </div>
+          {/* Optional dynamic custom vitals */}
+          {Object.entries(vitalConfig)
+            .filter(([key, show]) => show)
+            .map(([key]) => {
+              const option = vitalOptions[key];
+              return (
+                <CompactVitalInput
+                  key={key}
+                  id={`vital-${key}`}
+                  label={option.label}
+                  placeholder={option.placeholder}
+                  value={safeValue.vitals[key] || ""}
+                  onChange={(v) =>
+                    patch("vitals", { ...safeValue.vitals, [key]: v })
+                  }
+                />
+              );
+            })}
+        </section>
+
+        {/* Chief Complaints (with SNOMED Search) */}
+        {/* Chief Complaints */}
+        <Section title="Chief Complaints" icon="/icons/color/col-symptoms.png">
+          {/* SNOMED SearchBox → adds a row */}
+          <SnomedSearchBox
+            ref={chiefSearchRef}
+            semantictag="finding"
+            placeholder="Search SNOMED symptoms (e.g., chest pain)"
+            onSelect={({ term }) => {
+              const current = safeValue.chiefComplaintRows ?? [];
+              const already = current.find((r) => r.symptom === term);
+              if (!already)
+                patch("chiefComplaintRows", [
+                  ...current,
+                  { symptom: term, since: "", severity: "" },
+                ]);
+            }}
+          />
+
+          <ComplaintTable
+            rows={safeValue.chiefComplaintRows ?? []}
+            onChange={(next) => patch("chiefComplaintRows", next)}
+          />
+        </Section>
+        <Section title="Diagnosis" icon="/icons/color/col-diag.png">
+          <DiagnosisTable
+            rows={safeValue.diagnosisRows ?? []}
+            onChange={(next) => patch("diagnosisRows", next)}
+          />
+        </Section>
 
         {/* ----------- Medications ----------- */}
-        <Section title="Medications" icon="/icons/medicine.png">
+        <Section title="Medications" icon="/icons/color/col-med.png">
           <MedicationTable
             rows={safeValue.medications ?? []}
             onChange={(rows) => patch("medications", rows)}
@@ -362,27 +404,23 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
         </Section>
 
         {/* ----------- Investigation Advice ----------- */}
-        <Section title="Investigation Advice" icon="/icons/investigation.png">
-          <LabeledTextarea
-            label="Advice"
-            value={safeValue.investigationAdvice || ""}
-            onChange={(v) => patch("investigationAdvice", v)}
-            placeholder="Enter investigations or tests advised..."
+        <Section title="Investigations" icon="/icons/investigation.png">
+          <InvestigationTable
+            rows={safeValue.investigationRows ?? []}
+            onChange={(next) => patch("investigationRows", next)}
           />
         </Section>
 
         {/* ----------- Procedure ----------- */}
-        <Section title="Procedure" icon="/icons/medical-procedure.png">
-          <LabeledTextarea
-            label="Procedure Details"
-            value={safeValue.procedure || ""}
-            onChange={(v) => patch("procedure", v)}
-            placeholder="Describe the procedure performed..."
+        <Section title="Procedures" icon="/icons/medical-procedure.png">
+          <ProcedureTable
+            rows={safeValue.procedureRows ?? []}
+            onChange={(next) => patch("procedureRows", next)}
           />
         </Section>
 
         {/* ----------- Follow-up ----------- */}
-        <Section title="Follow-Up" icon="/icons/consultation.png">
+        <Section title="Follow-Up" icon="/icons/color/col-cal.png">
           <div className="grid md:grid-cols-2 gap-3">
             <LabeledTextarea
               label="Follow-Up Instructions"
@@ -523,7 +561,6 @@ function CompactVitalInput({
   label,
   value,
   onChange,
-  onEnter,
   maxLength,
   placeholder,
 }: {
@@ -531,15 +568,14 @@ function CompactVitalInput({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  onEnter?: () => void;
   maxLength?: number;
   placeholder?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col">
       <label
         htmlFor={id}
-        className="text-sm text-gray-600 w-36 shrink-0 truncate"
+        className="text-[12px] text-gray-600 font-medium mb-0.5 truncate"
       >
         {label}
       </label>
@@ -548,10 +584,8 @@ function CompactVitalInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={maxLength}
-        inputMode="numeric"
         placeholder={placeholder}
-        onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
-        className="w-[5rem] bg-transparent border-b border-gray-200 outline-none text-sm text-gray-800 text-right placeholder:text-gray-400 focus:border-blue-500"
+        className="bg-transparent border-b border-gray-200 outline-none text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 py-0.5"
       />
     </div>
   );
@@ -790,6 +824,456 @@ function CellInput({
         placeholder={placeholder}
         className="w-full bg-transparent outline-none px-2 py-1 text-sm text-gray-800"
       />
+    </div>
+  );
+}
+
+function ComplaintTable({
+  rows,
+  onChange,
+}: {
+  rows: Array<{ symptom: string; since?: string; severity?: string }>;
+  onChange: (
+    next: Array<{ symptom: string; since?: string; severity?: string }>
+  ) => void;
+}) {
+  const addRow = (symptom = "") =>
+    onChange([...rows, { symptom, since: "", severity: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (
+    i: number,
+    patch: Partial<{ symptom: string; since?: string; severity?: string }>
+  ) => {
+    const next = [...rows];
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    field: "symptom" | "since" | "severity"
+  ) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      const last = rowIndex === rows.length - 1 && field === "severity";
+      if (last) {
+        e.preventDefault();
+        addRow();
+      }
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
+      <div className="grid grid-cols-12 bg-gray-100 text-xs font-semibold text-gray-700 border-b border-gray-200">
+        <div className="col-span-5 px-2 py-1.5">Symptom</div>
+        <div className="col-span-3 px-2 py-1.5">Since</div>
+        <div className="col-span-3 px-2 py-1.5">Severity</div>
+        <div className="col-span-1 px-2 py-1.5 text-center"> </div>
+      </div>
+
+      {rows.length > 0 ? (
+        rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 text-[13px]">
+            <div className="col-span-5 border-r border-gray-200">
+              <input
+                className="w-full px-2 py-1 outline-none bg-transparent"
+                value={r.symptom}
+                placeholder="e.g., Chest pain"
+                onChange={(e) => updateRow(i, { symptom: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "symptom")}
+              />
+            </div>
+            <div className="col-span-3 border-r border-gray-200">
+              <input
+                className="w-full px-2 py-1 outline-none bg-transparent"
+                value={r.since}
+                placeholder="2 days"
+                onChange={(e) => updateRow(i, { since: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "since")}
+              />
+            </div>
+            <div className="col-span-3 border-r border-gray-200">
+              <input
+                className="w-full px-2 py-1 outline-none bg-transparent"
+                value={r.severity}
+                placeholder="Mild / Severe"
+                onChange={(e) => updateRow(i, { severity: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "severity")}
+              />
+            </div>
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-xs text-gray-500 py-3">
+          No complaints added.
+        </div>
+      )}
+      <div className="p-2 text-right">
+        <button
+          type="button"
+          onClick={() => addRow()}
+          className="text-sm text-[--secondary] hover:underline"
+        >
+          + Add Row
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DiagnosisTable({
+  rows,
+  onChange,
+}: {
+  rows: Array<{ diagnosis: string; type?: string; status?: string }>;
+  onChange: (
+    next: Array<{ diagnosis: string; type?: string; status?: string }>
+  ) => void;
+}) {
+  const addRow = (diagnosis = "") =>
+    onChange([...rows, { diagnosis, type: "", status: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (
+    i: number,
+    patch: Partial<{ diagnosis: string; type?: string; status?: string }>
+  ) => {
+    const next = [...rows];
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+    rowIndex: number,
+    field: "diagnosis" | "type" | "status"
+  ) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      const isLastRow = rowIndex === rows.length - 1;
+      const isLastField = field === "status";
+      if (isLastRow && isLastField) {
+        e.preventDefault();
+        addRow();
+      }
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-md  bg-white shadow-sm">
+      {/* Header */}
+      <div className="grid grid-cols-12 bg-gray-100 text-xs font-semibold text-gray-700 border-b border-gray-200">
+        <div className="col-span-6 px-2 py-1.5">Diagnosis</div>
+        <div className="col-span-3 px-2 py-1.5">Type</div>
+        <div className="col-span-2 px-2 py-1.5">Status</div>
+        <div className="col-span-1 px-2 py-1.5 text-center"></div>
+      </div>
+
+      {/* Rows */}
+      {rows.length > 0 ? (
+        rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 text-[13px] items-center">
+            {/* Diagnosis cell with SNOMED search */}
+            <div className="col-span-6 border-r border-gray-200 px-2 py-1">
+              <SnomedSearchBox
+                semantictag="disorder"
+                placeholder={r.diagnosis || "Search SNOMED diagnosis"}
+                onSelect={({ term }) => {
+                  updateRow(i, { diagnosis: term });
+                }}
+              />
+            </div>
+
+            {/* Type dropdown */}
+            <div className="col-span-3 border-r border-gray-200 px-1 py-1">
+              <select
+                className="w-full bg-transparent outline-none text-sm"
+                value={r.type || ""}
+                onChange={(e) => updateRow(i, { type: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "type")}
+              >
+                <option value="">Select</option>
+                <option value="Primary">Primary</option>
+                <option value="Secondary">Secondary</option>
+              </select>
+            </div>
+
+            {/* Status dropdown */}
+            <div className="col-span-2 border-r border-gray-200 px-1 py-1">
+              <select
+                className="w-full bg-transparent outline-none text-sm"
+                value={r.status || ""}
+                onChange={(e) => updateRow(i, { status: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "status")}
+              >
+                <option value="">Select</option>
+                <option value="Active">Active</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+
+            {/* Delete */}
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-xs text-gray-500 py-3">
+          No diagnosis added.
+        </div>
+      )}
+
+      {/* Add Row */}
+      <div className="p-2 text-right">
+        <button
+          type="button"
+          onClick={() => addRow()}
+          className="text-sm text-[--secondary] hover:underline"
+        >
+          + Add Row
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InvestigationTable({
+  rows,
+  onChange,
+}: {
+  rows: Array<{ investigation: string; notes?: string; status?: string }>;
+  onChange: (
+    next: Array<{ investigation: string; notes?: string; status?: string }>
+  ) => void;
+}) {
+  const addRow = (investigation = "") =>
+    onChange([...rows, { investigation, notes: "", status: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (
+    i: number,
+    patch: Partial<{ investigation: string; notes?: string; status?: string }>
+  ) => {
+    const next = [...rows];
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+    rowIndex: number,
+    field: "investigation" | "notes" | "status"
+  ) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      const isLastRow = rowIndex === rows.length - 1;
+      const isLastField = field === "status";
+      if (isLastRow && isLastField) {
+        e.preventDefault();
+        addRow();
+      }
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-md  bg-white shadow-sm">
+      <div className="grid grid-cols-12 bg-gray-100 text-xs font-semibold text-gray-700 border-b border-gray-200">
+        <div className="col-span-5 px-2 py-1.5">Investigation</div>
+        <div className="col-span-5 px-2 py-1.5">Notes</div>
+        <div className="col-span-1 px-2 py-1.5">Status</div>
+        <div className="col-span-1 px-2 py-1.5 text-center"></div>
+      </div>
+
+      {rows.length > 0 ? (
+        rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 text-[13px] items-center">
+            {/* SNOMED search for Investigation (specimen) */}
+            <div className="col-span-5 border-r border-gray-200 px-2 py-1">
+              <SnomedSearchBox
+                semantictag="specimen"
+                placeholder={r.investigation || "Search SNOMED specimen"}
+                onSelect={({ term }) => updateRow(i, { investigation: term })}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="col-span-5 border-r border-gray-200 px-2 py-1">
+              <input
+                className="w-full outline-none bg-transparent text-sm"
+                placeholder="Add notes or details"
+                value={r.notes || ""}
+                onChange={(e) => updateRow(i, { notes: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "notes")}
+              />
+            </div>
+
+            {/* Status dropdown */}
+            <div className="col-span-1 border-r border-gray-200 px-1 py-1">
+              <select
+                className="w-full bg-transparent outline-none text-sm"
+                value={r.status || ""}
+                onChange={(e) => updateRow(i, { status: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "status")}
+              >
+                <option value="">Select</option>
+                <option value="Ordered">Ordered</option>
+                <option value="Received">Received</option>
+              </select>
+            </div>
+
+            {/* Delete */}
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-xs text-gray-500 py-3">
+          No investigations added.
+        </div>
+      )}
+
+      <div className="p-2 text-right">
+        <button
+          type="button"
+          onClick={() => addRow()}
+          className="text-sm text-[--secondary] hover:underline"
+        >
+          + Add Row
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProcedureTable({
+  rows,
+  onChange,
+}: {
+  rows: Array<{ procedure: string; notes?: string; status?: string }>;
+  onChange: (
+    next: Array<{ procedure: string; notes?: string; status?: string }>
+  ) => void;
+}) {
+  const addRow = (procedure = "") =>
+    onChange([...rows, { procedure, notes: "", status: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (
+    i: number,
+    patch: Partial<{ procedure: string; notes?: string; status?: string }>
+  ) => {
+    const next = [...rows];
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+    rowIndex: number,
+    field: "procedure" | "notes" | "status"
+  ) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      const isLastRow = rowIndex === rows.length - 1;
+      const isLastField = field === "status";
+      if (isLastRow && isLastField) {
+        e.preventDefault();
+        addRow();
+      }
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-md  bg-white shadow-sm">
+      <div className="grid grid-cols-12 bg-gray-100 text-xs font-semibold text-gray-700 border-b border-gray-200">
+        <div className="col-span-5 px-2 py-1.5">Procedure</div>
+        <div className="col-span-5 px-2 py-1.5">Notes</div>
+        <div className="col-span-1 px-2 py-1.5">Status</div>
+        <div className="col-span-1 px-2 py-1.5 text-center"></div>
+      </div>
+
+      {rows.length > 0 ? (
+        rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 text-[13px] items-center">
+            {/* SNOMED search for Procedure */}
+            <div className="col-span-5 border-r border-gray-200 px-2 py-1">
+              <SnomedSearchBox
+                semantictag="procedure"
+                placeholder={r.procedure || "Search SNOMED procedure"}
+                onSelect={({ term }) => updateRow(i, { procedure: term })}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="col-span-5 border-r border-gray-200 px-2 py-1">
+              <input
+                className="w-full outline-none bg-transparent text-sm"
+                placeholder="Add notes or details"
+                value={r.notes || ""}
+                onChange={(e) => updateRow(i, { notes: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "notes")}
+              />
+            </div>
+
+            {/* Status dropdown */}
+            <div className="col-span-1 border-r border-gray-200 px-1 py-1">
+              <select
+                className="w-full bg-transparent outline-none text-sm"
+                value={r.status || ""}
+                onChange={(e) => updateRow(i, { status: e.target.value })}
+                onKeyDown={(e) => handleKeyDown(e, i, "status")}
+              >
+                <option value="">Select</option>
+                <option value="Planned">Planned</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            {/* Delete */}
+            <div className="col-span-1 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-xs text-gray-500 py-3">
+          No procedures added.
+        </div>
+      )}
+
+      <div className="p-2 text-right">
+        <button
+          type="button"
+          onClick={() => addRow()}
+          className="text-sm text-[--secondary] hover:underline"
+        >
+          + Add Row
+        </button>
+      </div>
     </div>
   );
 }
