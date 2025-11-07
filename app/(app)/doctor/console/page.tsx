@@ -98,12 +98,15 @@ const INITIAL_RX: DigitalRxFormState = {
     bpDia: "",
     spo2: "",
     pulse: "",
+    weight: "",
+    height: "",
   },
-  chiefComplaints: "",
+  chiefComplaintRows: [{ symptom: "", since: "", severity: "" }],
+  diagnosisRows: [{ diagnosis: "", type: "", status: "" }],
   allergies: "",
   medicalHistory: "",
-  investigationAdvice: "",
-  procedure: "",
+  investigationRows: [{ investigation: "", notes: "", status: "" }],
+  procedureRows: [{ procedure: "", notes: "", status: "" }],
   followUpText: "",
   followUpDate: "",
   medications: [
@@ -114,6 +117,7 @@ const INITIAL_RX: DigitalRxFormState = {
       duration: "",
       dosage: "",
       instruction: "",
+      snomedCode: "",
     },
   ],
   // uploads: { files: [], note: "" },
@@ -216,7 +220,7 @@ export default function DoctorConsolePage() {
 
       setRxForm((prev) => {
         if (target === "chiefComplaints") {
-          const prevCC = prev.chiefComplaints || "";
+          const prevCC = prev.chiefComplaintRows || "";
           const merged = [prevCC, t].filter(Boolean).join(prevCC ? " " : "");
           return { ...prev, chiefComplaints: merged };
         }
@@ -381,8 +385,26 @@ export default function DoctorConsolePage() {
           spo2: rxForm?.vitals?.spo2 || "",
           pulse: rxForm?.vitals?.pulse || "",
         },
-        chiefComplaints: rxForm?.chiefComplaints || "",
-        investigationAdvice: rxForm?.investigationAdvice || "",
+        chiefComplaints:
+          rxForm?.chiefComplaintRows
+            ?.map((r) => r.symptom)
+            .filter(Boolean)
+            .join(", ") || "",
+        diagnosis:
+          rxForm?.diagnosisRows
+            ?.map((r) => r.diagnosis)
+            .filter(Boolean)
+            .join(", ") || "",
+        investigations:
+          rxForm?.investigationRows
+            ?.map((r) => r.investigation)
+            .filter(Boolean)
+            .join(", ") || "",
+        // procedures:
+        //   rxForm?.procedureRows
+        //     ?.map((r) => r.procedure)
+        //     .filter(Boolean)
+        //     .join(", ") || "",
         followUpText: rxForm?.followUpText || "",
         followUpDate: rxForm?.followUpDate || "",
       },
@@ -462,9 +484,7 @@ export default function DoctorConsolePage() {
   }, [activeTool]);
 
   return (
-    
     <div className="space-y-3">
-     
       {/* ------------------------------- Header Panel ------------------------------- */}
       <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
@@ -650,10 +670,11 @@ export default function DoctorConsolePage() {
                   setPreviewDoctorNote(advice);
                   setRxForm((prev) => ({
                     ...prev,
-                    chiefComplaints: mergeUniqueBullets(
-                      prev.chiefComplaints,
-                      complaints
-                    ),
+                    chiefComplaints:
+                      rxForm?.chiefComplaintRows
+                        ?.map((r) => r.symptom)
+                        .filter(Boolean)
+                        .join(", ") || "",
                     followUpText: mergeUniqueBullets(prev.followUpText, advice),
                   }));
                 }}
@@ -726,10 +747,18 @@ export default function DoctorConsolePage() {
         onSubmit={({ complaints, advice }) => {
           setRxForm((prev) => ({
             ...prev,
-            chiefComplaints: mergeUniqueBullets(
-              prev.chiefComplaints,
-              complaints
-            ),
+            chiefComplaintRows: [
+              ...(prev.chiefComplaintRows ?? []),
+              // add only new unique complaints as { symptom: string }
+              ...complaints
+                .filter(
+                  (c) =>
+                    !prev.chiefComplaintRows?.some(
+                      (r) => r.symptom.toLowerCase() === c.toLowerCase()
+                    )
+                )
+                .map((c) => ({ symptom: c, since: "", severity: "" })),
+            ],
             followUpText: mergeUniqueBullets(prev.followUpText, advice),
           }));
           setVoiceOpen(false);
@@ -737,13 +766,13 @@ export default function DoctorConsolePage() {
       />
 
       <UploadModal
-  open={showUpload}
-  onClose={() => setShowUpload(false)}
-  patient={{ name: "Ananya Sharma", uhid: "UHID1001" }}
-  onUpload={(formData) => {
-    console.log("Uploaded:", Object.fromEntries(formData));
-  }}
-/>
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        patient={{ name: "Ananya Sharma", uhid: "UHID1001" }}
+        onUpload={(formData) => {
+          console.log("Uploaded:", Object.fromEntries(formData));
+        }}
+      />
 
       <InvoiceModal
         open={showInvoiceModal}
@@ -959,7 +988,6 @@ function PreviewPaper({
   );
 }
 
-
 /* -------------------- Past Records (per selected day) -------------------- */
 function PastRecordsPanel({ day }: { day: DayRecords }) {
   // Show the canonical DigitalRx-mapped preview for this date
@@ -982,11 +1010,11 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
 
   const {
     vitals = {},
-    chiefComplaints = "",
+    chiefComplaintRows = [],
     allergies = "",
     medicalHistory = "",
-    investigationAdvice = "",
-    procedure = "",
+    investigationRows = [],
+    procedureRows = [],
     followUpText = "",
     followUpDate = "",
     medications = [],
@@ -1009,11 +1037,11 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
     nonEmpty(vitals.pulse);
 
   const hasClinical =
-    nonEmpty(chiefComplaints) ||
+    nonEmpty(chiefComplaintRows) ||
     nonEmpty(allergies) ||
     nonEmpty(medicalHistory) ||
-    nonEmpty(investigationAdvice) ||
-    nonEmpty(procedure) ||
+    nonEmpty(investigationRows) ||
+    nonEmpty(procedureRows) ||
     nonEmpty(followUpText) ||
     nonEmpty(followUpDate);
 
@@ -1075,17 +1103,47 @@ function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
         <section className="ui-card p-4">
           <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
           <div className="space-y-2 text-sm">
-            {nonEmpty(chiefComplaints) && (
-              <Block k="Chief Complaints" v={safe(chiefComplaints)} />
+            {nonEmpty(chiefComplaintRows) && (
+              <Block
+                k="Chief Complaints"
+                v={safe(
+                  chiefComplaintRows
+                    .map((r) => r.symptom)
+                    .filter(Boolean)
+                    .join(", ")
+                )}
+              />
             )}
+
             {nonEmpty(allergies) && <Block k="Allergies" v={safe(allergies)} />}
+
             {nonEmpty(medicalHistory) && (
               <Block k="Medical History" v={safe(medicalHistory)} />
             )}
-            {nonEmpty(investigationAdvice) && (
-              <Block k="Investigation Advice" v={safe(investigationAdvice)} />
+
+            {nonEmpty(investigationRows) && (
+              <Block
+                k="Investigations"
+                v={safe(
+                  investigationRows
+                    .map((r) => r.investigation)
+                    .filter(Boolean)
+                    .join(", ")
+                )}
+              />
             )}
-            {nonEmpty(procedure) && <Block k="Procedure" v={safe(procedure)} />}
+
+            {nonEmpty(procedureRows) && (
+              <Block
+                k="Procedures"
+                v={safe(
+                  procedureRows
+                    .map((r) => r.procedure)
+                    .filter(Boolean)
+                    .join(", ")
+                )}
+              />
+            )}
           </div>
         </section>
       )}
@@ -1279,7 +1337,7 @@ const VARIANT = {
 
 //       {/* ---------- Plain text label on hover ---------- */}
 //       <span
-//         className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[11px] text-black font-medium 
+//         className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[11px] text-black font-medium
 //                    opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-20"
 //       >
 //         {label}

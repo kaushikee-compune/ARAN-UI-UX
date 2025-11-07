@@ -30,6 +30,7 @@ export type RxRow = {
   duration: string;
   dosage: string;
   instruction?: string;
+  snomedCode?: string;
 };
 
 export type DigitalRxFormState = {
@@ -235,7 +236,6 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
           </div>
         </div>
 
-        {/* LEFT — Vitals */}
         {/* ----------- Vitals Section (full-width, 2-row layout) ----------- */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -257,7 +257,7 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
 
           {/* ⚙️ Dropdown for custom fields */}
           {showVitalsConfig && (
-            <div className="absolute right-0 top-8 z-50 w-72 bg-white border border-gray-200 rounded-md shadow-lg p-3 space-y-2">
+            <div className="absolute right-0  w-72 bg-white border border-gray-200 rounded-md shadow-lg p-3 space-y-2">
               <p className="text-xs font-semibold text-gray-600">
                 Select fields to show:
               </p>
@@ -363,12 +363,13 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
 
         {/* Chief Complaints (with SNOMED Search) */}
         {/* Chief Complaints */}
-        <Section title="Chief Complaints" icon="/icons/color/col-symptoms.png">
+
+        <Section title="Chief Complaints" icon="/icons/symptoms.png">
           {/* SNOMED SearchBox → adds a row */}
           <SnomedSearchBox
             ref={chiefSearchRef}
             semantictag="finding"
-            placeholder="Search SNOMED symptoms (e.g., chest pain)"
+            placeholder="Search symptoms (e.g., chest pain)"
             onSelect={({ term }) => {
               const current = safeValue.chiefComplaintRows ?? [];
               const already = current.find((r) => r.symptom === term);
@@ -379,13 +380,16 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
                 ]);
             }}
           />
-
+          <p>
+            <br></br>
+          </p>
           <ComplaintTable
             rows={safeValue.chiefComplaintRows ?? []}
             onChange={(next) => patch("chiefComplaintRows", next)}
           />
         </Section>
-        <Section title="Diagnosis" icon="/icons/color/col-diag.png">
+
+        <Section title="Diagnosis" icon="/icons/stethoscope.png">
           <DiagnosisTable
             rows={safeValue.diagnosisRows ?? []}
             onChange={(next) => patch("diagnosisRows", next)}
@@ -393,7 +397,7 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
         </Section>
 
         {/* ----------- Medications ----------- */}
-        <Section title="Medications" icon="/icons/color/col-med.png">
+        <Section title="Medications" icon="/icons/medicine.png">
           <MedicationTable
             rows={safeValue.medications ?? []}
             onChange={(rows) => patch("medications", rows)}
@@ -420,7 +424,7 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
         </Section>
 
         {/* ----------- Follow-up ----------- */}
-        <Section title="Follow-Up" icon="/icons/color/col-cal.png">
+        <Section title="Follow-Up" icon="/icons/consent.png">
           <div className="grid md:grid-cols-2 gap-3">
             <LabeledTextarea
               label="Follow-Up Instructions"
@@ -585,7 +589,7 @@ function CompactVitalInput({
         onChange={(e) => onChange(e.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className="bg-transparent border-b border-gray-200 outline-none text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 py-0.5"
+        className="bg-transparent border-b border-gray-200 outline-none text-sm text-green-800 placeholder:text-gray-400 focus:border-blue-500 py-0.5"
       />
     </div>
   );
@@ -605,11 +609,8 @@ function MedicationTable({
   removeRxRow: (i: number) => void;
   updateRxRow: (i: number, patch: Partial<RxRow>) => void;
 }) {
-  // Handles "Tab" on last cell of last row → auto add new row
   const handleKeyDown = (
-    e: React.KeyboardEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
     rowIndex: number,
     field: keyof RxRow
   ) => {
@@ -627,27 +628,23 @@ function MedicationTable({
       if (isLastRow && isLastField) {
         e.preventDefault();
         addRxRow();
-        setTimeout(() => {
-          const inputs = document.querySelectorAll<HTMLInputElement>(
-            'input[placeholder="e.g., Paracetamol 500 mg"]'
-          );
-          inputs[inputs.length - 1]?.focus();
-        }, 50);
       }
     }
   };
 
   return (
-    <div className="border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
+    <div className="border border-gray-200 rounded-md bg-white shadow-sm overflow-visible">
       {/* Header */}
-      <div className="grid grid-cols-12 bg-gray-100 text-xs sm:text-sm font-semibold text-gray-700 border-b border-gray-200">
-        <CellHead className="col-span-3">Medicine Name</CellHead>
-        <CellHead className="col-span-2">Frequency</CellHead>
-        <CellHead className="col-span-2">Timings</CellHead>
-        <CellHead className="col-span-1">Duration</CellHead>
-        <CellHead className="col-span-1">Dosage</CellHead>
-        <CellHead className="col-span-2">Instructions</CellHead>
-        <CellHead className="col-span-1 text-center"> </CellHead>
+      <div className="grid grid-cols-12 bg-gray-100 text-xs font-semibold text-gray-700 border-b border-gray-200">
+        <div className="col-span-3 px-2 py-1.5">
+          Medicine (SNOMED Clinical Drug)
+        </div>
+        <div className="col-span-2 px-2 py-1.5">Frequency</div>
+        <div className="col-span-2 px-2 py-1.5">Timings</div>
+        <div className="col-span-1 px-2 py-1.5">Duration</div>
+        <div className="col-span-1 px-2 py-1.5">Dosage</div>
+        <div className="col-span-2 px-2 py-1.5">Instructions</div>
+        <div className="col-span-1 px-2 py-1.5 text-center"></div>
       </div>
 
       {/* Rows */}
@@ -656,46 +653,58 @@ function MedicationTable({
           {rows.map((row, idx) => (
             <div
               key={idx}
-              className="grid grid-cols-12 items-center text-[13px] text-gray-800"
+              className="grid grid-cols-12 items-center text-[13px]"
             >
-              {/* Medicine */}
-              <div className="col-span-3 border-r border-gray-200">
-                <input
-                  className="w-full px-2 py-1 bg-transparent outline-none"
-                  placeholder="e.g., Paracetamol 500 mg"
-                  value={row.medicine}
-                  onChange={(e) =>
-                    updateRxRow(idx, { medicine: e.target.value })
-                  }
-                  onKeyDown={(e) => handleKeyDown(e, idx, "medicine")}
+              {/* Medicine with SNOMED search */}
+              <div className="col-span-3 border-r border-gray-200 px-2 py-1 relative z-50">
+                <SnomedSearchBox
+                  semantictag="clinical drug"
+                  placeholder={row.medicine || "Search medicine"}
+                  onSelect={({ term, conceptId }) => {
+                    // Extract dosage like "500mg" or "875 milligram"
+                    const dosageMatch =
+                      term.match(
+                        /(\d+\s?(?:mg|ml|mcg|g|milligram|microgram|gram))/i
+                      ) || term.match(/(\d+\s?(?:unit|IU|%)?)/i);
+
+                    const parsedDosage = dosageMatch
+                      ? dosageMatch[1].replace(/milligram/i, "mg")
+                      : "";
+
+                    updateRxRow(idx, {
+                      medicine: term,
+                      dosage: parsedDosage,
+                      snomedCode: conceptId,
+                    });
+                  }}
                 />
               </div>
 
               {/* Frequency */}
-              <div className="col-span-2 border-r border-gray-200">
+              <div className="col-span-2 border-r border-gray-200 px-1">
                 <select
-                  className="w-full px-1 py-1 bg-transparent outline-none"
-                  value={row.frequency}
+                  className="w-full bg-transparent outline-none text-sm"
+                  value={row.frequency ?? ""}
                   onChange={(e) =>
                     updateRxRow(idx, { frequency: e.target.value })
                   }
                   onKeyDown={(e) => handleKeyDown(e, idx, "frequency")}
                 >
                   <option value="">Select</option>
-                  <option value="1-0-0">1-0-0 (Morning)</option>
-                  <option value="0-1-0">0-1-0 (Afternoon)</option>
-                  <option value="0-0-1">0-0-1 (Night)</option>
-                  <option value="1-0-1">1-0-1 (Morning & Night)</option>
-                  <option value="1-1-1">1-1-1 (Thrice a day)</option>
-                  <option value="SOS">SOS (As needed)</option>
+                  <option value="1-0-0">1-0-0</option>
+                  <option value="0-1-0">0-1-0</option>
+                  <option value="0-0-1">0-0-1</option>
+                  <option value="1-0-1">1-0-1</option>
+                  <option value="1-1-1">1-1-1</option>
+                  <option value="SOS">SOS</option>
                 </select>
               </div>
 
-              {/* Timings */}
-              <div className="col-span-2 border-r border-gray-200">
+              {/* Timing */}
+              <div className="col-span-2 border-r border-gray-200 px-1">
                 <select
-                  className="w-full px-1 py-1 bg-transparent outline-none"
-                  value={row.timing}
+                  className="w-full bg-transparent outline-none text-sm"
+                  value={row.timing ?? ""}
                   onChange={(e) => updateRxRow(idx, { timing: e.target.value })}
                   onKeyDown={(e) => handleKeyDown(e, idx, "timing")}
                 >
@@ -708,11 +717,11 @@ function MedicationTable({
               </div>
 
               {/* Duration */}
-              <div className="col-span-1 border-r border-gray-200">
+              <div className="col-span-1 border-r border-gray-200 px-1">
                 <input
-                  className="w-full px-2 py-1 bg-transparent outline-none"
+                  className="w-full bg-transparent outline-none text-sm"
                   placeholder="5 days"
-                  value={row.duration}
+                  value={row.duration ?? ""}
                   onChange={(e) =>
                     updateRxRow(idx, { duration: e.target.value })
                   }
@@ -721,22 +730,22 @@ function MedicationTable({
               </div>
 
               {/* Dosage */}
-              <div className="col-span-1 border-r border-gray-200">
+              <div className="col-span-1 border-r border-gray-200 px-1">
                 <input
-                  className="w-full px-2 py-1 bg-transparent outline-none"
+                  className="w-full bg-transparent outline-none text-sm"
                   placeholder="500 mg"
-                  value={row.dosage}
+                  value={row.dosage ?? ""}
                   onChange={(e) => updateRxRow(idx, { dosage: e.target.value })}
                   onKeyDown={(e) => handleKeyDown(e, idx, "dosage")}
                 />
               </div>
 
               {/* Instructions */}
-              <div className="col-span-2 border-r border-gray-200">
+              <div className="col-span-2 border-r border-gray-200 px-1">
                 <input
-                  className="w-full px-2 py-1 bg-transparent outline-none"
-                  placeholder="e.g., Take with water"
-                  value={row.instruction}
+                  className="w-full bg-transparent outline-none text-sm"
+                  placeholder="Take with water"
+                  value={row.instruction ?? ""}
                   onChange={(e) =>
                     updateRxRow(idx, { instruction: e.target.value })
                   }
@@ -750,22 +759,9 @@ function MedicationTable({
                   type="button"
                   title="Delete row"
                   onClick={() => removeRxRow(idx)}
-                  className="text-gray-500 hover:text-red-600"
+                  className="text-gray-400 hover:text-red-500"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-2 4v6m-4-6v6M5 7h14l-1 12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 7Z"
-                    />
-                  </svg>
+                  ✕
                 </button>
               </div>
             </div>
@@ -777,7 +773,7 @@ function MedicationTable({
         </div>
       )}
 
-      {/* Add Row Button */}
+      {/* Add Row */}
       <div className="p-2 text-right">
         <button
           type="button"
@@ -985,7 +981,7 @@ function DiagnosisTable({
             <div className="col-span-6 border-r border-gray-200 px-2 py-1">
               <SnomedSearchBox
                 semantictag="disorder"
-                placeholder={r.diagnosis || "Search SNOMED diagnosis"}
+                placeholder={r.diagnosis || "Search diagnosis"}
                 onSelect={({ term }) => {
                   updateRow(i, { diagnosis: term });
                 }}
@@ -1101,10 +1097,10 @@ function InvestigationTable({
         rows.map((r, i) => (
           <div key={i} className="grid grid-cols-12 text-[13px] items-center">
             {/* SNOMED search for Investigation (specimen) */}
-            <div className="col-span-5 border-r border-gray-200 px-2 py-1">
+            <div className="col-span-5 px-2 py-1">
               <SnomedSearchBox
                 semantictag="specimen"
-                placeholder={r.investigation || "Search SNOMED specimen"}
+                placeholder={r.investigation || "Search  specimen"}
                 onSelect={({ term }) => updateRow(i, { investigation: term })}
               />
             </div>
@@ -1217,7 +1213,7 @@ function ProcedureTable({
             <div className="col-span-5 border-r border-gray-200 px-2 py-1">
               <SnomedSearchBox
                 semantictag="procedure"
-                placeholder={r.procedure || "Search SNOMED procedure"}
+                placeholder={r.procedure || "Search  procedure"}
                 onSelect={({ term }) => updateRow(i, { procedure: term })}
               />
             </div>

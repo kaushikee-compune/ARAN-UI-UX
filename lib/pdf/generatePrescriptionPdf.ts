@@ -33,7 +33,8 @@ interface Patient {
   abhaAddress?: string;
   vitals?: Vitals;
   chiefComplaints?: string;
-  investigationAdvice?: string;
+  diagnosis?: string;  
+  investigations?: string; 
   followUpText?: string;
   followUpDate?: string;
 }
@@ -203,7 +204,7 @@ export async function generatePrescriptionPdf({
   y = (doc as any).lastAutoTable.finalY + 10;
 
   /* ---------- Section: Investigations ---------- */
-  if (patient.investigationAdvice) {
+  if (patient.investigations) {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...teal);
     doc.setFontSize(8);
@@ -213,7 +214,7 @@ export async function generatePrescriptionPdf({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(0, 0, 0);
-    doc.text(`• ${patient.investigationAdvice}`, 20, y, {
+    doc.text(`• ${patient.investigations}`, 20, y, {
       maxWidth: pageWidth - 40,
     });
     y += 10;

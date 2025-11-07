@@ -20,28 +20,28 @@ export async function GET() {
     queue: [
       {
         patientId: "pat_001",
-        patientName: "Ravi Kumar",
-        visitType: "Follow-up",
+        patientName: "Ananya Sharma",
+        visitType: "Consultation",
         time: "10:15 AM",
         status: "Waiting",
       },
       {
         patientId: "pat_002",
-        patientName: "Sita Devi",
+        patientName: "Sonal Trivedi",
         visitType: "New",
         time: "10:30 AM",
         status: "Waiting",
       },
       {
         patientId: "pat_003",
-        patientName: "Ramesh Gupta",
+        patientName: "Rajesh Kumar",
         visitType: "Follow-up",
         time: "10:45 AM",
         status: "In Consultation",
       },
       {
         patientId: "pat_004",
-        patientName: "Anjali Sharma",
+        patientName: "Priya Verma",
         visitType: "New",
         time: "11:00 AM",
         status: "Waiting",

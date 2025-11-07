@@ -9,8 +9,17 @@ import React, {
 import { searchSnomed } from "@/lib/snomed/search";
 
 type Props = {
-  semantictag: "finding" | "disorder" | "procedure" | "specimen";
-  onSelect: (item: { term: string; conceptId: string }) => void;
+  semantictag:
+    | "finding"
+    | "disorder"
+    | "procedure"
+    | "specimen"
+    | "clinical drug";
+  onSelect: (item: {
+    term: string;
+    conceptId: string;
+    conceptFsn?: string;
+  }) => void;
   placeholder?: string;
 };
 
@@ -23,15 +32,19 @@ const SnomedSearchBox = forwardRef<HTMLInputElement, Props>(
     const listRef = useRef<HTMLUListElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Expose focus handle to parent (DigitalRxForm)
     useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
 
     const handleSelect = (item: any) => {
-      onSelect({ term: item.term, conceptId: item.conceptId });
+      // now include conceptFsn (needed for dosage parsing)
+      onSelect({
+        term: item.term,
+        conceptId: item.conceptId,
+        conceptFsn: item.conceptFsn,
+      });
       setQuery(""); // clear input
       setResults([]); // close dropdown
-      setHighlight(0); // reset highlight
-      inputRef.current?.focus(); // keep focus for next entry
+      setHighlight(0);
+      inputRef.current?.focus();
     };
 
     // fetch results with debounce
@@ -81,16 +94,20 @@ const SnomedSearchBox = forwardRef<HTMLInputElement, Props>(
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || "Search SNOMED term"}
-          className="ui-card w-full rounded p-2 text-sm"
+          className={`w-full border border-gray-300 focus:border-gray-400 focus:ring-0 outline-none rounded-md p-2 text-sm transition-colors ${
+            query ? "text-gray-900" : "text-gray-500 placeholder-gray-700"
+          }`}
         />
         {loading && (
-          <div className="absolute right-2 top-2 text-gray-400 text-xs">...</div>
+          <div className="absolute right-2 top-2 text-gray-400 text-xs">
+            ...
+          </div>
         )}
 
         {results.length > 0 && (
           <ul
             ref={listRef}
-            className="absolute z-10 bg-white border border-gray-200 w-full rounded shadow max-h-60 overflow-auto"
+            className="absolute z-50 bg-white border w-full rounded shadow max-h-60 overflow-auto"
           >
             {results.map((r, i) => (
               <li
@@ -100,8 +117,12 @@ const SnomedSearchBox = forwardRef<HTMLInputElement, Props>(
                   i === highlight ? "bg-blue-100" : "hover:bg-gray-100"
                 }`}
               >
-                {r.term}{" "}
-                <span className="text-gray-400 text-xs">({r.conceptId})</span>
+                <div className="font-medium">{r.term}</div>
+                {r.conceptFsn && (
+                  <div className="text-md text-gray-700 truncate">
+                    {r.conceptFsn}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

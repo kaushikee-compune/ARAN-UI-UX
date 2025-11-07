@@ -9,14 +9,14 @@
       "doctor": "Dr. Hira Mardi",
       "slots": [
         {
-          "slotStart": "09:00",         
+          "slotStart": "09:00",
           "slotEnd": "09:15",
           "tokenNum": "001",
-          "status": "inconsult",
+          "status": "waiting",
           "type": "appointment",
           "paymentStatus": "paid",
           "patient": {
-            "name": "Anita Sharma",
+            "name": "Ananya Sharma",
             "phone": "9876543210",
             "abha": "anita@sbx",
             "gender": "Female"
@@ -35,6 +35,20 @@
         {
           "slotStart": "09:30",
           "slotEnd": "09:45",
+          "tokenNum": "",
+          "status": "waiting",
+          "type": null,
+          "patient": {
+            "name": "Sonal Trivedi",
+            "phone": "987 28262345",
+            "abha": "rajesh@sbx",
+            "gender": "Male"
+          },
+          "doctor": "Dr. Hira Mardi"
+        },
+        {
+          "slotStart": "09:45",
+          "slotEnd": "10:00",
           "tokenNum": "002",
           "status": "waiting",
           "type": "walkin",
@@ -48,8 +62,8 @@
           "doctor": "Dr. Hira Mardi"
         },
         {
-          "slotStart": "09:45",
-          "slotEnd": "10:00",
+          "slotStart": "10:00",
+          "slotEnd": "10:15",
           "tokenNum": "003",
           "status": "waiting",
           "type": "appointment",
@@ -63,8 +77,8 @@
           "doctor": "Dr. Hira Mardi"
         },
         {
-          "slotStart": "10:00",
-          "slotEnd": "10:15",
+          "slotStart": "10:15",
+          "slotEnd": "10:30",
           "tokenNum": "005",
           "status": "waiting",
           "type": "appointment",
@@ -78,8 +92,8 @@
           "doctor": "Dr. Hira Mardi"
         },
         {
-          "slotStart": "10:15",
-          "slotEnd": "10:30",
+          "slotStart": "10:30",
+          "slotEnd": "10:45",
           "tokenNum": "006",
           "status": "empty",
           "type": null,
@@ -87,8 +101,8 @@
           "doctor": "Dr. Hira Mardi"
         },
         {
-          "slotStart": "10:30",
-          "slotEnd": "10:45",
+          "slotStart": "10:45",
+          "slotEnd": "11:00",
           "tokenNum": "010",
           "status": "completed",
           "type": "appointment",
@@ -102,8 +116,8 @@
           "doctor": "Dr. Hira Mardi"
         },
         {
-          "slotStart": "10:45",
-          "slotEnd": "11:00",
+          "slotStart": "11:00",
+          "slotEnd": "11:15",
           "tokenNum": "014",
           "status": "completed",
           "type": "walkin",
