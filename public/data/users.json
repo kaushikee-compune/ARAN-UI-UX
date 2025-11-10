@@ -3,11 +3,11 @@
     {
       "id": "clinic001",
       "name": "Sushila Mathrutva Clinic",
-      "branches": [
-        { "id": "b1", "name": "Main Branch", "status": "active" },
-        { "id": "b2", "name": "West End Branch", "status": "active" },
-        { "id": "b3", "name": "New Branch", "status": "pending" }
-      ]
+        "branches": [
+          { "id": "HFR001", "name": "Koromangala (main)", "status": "active" },
+          { "id": "HFR002", "name": "JP Nagar", "status": "active" },
+          { "id": "HFR003", "name": "Whitefield", "status": "pending" }
+        ]
     }
   ],
 

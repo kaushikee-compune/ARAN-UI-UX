@@ -1,13 +1,24 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from "react";
 import NextImage from "next/image";
-import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
+import RoleAwareSidebar, {
+  type Role,
+} from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
 import { Toaster } from "react-hot-toast";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import usersData from "@/public/data/users.json";
+import { useBranch, BranchProvider} from "@/context/BranchContext";
 
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;
@@ -48,14 +59,21 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role>("doctor");
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-  const [activeBranch, setActiveBranch] = useState<string>("");
+  const { selectedBranch, setSelectedBranch } = useBranch();
+  const [accessibleBranches, setAccessibleBranches] = useState<string[]>([]);
 
-    useEffect(() => {
+  // 1️⃣ First effect: handles mount + role + sidebar
+  useEffect(() => {
     setMounted(true);
     setCollapsed(readCollapsedFromStorage());
     setRole(readClientRoleFromCookie());
+  }, []);
 
-    // 🔹 Load user + branch data
+  // 2️⃣ Second effect: load user + branches
+  useEffect(() => {
+    const currentUser = usersData.users.find((u) => u.id === "u3");
+    if (currentUser) setAccessibleBranches(currentUser.accessibleBranches);
+
     fetch("/data/users.json")
       .then((r) => r.json())
       .then((d) => {
@@ -67,21 +85,18 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
         let allowedBranches = [];
         if (roleFromCookie === "admin") {
-          // Admin sees all
           allowedBranches = clinic.branches;
         } else {
-          // Doctor or staff sees only their assigned branches
           allowedBranches = clinic.branches.filter((b: any) =>
             user?.accessibleBranches?.includes(b.id)
           );
         }
 
         setBranches(allowedBranches);
-        setActiveBranch(allowedBranches[0]?.id || "");
+        setSelectedBranch(allowedBranches[0]?.id || "");
       })
       .catch((err) => console.error("Failed to load users.json:", err));
   }, []);
-
 
   const toggleSidebar = useMemo(
     () => () => {
@@ -97,106 +112,104 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ─── Header ───────────────────────────────────── */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
-        {/* Left logo + sidebar toggle */}
-        <div className="flex items-center gap-2">
-          <NextImage
-            src="/icons/aranlogo.png"
-            alt="ARAN Logo"
-            width={28}
-            height={28}
-            className="w-8 h-8"
-          />
-          <div className="font-semibold">ARAN</div>
-          <div className="h-6 w-px bg-gray-300 mx-2" />
-          {mounted && (
-            <button
-              onClick={toggleSidebar}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
-              title={collapsed ? "Open sidebar" : "Close sidebar"}
-            >
-              <NextImage
-                src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
-                alt={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                width={20}
-                height={20}
-                className="w-5 h-5"
-              />
-            </button>
-          )}
+    
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* ─── Header ───────────────────────────────────── */}
+        <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
+          {/* Left logo + sidebar toggle */}
+          <div className="flex items-center gap-2">
+            <NextImage
+              src="/icons/aranlogo.png"
+              alt="ARAN Logo"
+              width={28}
+              height={28}
+              className="w-8 h-8"
+            />
+            <div className="font-semibold">ARAN</div>
+            <div className="h-6 w-px bg-gray-300 mx-2" />
+            {mounted && (
+              <button
+                onClick={toggleSidebar}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
+                title={collapsed ? "Open sidebar" : "Close sidebar"}
+              >
+                <NextImage
+                  src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
+                  alt={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                  width={20}
+                  height={20}
+                  className="w-5 h-5"
+                />
+              </button>
+            )}
+          </div>
+
+          {/* ─── Right section: Role + Branch + Profile ─── */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-800 capitalize">
+              {role}
+            </span>
+
+            {branches.length > 0 && (
+              <select
+  value={selectedBranch}
+  onChange={(e) => setSelectedBranch(e.target.value)}
+  className="ui-input text-sm min-w-[140px]"
+  title="Select branch"
+>
+  {branches.map((b) => (
+    <option key={b.id} value={b.id}>
+      {b.name}
+    </option>
+  ))}
+</select>
+            )}
+
+            <ProfileMenu role={role} />
+          </div>
+        </header>
+
+        {/* ─── Sidebar + Main grid ───────────────────────── */}
+        <div
+          className="flex-1 grid"
+          style={{
+            gridTemplateColumns: `${collapsed ? "0px" : "150px"} minmax(0,1fr)`,
+          }}
+        >
+          <aside
+            className={[
+              "relative bg-white transition-all duration-200 overflow-hidden",
+              `sticky top-[${HEADER_HEIGHT}px]`,
+              collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
+            ].join(" ")}
+          >
+            <RoleAwareSidebar role={role} />
+          </aside>
+
+          <main
+            className={[
+              "min-w-0 transition-[padding] duration-200",
+              collapsed ? "pl-0" : "pl-2",
+            ].join(" ")}
+          >
+            {children}
+          </main>
         </div>
 
-        {/* ─── Right section: Role + Branch + Profile ─── */}
-        <div className="flex items-center gap-3">
-          {/* role text */}
-          <span className="text-sm font-medium text-gray-800 capitalize">
-            {role}
-          </span>
-
-          {/* branch selector */}
-          {branches.length > 0 && (
-            <select
-              value={activeBranch}
-              onChange={(e) => setActiveBranch(e.target.value)}
-              className="ui-input text-sm min-w-[140px]"
-              title="Select branch"
-            >
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* profile icon */}
-          <ProfileMenu role={role} />
-        </div>
-      </header>
-
-      {/* ─── Sidebar + Main grid ───────────────────────── */}
-      <div
-        className="flex-1 grid"
-        style={{
-          gridTemplateColumns: `${collapsed ? "0px" : "150px"} minmax(0,1fr)`,
-        }}
-      >
-        <aside
-          className={[
-            "relative bg-white transition-all duration-200 overflow-hidden",
-            `sticky top-[${HEADER_HEIGHT}px]`,
-            collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
-          ].join(" ")}
-        >
-          <RoleAwareSidebar role={role} />
-        </aside>
-
-        <main
-          className={[
-            "min-w-0 transition-[padding] duration-200",
-            collapsed ? "pl-0" : "pl-2",
-          ].join(" ")}
-        >
-          {children}
-        </main>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: "green",
+              color: "#111",
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            },
+            success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
+          }}
+        />
       </div>
-
-      {/* Toasts */}
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: "green",
-            color: "#111",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          },
-          success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
-        }}
-      />
-    </div>
+    
   );
 }
 
@@ -246,9 +259,18 @@ function ProfileMenu({
   const menuItems =
     role === "admin"
       ? [
-          { label: "Clinic Configuration", onClick: () => alert("Open Clinic Setup") },
-          { label: "User & Access Control", onClick: () => alert("Open People Management") },
-          { label: "System Settings", onClick: () => alert("Open System Configuration") },
+          {
+            label: "Clinic Configuration",
+            onClick: () => alert("Open Clinic Setup"),
+          },
+          {
+            label: "User & Access Control",
+            onClick: () => alert("Open People Management"),
+          },
+          {
+            label: "System Settings",
+            onClick: () => alert("Open System Configuration"),
+          },
           { label: "Help", icon: "❓", onClick: () => alert("Help Section") },
           { label: "Logout", onClick: logout },
         ]

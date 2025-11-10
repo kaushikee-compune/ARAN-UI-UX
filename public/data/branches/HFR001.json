@@ -1,20 +1,32 @@
 {
   "id": "HFR001",
-  "branchName": "Shankar Eye Hospital – Main Branch",
-  "address": "No. 42, 1st Cross, JP Nagar 7th Phase, Bengaluru, Karnataka 560078",
-  "phone": "+91 98765 43210",
-  "email": "info@shankareye.in",
-  "hfrId": "HFR12345678",
+  "clinicId": "clinic001",
+  "branchName": "Shankar Nethralaya – Main (Nungambakkam)",
+  "status": "active",
+  "address": "No. 41, College Road, Nungambakkam, Chennai – 600006",
+  "phone": "+91 44 2827 1616",
+  "email": "main@snmail.org",
+  "hfrId": "HFR001",
+  "abdmLinked": true,
   "departments": [
     "Comprehensive Ophthalmology",
-    "Glaucoma Clinic",
+    "Retina & Vitreous",
+    "Cornea & Refractive Surgery",
+    "Glaucoma Services",
     "Pediatric Ophthalmology"
   ],
-  "timings": "Monday – Saturday: 8:00 AM to 8:00 PM",
+  "timings": "Mon–Sat: 08:00–20:00, Sun: 09:00–13:00",
+  "workingHours": [
+    { "dayStart": "Monday", "dayEnd": "Saturday", "openTime": "08:00", "closeTime": "20:00" },
+    { "dayStart": "Sunday", "dayEnd": "Sunday", "openTime": "09:00", "closeTime": "13:00" }
+  ],
   "facilities": [
-    "Outpatient Consultation Rooms",
-    "Pharmacy",
-    "Operation Theatre (OT)",
-    "Daycare Unit"
-  ]
+    "Advanced Retina Imaging & Laser",
+    "Corneal Transplant Unit",
+    "Optical Outlet & Contact Lens Clinic",
+    "Pharmacy & Laboratory",
+    "ABHA Registration Desk"
+  ],
+  "lastUpdated": "2025-11-10T18:30:00+05:30",
+  "updatedBy": "admin@aran.care"
 }

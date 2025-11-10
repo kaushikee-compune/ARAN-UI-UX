@@ -3,26 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { getBranchDetail, type BranchDetail } from "@/lib/services/branchDetailService";
 
-function TwoColGrid({
-  left,
-  right,
-}: {
-  left: React.ReactNode;
-  right: React.ReactNode;
-}) {
-  return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <div>{left}</div>
-      <div>{right}</div>
-    </div>
-  );
-}
-
+/* -------------------------------------------------------------------------- */
+/*                               Type Definition                              */
+/* -------------------------------------------------------------------------- */
+export type BranchSetupPanelProps = {
+  branchId: string; // required — passed from context/page
+};
 
 /* -------------------------------------------------------------------------- */
 /*                                Main Component                              */
 /* -------------------------------------------------------------------------- */
-export default function BranchSetupPanel({ branchId = "HFR001" }: { branchId?: string }) {
+export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
   const [branch, setBranch] = useState<BranchDetail | null>(null);
   const [formData, setFormData] = useState<BranchDetail | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -42,6 +33,7 @@ export default function BranchSetupPanel({ branchId = "HFR001" }: { branchId?: s
 
   /* ---------- Load data from JSON ---------- */
   useEffect(() => {
+    if (!branchId) return; // safety guard
     setLoading(true);
     getBranchDetail(branchId)
       .then((data) => {
@@ -57,7 +49,7 @@ export default function BranchSetupPanel({ branchId = "HFR001" }: { branchId?: s
     setFormData((prev) => (prev ? { ...prev, [key]: value } : prev));
 
   const handleDone = () => {
-    console.log("Updated branch data:", formData);
+    console.log("✅ Updated branch data:", formData);
     setEditingField(null);
   };
 
@@ -79,14 +71,9 @@ export default function BranchSetupPanel({ branchId = "HFR001" }: { branchId?: s
     }
   };
 
-  const formatTime = (time24: string): string => {
-    if (!time24) return "";
-    const [h, m] = time24.split(":").map(Number);
-    const suffix = h >= 12 ? "PM" : "AM";
-    const hour12 = ((h + 11) % 12) + 1;
-    return `${hour12}:${m.toString().padStart(2, "0")} ${suffix}`;
-  };
-
+  /* ---------------------------------------------------------------------- */
+  /*                                Render UI                               */
+  /* ---------------------------------------------------------------------- */
   if (loading)
     return (
       <div className="flex items-center justify-center h-40 text-gray-400">
@@ -101,9 +88,6 @@ export default function BranchSetupPanel({ branchId = "HFR001" }: { branchId?: s
       </div>
     );
 
-  /* ---------------------------------------------------------------------- */
-  /*                                Render UI                               */
-  /* ---------------------------------------------------------------------- */
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <main className="flex-1 px-6 py-10 max-w-3xl mx-auto space-y-10">
@@ -290,39 +274,22 @@ function WorkingHoursEditor({
   });
 
   const addEntry = () => {
-    const newItem = {
-      ...entry,
-    };
+    const newItem = { ...entry };
     const updated = Array.isArray((formData as any).workingHours)
       ? [...(formData as any).workingHours, newItem]
       : [newItem];
     handleChange("workingHours" as any, updated);
   };
 
-  const formatTime = (time24: string): string => {
-    const [h, m] = time24.split(":").map(Number);
-    const suffix = h >= 12 ? "PM" : "AM";
-    const hour12 = ((h + 11) % 12) + 1;
-    return `${hour12}:${m.toString().padStart(2, "0")} ${suffix}`;
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex  gap-3 items-center">
+      <div className="flex gap-3 items-center">
         <select
           className="ui-input px-2 py-1 text-sm"
           value={entry.dayStart}
           onChange={(e) => setEntry({ ...entry, dayStart: e.target.value })}
         >
-          {[
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-          ].map((d) => (
+          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
             <option key={d}>{d}</option>
           ))}
         </select>
@@ -332,15 +299,7 @@ function WorkingHoursEditor({
           value={entry.dayEnd}
           onChange={(e) => setEntry({ ...entry, dayEnd: e.target.value })}
         >
-          {[
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-          ].map((d) => (
+          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
             <option key={d}>{d}</option>
           ))}
         </select>
@@ -441,22 +400,6 @@ function EditableSection({
       </div>
       {children}
     </section>
-  );
-}
-
-/* -------------------- Simple FormField wrapper -------------------- */
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      {children}
-    </div>
   );
 }
 

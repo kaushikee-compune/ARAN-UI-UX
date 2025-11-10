@@ -163,8 +163,8 @@ const MENU: Record<Role, Item[]> = {
   ],
   admin: [
     {
-      href: "/admin/clinic-setup",
-      label: "Clinic Setup",
+      href: "/admin/branch-setup",
+      label: "Branch Setup",
       icon: LayoutDashboard,
       color: "text-sky-600",
     },
