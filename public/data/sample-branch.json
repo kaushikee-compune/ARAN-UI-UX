@@ -1,0 +1,13 @@
+{
+  "id": "",
+  "branchName": "Enter branch name (e.g., Shankar Eye Hospital – West Branch)",
+  "address": "Enter complete address (street, city, pin code)",
+  "phone": "Enter contact number",
+  "email": "Enter official clinic email",
+  "hfrId": "Enter ABDM HFR ID if available",
+  "departments": [""],
+  "timings": "Enter working days and timings (e.g., Mon–Sat: 8AM–8PM)",
+  "facilities": [
+    ""
+  ]
+}

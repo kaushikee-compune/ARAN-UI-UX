@@ -1,0 +1,37 @@
+{
+  "clinics": [
+    {
+      "id": "clinic001",
+      "name": "Sushila Mathrutva Clinic",
+      "branches": [
+        { "id": "b1", "name": "Main Branch", "status": "active" },
+        { "id": "b2", "name": "West End Branch", "status": "active" },
+        { "id": "b3", "name": "New Branch", "status": "pending" }
+      ]
+    }
+  ],
+
+  "users": [
+    {
+      "id": "u1",
+      "name": "Dr. Vasanth Shetty",
+      "role": "doctor",
+      "clinicId": "clinic001",
+      "accessibleBranches": ["b1", "b2"]
+    },
+    {
+      "id": "u2",
+      "name": "Nurse Priya",
+      "role": "staff",
+      "clinicId": "clinic001",
+      "accessibleBranches": ["b2"]
+    },
+    {
+      "id": "u3",
+      "name": "Clinic Admin",
+      "role": "admin",
+      "clinicId": "clinic001",
+      "accessibleBranches": ["b1", "b2", "b3"]
+    }
+  ]
+}

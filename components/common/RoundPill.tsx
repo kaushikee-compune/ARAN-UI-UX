@@ -1,12 +1,13 @@
 import Image from "next/image";
 
-type PillVariant = "gray" | "blue" | "green" | "red";
+export type PillVariant = "gray" | "blue" | "green" | "red" | "pink";
 
 const VARIANT: Record<PillVariant, string> = {
-  gray: "border-gray-300 hover:bg-gray-50",
-  blue: "border-blue-300 hover:bg-blue-50",
-  green: "border-green-300 hover:bg-green-50",
-  red: "border-red-300 hover:bg-red-50",
+  gray: "border-gray-500 hover:bg-gray-100",
+  blue: "border-blue-500 hover:bg-blue-100",
+  green: "border-green-500 hover:bg-green-100",
+  red: "border-red-500 hover:bg-red-100",
+  pink: "border-pink-500 hover:bg-pink-100",
 };
 
 export function RoundPill({

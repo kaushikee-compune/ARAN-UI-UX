@@ -163,23 +163,42 @@ const MENU: Record<Role, Item[]> = {
   ],
   admin: [
     {
-      href: "/admin/overview",
-      label: "Overview",
+      href: "/admin/clinic-setup",
+      label: "Clinic Setup",
       icon: LayoutDashboard,
       color: "text-sky-600",
     },
-    {
-      href: "/patient/patientlist",
-      label: "Patients",
+     {
+      href: "/admin/people",
+      label: "People Management",
       icon: Users,
-      color: "text-pink-600",
+      color: "text-emerald-600",
+    },
+     {
+      href: "/admin/inventory",
+      label: "Inventory",
+      icon: MonitorCog,
+      color: "text-blue-600",
+    },
+     {
+      href: "/admin/billing",
+      label: "Billing & Finance",
+      icon: BiRupee,
+      color: "text-green-600",
+    },
+     {
+      href: "/admin/compliance",
+      label: "Compliance",
+      icon: Folder,
+      color: "text-amber-600",
     },
     {
-      href: "/settings",
-      label: "Settings",
+      href: "/admin/system",
+      label: "System Configuration",
       icon: Settings,
-      color: "text-gray-600",
+      color: "text-amber-600",
     },
+    
   ],
 };
 

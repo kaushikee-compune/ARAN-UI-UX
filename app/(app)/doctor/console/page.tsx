@@ -14,6 +14,7 @@ import InvoiceModal from "@/components/common/InvoiceModal";
 import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 import { RoundPill } from "@/components/common/RoundPill";
 
+
 /* External forms */
 import DigitalRxForm, {
   type DigitalRxFormState as RxState,
@@ -1303,48 +1304,6 @@ const VARIANT = {
   gray: "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
 } as const;
 
-// export function RoundPill({
-//   img,
-//   label,
-//   onClick,
-//   variant = "gray",
-// }: {
-//   img: string;
-//   label: string;
-//   onClick?: () => void;
-//   variant?: PillVariant;
-// }) {
-//   return (
-//     <button
-//       onClick={onClick}
-//       title={label}
-//       aria-label={label}
-//       type="button"
-//       className={[
-//         "group relative grid place-items-center overflow-visible",
-//         "w-9 h-9 rounded-xl border-1 bg-white shadow-sm transition",
-//         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-//         VARIANT[variant],
-//       ].join(" ")}
-//     >
-//       <Image
-//         src={img}
-//         alt={label}
-//         width={18}
-//         height={18}
-//         className="pointer-events-none"
-//       />
-
-//       {/* ---------- Plain text label on hover ---------- */}
-//       <span
-//         className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[11px] text-black font-medium
-//                    opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-20"
-//       >
-//         {label}
-//       </span>
-//     </button>
-//   );
-// }
 
 function TinyIcon({
   img,

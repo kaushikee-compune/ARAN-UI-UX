@@ -9,11 +9,10 @@ import { Toaster } from "react-hot-toast";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;
 
-/* ---------- Decode & read role from cookie ---------- */
+/* ---------- Helpers ---------- */
 function base64UrlDecode(str: string): string {
   try {
     const norm =
@@ -26,12 +25,12 @@ function base64UrlDecode(str: string): string {
     return "";
   }
 }
+
 function readClientRoleFromCookie(): Role {
   const cookie = typeof document !== "undefined" ? document.cookie : "";
   const part = cookie.split("; ").find((c) => c.startsWith("aran.session="));
   if (!part) return "doctor";
   const raw = part.split("=")[1];
-  if (!raw) return "doctor";
   try {
     const obj = JSON.parse(base64UrlDecode(raw));
     const role = obj?.role as Role | undefined;
@@ -43,24 +42,53 @@ function readClientRoleFromCookie(): Role {
   }
 }
 
-/* ---------- Main shared layout ---------- */
+/* ---------- Layout ---------- */
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role>("doctor");
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [activeBranch, setActiveBranch] = useState<string>("");
 
-  useEffect(() => {
+    useEffect(() => {
     setMounted(true);
     setCollapsed(readCollapsedFromStorage());
     setRole(readClientRoleFromCookie());
+
+    // 🔹 Load user + branch data
+    fetch("/data/users.json")
+      .then((r) => r.json())
+      .then((d) => {
+        const roleFromCookie = readClientRoleFromCookie();
+        const user = d.users.find((u: any) => u.role === roleFromCookie);
+        const clinic = d.clinics.find((c: any) => c.id === user?.clinicId);
+
+        if (!clinic) return;
+
+        let allowedBranches = [];
+        if (roleFromCookie === "admin") {
+          // Admin sees all
+          allowedBranches = clinic.branches;
+        } else {
+          // Doctor or staff sees only their assigned branches
+          allowedBranches = clinic.branches.filter((b: any) =>
+            user?.accessibleBranches?.includes(b.id)
+          );
+        }
+
+        setBranches(allowedBranches);
+        setActiveBranch(allowedBranches[0]?.id || "");
+      })
+      .catch((err) => console.error("Failed to load users.json:", err));
   }, []);
+
 
   const toggleSidebar = useMemo(
     () => () => {
       setCollapsed((prev) => {
         const next = !prev;
         try {
-          window.localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+          localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
         } catch {}
         return next;
       });
@@ -70,8 +98,9 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
+      {/* ─── Header ───────────────────────────────────── */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
+        {/* Left logo + sidebar toggle */}
         <div className="flex items-center gap-2">
           <NextImage
             src="/icons/aranlogo.png"
@@ -87,7 +116,6 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
               onClick={toggleSidebar}
               className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
               title={collapsed ? "Open sidebar" : "Close sidebar"}
-              aria-label="Toggle sidebar"
             >
               <NextImage
                 src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
@@ -100,11 +128,35 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           )}
         </div>
 
-        {/* Dynamically show role-specific avatar */}
-        <ProfileMenu role={role} />
+        {/* ─── Right section: Role + Branch + Profile ─── */}
+        <div className="flex items-center gap-3">
+          {/* role text */}
+          <span className="text-sm font-medium text-gray-800 capitalize">
+            {role}
+          </span>
+
+          {/* branch selector */}
+          {branches.length > 0 && (
+            <select
+              value={activeBranch}
+              onChange={(e) => setActiveBranch(e.target.value)}
+              className="ui-input text-sm min-w-[140px]"
+              title="Select branch"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* profile icon */}
+          <ProfileMenu role={role} />
+        </div>
       </header>
 
-      {/* Grid: sidebar + main */}
+      {/* ─── Sidebar + Main grid ───────────────────────── */}
       <div
         className="flex-1 grid"
         style={{
@@ -115,19 +167,10 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           className={[
             "relative bg-white transition-all duration-200 overflow-hidden",
             `sticky top-[${HEADER_HEIGHT}px]`,
-            "rounded-tr-xl",
             collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
           ].join(" ")}
         >
-          {/* 🔹 Role-aware sidebar */}
           <RoleAwareSidebar role={role} />
-
-          {!collapsed && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute top-0 right-0 h-full w-2 bg-gradient-to-r from-black/5 to-transparent"
-            />
-          )}
         </aside>
 
         <main
@@ -140,7 +183,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* Toast renderer */}
+      {/* Toasts */}
       <Toaster
         position="top-center"
         toastOptions={{
@@ -150,30 +193,31 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
             border: "1px solid #e5e7eb",
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           },
-          success: {
-            iconTheme: { primary: "#10b981", secondary: "#fff" },
-          },
+          success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
         }}
       />
     </div>
   );
 }
 
-/* ---------- Utilities ---------- */
+/* ---------- Utils ---------- */
 function readCollapsedFromStorage(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const raw = window.localStorage.getItem(SIDEBAR_KEY);
-    return raw === "1";
+    return window.localStorage.getItem(SIDEBAR_KEY) === "1";
   } catch {
     return false;
   }
 }
 
-/* ---------- Profile menu (unchanged except role-aware avatar) ---------- */
+/* ---------- Profile menu (unchanged) ---------- */
 function ProfileMenu({
   role = "doctor",
-  name = role === "staff" ? "Clinic Staff" : "Dr. Vasanth Shetty",
+  name = role === "admin"
+    ? "Clinic Admin"
+    : role === "staff"
+    ? "Clinic Staff"
+    : "Dr. Vasanth Shetty",
 }: {
   role?: Role;
   name?: string;
@@ -184,7 +228,7 @@ function ProfileMenu({
 
   useEffect(() => {
     if (!open) return;
-    function onClick(e: MouseEvent) {
+    const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
       if (
         menuRef.current &&
@@ -194,7 +238,7 @@ function ProfileMenu({
       ) {
         setOpen(false);
       }
-    }
+    };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
@@ -202,8 +246,9 @@ function ProfileMenu({
   const menuItems =
     role === "admin"
       ? [
-          { label: "Organization Settings", onClick: () => alert("Org Settings") },
-          { label: "User Management", onClick: () => alert("User Management") },
+          { label: "Clinic Configuration", onClick: () => alert("Open Clinic Setup") },
+          { label: "User & Access Control", onClick: () => alert("Open People Management") },
+          { label: "System Settings", onClick: () => alert("Open System Configuration") },
           { label: "Help", icon: "❓", onClick: () => alert("Help Section") },
           { label: "Logout", onClick: logout },
         ]
@@ -220,15 +265,13 @@ function ProfileMenu({
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center justify-center w-9 h-9 rounded-full border hover:bg-gray-50"
-        aria-haspopup="menu"
-        aria-expanded={open}
       >
         <NextImage
           src={
             role === "staff"
               ? "/icons/nurse.png"
               : role === "admin"
-              ? "/icons/admin.png"
+              ? "/icons/administrator.png"
               : "/icons/doctor.png"
           }
           alt="User Profile"
@@ -257,7 +300,6 @@ function ProfileMenu({
                   item.onClick();
                 }}
                 className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                role="menuitem"
               >
                 <span className="w-4 text-center">{item.icon}</span>
                 {item.label}

@@ -1,0 +1,20 @@
+{
+  "id": "HFR001",
+  "branchName": "Shankar Eye Hospital – Main Branch",
+  "address": "No. 42, 1st Cross, JP Nagar 7th Phase, Bengaluru, Karnataka 560078",
+  "phone": "+91 98765 43210",
+  "email": "info@shankareye.in",
+  "hfrId": "HFR12345678",
+  "departments": [
+    "Comprehensive Ophthalmology",
+    "Glaucoma Clinic",
+    "Pediatric Ophthalmology"
+  ],
+  "timings": "Monday – Saturday: 8:00 AM to 8:00 PM",
+  "facilities": [
+    "Outpatient Consultation Rooms",
+    "Pharmacy",
+    "Operation Theatre (OT)",
+    "Daycare Unit"
+  ]
+}
