@@ -1,68 +1,67 @@
 [
   {
     "id": "d1",
-    "name": "Dr. Shabnam Ali",
-    "specialty": "Gynecology & Obstetrics",
-    "qualifications": "MBBS, MS (OBG), FMF",
-    "bio": "Senior Consultant Gynecologist with expertise in high-risk pregnancy and fetal medicine.",
+    "name": "Dr. Kavya Rao",
+    "specialty": "Pediatric Ophthalmology",
+    "qualifications": "MBBS, MS (Ophthalmology), Fellowship in Pediatric Ophthalmology",
+    "bio": "Consultant specializing in pediatric eye disorders, squint correction, and amblyopia management.",
     "room": "OPD-1",
-    "startTime": "10:00",
+    "startTime": "09:00",
     "endTime": "17:00",
     "breakStart": "13:00",
     "breakEnd": "13:30",
-    "booked": ["10:30", "11:00", "15:30"]
+    "booked": ["10:00", "11:30", "15:30"]
   },
   {
     "id": "d2",
     "name": "Dr. Vasanth Shetty",
-    "specialty": "General Medicine",
-    "qualifications": "MBBS, MD (Internal Medicine)",
-    "bio": "General Physician specializing in lifestyle diseases, diabetes, and preventive health.",
+    "specialty": "Oculoplasty & Orbit Services",
+    "qualifications": "MBBS, MS (Ophthalmology)",
+    "bio": "Expert in reconstructive eye surgery, orbit trauma, and cosmetic eyelid procedures.",
     "room": "OPD-2",
-    "startTime": "09:00",
-    "endTime": "16:00",
-    "breakStart": "12:30",
-    "breakEnd": "13:00",
-    "booked": ["09:30", "11:00", "15:00"]
+    "startTime": "10:00",
+    "endTime": "18:00",
+    "breakStart": "13:00",
+    "breakEnd": "13:30",
+    "booked": ["10:30", "12:00", "16:00"]
   },
   {
     "id": "d3",
     "name": "Dr. Anil Kumar",
-    "specialty": "Orthopedics",
-    "qualifications": "MBBS, MS (Ortho)",
-    "bio": "Orthopedic surgeon with focus on joint care, fractures, and rehabilitation.",
+    "specialty": "Comprehensive Ophthalmology",
+    "qualifications": "MBBS, MS (Ophthalmology)",
+    "bio": "Handles routine vision care, cataract evaluation, and refractive consultations.",
     "room": "OPD-3",
-    "startTime": "11:00",
-    "endTime": "18:00",
-    "breakStart": "14:00",
-    "breakEnd": "14:30",
-    "booked": ["11:30", "16:00"]
+    "startTime": "09:30",
+    "endTime": "17:30",
+    "breakStart": "13:00",
+    "breakEnd": "13:30",
+    "booked": ["09:30", "11:00", "15:30"]
   },
   {
     "id": "d4",
     "name": "Dr. Kavita Deshmukh",
     "specialty": "Fetal Medicine & Ultrasound",
-    "qualifications": "MBBS, MD (Radiology), FMF Certified",
-    "bio": "Consultant Radiologist specializing in prenatal screening and fetal imaging.",
+    "qualifications": "MBBS, MD (Radiology), Fellowship in Ocular Imaging",
+    "bio": "Ocular radiologist focusing on advanced ultrasound and retinal imaging.",
     "room": "USG-1",
     "startTime": "09:30",
     "endTime": "17:30",
     "breakStart": "13:00",
     "breakEnd": "13:30",
-    "booked": ["10:00", "10:30", "15:00", "16:30"]
+    "booked": ["10:00", "11:00", "14:30", "16:30"]
   },
   {
     "id": "d5",
     "name": "Dr. Rajesh Iyer",
-    "specialty": "Pediatrics",
-    "qualifications": "MBBS, DCH, MD (Pediatrics)",
-    "bio": "Pediatrician managing routine check-ups, immunizations, and child growth concerns.",
+    "specialty": "Glaucoma Services",
+    "qualifications": "MBBS, MS (Ophthalmology), Fellowship in Glaucoma",
+    "bio": "Experienced glaucoma specialist managing diagnosis, laser therapy, and surgery.",
     "room": "OPD-4",
     "startTime": "10:00",
     "endTime": "18:00",
     "breakStart": "13:30",
     "breakEnd": "14:00",
-    "booked": ["10:30", "14:30"]
+    "booked": ["10:30", "14:00", "16:00"]
   }
-  
 ]

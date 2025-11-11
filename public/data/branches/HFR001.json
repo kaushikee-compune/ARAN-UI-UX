@@ -1,11 +1,11 @@
 {
   "id": "HFR001",
   "clinicId": "clinic001",
-  "branchName": "Shankar Nethralaya – Main (Koromangala)",
+  "branchName": "Koramangala (Main)",
   "status": "active",
-  "address": "No. 41, College Road, Koromangala, Bangalore - 560066",
+  "address": "No. 41, College Road, Koramangala, Bangalore - 560066",
   "phone": "+91 80 2827 1616",
-  "email": "main@snmail.org",
+  "email": "koramangala@snmail.org",
   "hfrId": "HFR001",
   "abdmLinked": true,
   "departments": [
@@ -13,7 +13,8 @@
     "Retina & Vitreous",
     "Cornea & Refractive Surgery",
     "Glaucoma Services",
-    "Pediatric Ophthalmology"
+    "Pediatric Ophthalmology",
+    "Oculoplasty & Orbit Services"
   ],
   "timings": "Mon–Sat: 08:00–20:00, Sun: 09:00–13:00",
   "workingHours": [
@@ -21,12 +22,12 @@
     { "dayStart": "Sunday", "dayEnd": "Sunday", "openTime": "09:00", "closeTime": "13:00" }
   ],
   "facilities": [
-    "Advanced Retina Imaging & Laser",
+    "Retina Laser Suite",
     "Corneal Transplant Unit",
-    "Optical Outlet & Contact Lens Clinic",
-    "Pharmacy & Laboratory",
-    "ABHA Registration Desk"
+    "Contact Lens & Optical Outlet",
+    "Day Care OT & Pharmacy",
+    "ABHA Registration Helpdesk"
   ],
-  "lastUpdated": "2025-11-10T18:30:00+05:30",
+  "lastUpdated": "2025-11-11T18:30:00+05:30",
   "updatedBy": "admin@aran.care"
 }
