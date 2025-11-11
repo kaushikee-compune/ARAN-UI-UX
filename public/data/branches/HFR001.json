@@ -1,10 +1,10 @@
 {
   "id": "HFR001",
   "clinicId": "clinic001",
-  "branchName": "Shankar Nethralaya – Main (Nungambakkam)",
+  "branchName": "Shankar Nethralaya – Main (Koromangala)",
   "status": "active",
-  "address": "No. 41, College Road, Nungambakkam, Chennai – 600006",
-  "phone": "+91 44 2827 1616",
+  "address": "No. 41, College Road, Koromangala, Bangalore - 560066",
+  "phone": "+91 80 2827 1616",
   "email": "main@snmail.org",
   "hfrId": "HFR001",
   "abdmLinked": true,

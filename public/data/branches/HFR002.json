@@ -1,0 +1,29 @@
+{
+  "id": "HFR002",
+  "clinicId": "clinic001",
+  "branchName": "Shankar Nethralaya - JP Nagar Branch",
+  "status": "active",
+  "address": "21, 1st Avenue, JP Nagar, Adyar, Bangalore – 560100",
+  "phone": "+91 80 2491 1626",
+  "email": "adyar@snmail.org",
+  "hfrId": "HFR002",
+  "abdmLinked": true,
+  "departments": [
+    "General Ophthalmology",
+    "Glaucoma Clinic",
+    "Cataract & IOL Services",
+    "Diabetic Eye Care"
+  ],
+  "timings": "Mon–Sat: 08:00–19:00",
+  "workingHours": [
+    { "dayStart": "Monday", "dayEnd": "Saturday", "openTime": "08:00", "closeTime": "19:00" }
+  ],
+  "facilities": [
+    "Day-care Cataract Surgery",
+    "Glaucoma Laser Room",
+    "Optical Store",
+    "In-house Pharmacy"
+  ],
+  "lastUpdated": "2025-11-10T18:30:00+05:30",
+  "updatedBy": "admin@aran.care"
+}

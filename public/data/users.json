@@ -17,21 +17,21 @@
       "name": "Dr. Vasanth Shetty",
       "role": "doctor",
       "clinicId": "clinic001",
-      "accessibleBranches": ["b1", "b2"]
+      "accessibleBranches": ["HFR001", "HFR002"]
     },
     {
       "id": "u2",
       "name": "Nurse Priya",
       "role": "staff",
       "clinicId": "clinic001",
-      "accessibleBranches": ["b2"]
+      "accessibleBranches": ["HFR002"]
     },
     {
       "id": "u3",
       "name": "Clinic Admin",
       "role": "admin",
       "clinicId": "clinic001",
-      "accessibleBranches": ["b1", "b2", "b3"]
+      "accessibleBranches": ["HFR001", "HFR002", "HFR003"]
     }
   ]
 }

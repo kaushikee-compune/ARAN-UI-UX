@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getBranchDetail, type BranchDetail } from "@/lib/services/branchDetailService";
+import {
+  getBranchDetail,
+  type BranchDetail,
+} from "@/lib/services/branchDetailService";
 
 /* -------------------------------------------------------------------------- */
 /*                               Type Definition                              */
@@ -21,6 +24,7 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
 
   /* ---------- Placeholder Reference Template ---------- */
   const initialTemplate: Partial<BranchDetail> = {
+    branchLogo: "/icons/logo.png", // default logo path
     branchName: "Enter branch name…",
     address: "Enter full address…",
     phone: "Enter phone number…",
@@ -49,8 +53,9 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
     setFormData((prev) => (prev ? { ...prev, [key]: value } : prev));
 
   const handleDone = () => {
-    console.log("✅ Updated branch data:", formData);
+    console.log("✅ Branch changes saved:", formData);
     setEditingField(null);
+    // TODO: Replace console.log with writeToJson() or updateBranch API later
   };
 
   const handleFocusField = (key: keyof BranchDetail) => {
@@ -90,28 +95,74 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      {/* ---------- Floating Save Button ---------- */}
+      {editingField && (
+        <div className="absolute top-6 right-6 z-10">
+          <button
+            onClick={handleDone}
+            className="btn-accent px-4 py-2 text-sm font-medium shadow-md"
+          >
+            Save Changes
+          </button>
+        </div>
+      )}
       <main className="flex-1 px-6 py-10 max-w-3xl mx-auto space-y-10">
         {/* ---------- Header ---------- */}
-        <section className="text-center space-y-2">
-          <h1
-            className="text-2xl font-semibold text-gray-900 cursor-pointer"
-            onClick={() => setEditingField("branchName")}
-          >
-            {editingField === "branchName" ? (
-              <input
-                className="ui-input w-80 text-center"
-                value={formData.branchName}
-                onFocus={() => handleFocusField("branchName")}
-                onBlur={() => handleBlurField("branchName")}
-                onChange={(e) => handleChange("branchName", e.target.value)}
+        <section className="space-y-2">
+          <div className="flex items-center justify-center gap-4 relative">
+            {/* ---------- Logo with edit ---------- */}
+            <div className="relative w-12 h-12 shrink-0">
+              <img
+                src={formData.branchLogo || "/icons/logo.png"}
+                alt="Branch Logo"
+                className="w-12 h-12 rounded-full shadow-sm  bg-white object-cover"
               />
-            ) : (
-              formData.branchName
-            )}
-          </h1>
-          <p className="text-sm text-gray-600 italic">
-            Clinic branch configuration and operational details
-          </p>
+              <button
+                className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow hover:bg-gray-50"
+                onClick={() => setEditingField("branchLogo")}
+              >
+                <PenIcon className="w-3.5 h-3.5 text-gray-600" />
+              </button>
+              {editingField === "branchLogo" && (
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      handleChange("branchLogo" as keyof BranchDetail, url);
+                      setEditingField(null);
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            {/* ---------- Branch Name ---------- */}
+            <div className="flex flex-col items-start text-left">
+              <h1
+                className="text-2xl font-semibold text-gray-900 cursor-pointer"
+                onClick={() => setEditingField("branchName")}
+              >
+                {editingField === "branchName" ? (
+                  <input
+                    className="ui-input w-80 text-left"
+                    value={formData.branchName}
+                    onFocus={() => handleFocusField("branchName")}
+                    onBlur={() => handleBlurField("branchName")}
+                    onChange={(e) => handleChange("branchName", e.target.value)}
+                  />
+                ) : (
+                  formData.branchName
+                )}
+              </h1>
+              <p className="text-sm text-gray-600 italic">
+                Clinic branch configuration and operational details
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* ---------- Address & Contact ---------- */}
@@ -177,6 +228,7 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
         </EditableSection>
 
         {/* ---------- Departments ---------- */}
+        {/* ---------- Departments ---------- */}
         <EditableSection
           title="Departments"
           isEditing={editingField === "departments"}
@@ -184,20 +236,12 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
           onDone={handleDone}
         >
           {editingField === "departments" ? (
-            <div className="space-y-2">
-              {formData.departments.map((d, i) => (
-                <input
-                  key={i}
-                  className="ui-input w-full text-sm"
-                  value={d}
-                  onChange={(e) => {
-                    const updated = [...formData.departments];
-                    updated[i] = e.target.value;
-                    handleChange("departments", updated);
-                  }}
-                />
-              ))}
-            </div>
+            <DynamicListEditor
+              items={formData.departments}
+              onChange={(updated) => handleChange("departments", updated)}
+              placeholder="Add or select department"
+              predefinedPath="/data/departments-eye.json"
+            />
           ) : (
             <ul className="list-disc pl-6 text-sm text-gray-700 space-y-1">
               {formData.departments.map((d, i) => (
@@ -215,12 +259,16 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
           onDone={handleDone}
         >
           {editingField === "timings" ? (
-            <WorkingHoursEditor formData={formData} handleChange={handleChange} />
+            <WorkingHoursEditor
+              formData={formData}
+              handleChange={handleChange}
+            />
           ) : (
             <WorkingHoursTable formData={formData} />
           )}
         </EditableSection>
 
+        {/* ---------- Facilities ---------- */}
         {/* ---------- Facilities ---------- */}
         <EditableSection
           title="Key Facilities"
@@ -229,20 +277,12 @@ export default function BranchSetupPanel({ branchId }: BranchSetupPanelProps) {
           onDone={handleDone}
         >
           {editingField === "facilities" ? (
-            <div className="space-y-2">
-              {formData.facilities.map((f, i) => (
-                <input
-                  key={i}
-                  className="ui-input w-full text-sm"
-                  value={f}
-                  onChange={(e) => {
-                    const updated = [...formData.facilities];
-                    updated[i] = e.target.value;
-                    handleChange("facilities", updated);
-                  }}
-                />
-              ))}
-            </div>
+            <DynamicListEditor
+              items={formData.facilities}
+              onChange={(updated) => handleChange("facilities", updated)}
+              placeholder="Add or select facility"
+              predefinedPath="/data/facilities-eye.json"
+            />
           ) : (
             <ul className="list-disc pl-6 text-sm text-gray-700 space-y-1">
               {formData.facilities.map((f, i) => (
@@ -289,7 +329,15 @@ function WorkingHoursEditor({
           value={entry.dayStart}
           onChange={(e) => setEntry({ ...entry, dayStart: e.target.value })}
         >
-          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
+          {[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ].map((d) => (
             <option key={d}>{d}</option>
           ))}
         </select>
@@ -299,7 +347,15 @@ function WorkingHoursEditor({
           value={entry.dayEnd}
           onChange={(e) => setEntry({ ...entry, dayEnd: e.target.value })}
         >
-          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
+          {[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ].map((d) => (
             <option key={d}>{d}</option>
           ))}
         </select>
@@ -418,5 +474,115 @@ function PenIcon({ className = "" }: { className?: string }) {
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
     </svg>
+  );
+}
+/* -------------------------------------------------------------------------- */
+/*                         Dynamic List Editor (Reusable)                     */
+/* -------------------------------------------------------------------------- */
+function DynamicListEditor({
+  items,
+  onChange,
+  placeholder,
+  predefinedPath,
+}: {
+  items: string[];
+  onChange: (updated: string[]) => void;
+  placeholder: string;
+  predefinedPath: string;
+}) {
+  const [options, setOptions] = useState<string[]>([]);
+  const [newItem, setNewItem] = useState("");
+
+  useEffect(() => {
+    async function loadOptions() {
+      try {
+        const res = await fetch(predefinedPath);
+        if (!res.ok) throw new Error("Failed to load predefined options");
+        const data = await res.json();
+
+        // ✅ Normalize structure — handle array or object with key
+        if (Array.isArray(data)) {
+          setOptions(data);
+        } else if (Array.isArray(data.departments)) {
+          setOptions(data.departments);
+        } else if (Array.isArray(data.facilities)) {
+          setOptions(data.facilities);
+        } else {
+          console.warn("Unexpected predefined JSON format:", data);
+          setOptions([]);
+        }
+      } catch (err) {
+        console.error("Error loading predefined list:", err);
+        setOptions([]);
+      }
+    }
+
+    loadOptions();
+  }, [predefinedPath]);
+
+  const addItem = () => {
+    if (!newItem.trim()) return;
+    const trimmed = newItem.trim();
+
+    // ✅ Prevent duplicates (case-insensitive)
+    if (items.some((x) => x.toLowerCase() === trimmed.toLowerCase())) {
+      setNewItem("");
+      return;
+    }
+
+    onChange([...items, trimmed]);
+    setNewItem("");
+  };
+
+  const removeItem = (index: number) => {
+    const updated = items.filter((_, i) => i !== index);
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Current items */}
+      {items.length > 0 && (
+        <ul className="space-y-1 text-sm">
+          {items.map((item, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between border rounded px-2 py-1"
+            >
+              <span>{item}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(i)}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Add new item */}
+      <div className="flex gap-2">
+        <input
+          list={`options-${predefinedPath}`}
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          placeholder={placeholder}
+          className="ui-input flex-1 text-sm"
+        />
+        <datalist id={`options-${predefinedPath}`}>
+          {Array.isArray(options) &&
+            options.map((opt) => <option key={opt} value={opt} />)}
+        </datalist>
+        <button
+          type="button"
+          onClick={addItem}
+          className="btn-outline text-xs shrink-0 px-3"
+        >
+          + Add
+        </button>
+      </div>
+    </div>
   );
 }

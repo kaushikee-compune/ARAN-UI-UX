@@ -1,0 +1,26 @@
+{
+  "id": "HFR003",
+  "clinicId": "clinic001",
+  "branchName": "Shankar Nethralaya – Tambaram Outreach Center",
+  "status": "pending",
+  "address": "GST Road, Tambaram, Chennai – 600045",
+  "phone": "+91 44 2231 4721",
+  "email": "tambaram@snmail.org",
+  "hfrId": "HFR003",
+  "abdmLinked": false,
+  "departments": [
+    "General Ophthalmology",
+    "Community Eye Screening"
+  ],
+  "timings": "Mon–Fri: 09:00–17:00",
+  "workingHours": [
+    { "dayStart": "Monday", "dayEnd": "Friday", "openTime": "09:00", "closeTime": "17:00" }
+  ],
+  "facilities": [
+    "Basic Vision Testing",
+    "School Screening Camps",
+    "Referral Coordination"
+  ],
+  "lastUpdated": "2025-11-10T18:30:00+05:30",
+  "updatedBy": "admin@aran.care"
+}

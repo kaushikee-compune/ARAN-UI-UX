@@ -1,4 +1,5 @@
 export type BranchDetail = {
+  branchLogo:string;
   id: string;
   branchName: string;
   address: string;

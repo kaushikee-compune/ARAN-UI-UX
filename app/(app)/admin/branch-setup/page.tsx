@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useBranch } from "@/context/BranchContext";
 
+/* -------------------------------------------------------------------------- */
+/*                             Type Declarations                              */
+/* -------------------------------------------------------------------------- */
 type Branch = {
   id: string;
   name: string;
@@ -12,81 +16,108 @@ type Branch = {
   isActive: boolean;
 };
 
+/* -------------------------------------------------------------------------- */
+/*                              Main Component                                */
+/* -------------------------------------------------------------------------- */
 export default function BranchSetupPage() {
+  const router = useRouter();
   const { selectedBranch } = useBranch();
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Load JSON via fetch (served from /public/data/)
+  /* ---------- Load branch list from mock JSON ---------- */
   useEffect(() => {
-    fetch("/data/mock-branches.json")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load branch list");
-        return res.json();
-      })
-      .then((data) => setBranches(data))
-      .catch((err) => console.error("Branch list load error:", err));
+    async function loadBranches() {
+      try {
+        const res = await fetch("/data/mock-branches.json");
+        if (!res.ok) throw new Error("Failed to load mock branch list");
+        const data = await res.json();
+        setBranches(data);
+      } catch (err) {
+        console.error("Error loading branches:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadBranches();
   }, []);
 
+  /* ---------- Select current branch ---------- */
   const branch = branches.find((b) => b.id === selectedBranch);
+
+  if (loading)
+    return (
+      <div className="ui-card p-4 text-sm text-gray-500 text-center">
+        Loading branch setup…
+      </div>
+    );
 
   if (!branch)
     return (
-      <div className="ui-card p-4 text-sm text-gray-600">
+      <div className="ui-card p-4 text-sm text-gray-600 text-center">
         Selected branch not found.
       </div>
     );
 
-  return (
-    <div className="space-y-6">
-      {/* ---------------- Header Card ---------------- */}
-      <div className="ui-card p-4 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold">{branch.name}</div>
-          <div className="text-xs text-gray-600">
-            {branch.address}, {branch.city}, {branch.state}
+  /* ---------- Branch Active: Show Configuration Cards ---------- */
+  if (branch.isActive) {
+    return (
+      <div className="space-y-6">
+        {/* ---------------- Header Card ---------------- */}
+        <div className="ui-card p-4 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold">{branch.name}</div>
+            <div className="text-xs text-gray-600">
+              {branch.address}, {branch.city}, {branch.state}
+            </div>
           </div>
+
+          <span className="px-3 py-1 text-xs rounded-full font-medium bg-emerald-100 text-emerald-700">
+            Active
+          </span>
         </div>
 
-        <span
-          className={`px-3 py-1 text-xs rounded-full font-medium ${
-            branch.isActive
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {branch.isActive ? "Active" : "Awaiting Activation"}
-        </span>
-      </div>
-
-      {/* ---------------- Conditional Render ---------------- */}
-      {branch.isActive ? (
+        {/* ---------------- Config Cards ---------------- */}
         <div className="grid gap-4 md:grid-cols-3">
           <ConfigCard
-            title="Branch General Info"
-            desc="Edit or update address, contact, and admin details for this branch."
-            onClick={() => alert("Open General Info Manager")}
+            title="Edit Branch Details"
+            desc="Edit address, contact, and other general info for this branch."
+            onClick={() => router.push("/admin/branch-edit")}
           />
           <ConfigCard
             title="Department Configuration"
-            desc="Add, remove, or rename departments for this branch."
-            onClick={() => alert("Open Department Configuration")}
+            desc="Add, remove, or rename departments in this branch."
+            onClick={() => router.push("/admin/department-setup")}
           />
           <ConfigCard
-            title="Caretype Configuration"
-            desc="Manage care types (OPD, Daycare, Inpatient) available in this branch."
-            onClick={() => alert("Open Caretype Configuration")}
+            title="Care Type Configuration"
+            desc="Manage care types (OPD, Daycare, Inpatient) for this branch."
+            onClick={() => router.push("/admin/caretype-setup")}
           />
         </div>
-      ) : (
-        <div className="text-sm text-gray-600 italic">
-          This branch is not yet activated. Please wait for ARAN Admin approval.
-        </div>
-      )}
+      </div>
+    );
+  }
+
+  /* ---------- Branch Not Active: Awaiting Approval ---------- */
+  return (
+    <div className="ui-card p-6 text-center">
+      <div className="text-base font-semibold text-gray-800">
+        {branch.name}
+      </div>
+      <p className="text-sm text-gray-500 mt-2">
+        This branch is not yet activated.
+      </p>
+      <p className="text-sm text-amber-600 mt-1 font-medium">
+        Awaiting approval from ARAN Admin.
+      </p>
     </div>
   );
 }
 
-/* ---------- Small UI card component ---------- */
+/* -------------------------------------------------------------------------- */
+/*                           Reusable Config Card                             */
+/* -------------------------------------------------------------------------- */
 function ConfigCard({
   title,
   desc,
@@ -97,13 +128,16 @@ function ConfigCard({
   onClick: () => void;
 }) {
   return (
-    <div className="ui-card p-4 flex flex-col justify-between transition hover:shadow-md">
+    <div className="ui-card p-4 flex flex-col justify-between transition hover:shadow-md hover:-translate-y-0.5">
       <div>
         <h2 className="text-sm font-semibold mb-1 text-gray-900">{title}</h2>
-        <p className="text-xs text-gray-600">{desc}</p>
+        <p className="text-xs text-gray-600 leading-snug">{desc}</p>
       </div>
       <div className="mt-4">
-        <button className="btn-outline text-sm w-full" onClick={onClick}>
+        <button
+          className="btn-outline text-sm w-full"
+          onClick={onClick}
+        >
           Manage →
         </button>
       </div>
