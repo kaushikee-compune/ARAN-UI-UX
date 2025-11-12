@@ -18,7 +18,7 @@ import { Toaster } from "react-hot-toast";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import usersData from "@/public/data/users.json";
-import { useBranch, BranchProvider} from "@/context/BranchContext";
+import { useBranch, BranchProvider } from "@/context/BranchContext";
 
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;
@@ -112,104 +112,106 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        {/* ─── Header ───────────────────────────────────── */}
-        <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
-          {/* Left logo + sidebar toggle */}
-          <div className="flex items-center gap-2">
-            <NextImage
-              src="/icons/aranlogo.png"
-              alt="ARAN Logo"
-              width={28}
-              height={28}
-              className="w-8 h-8"
-            />
-            <div className="font-semibold">ARAN</div>
-            <div className="h-6 w-px bg-gray-300 mx-2" />
-            {mounted && (
-              <button
-                onClick={toggleSidebar}
-                className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
-                title={collapsed ? "Open sidebar" : "Close sidebar"}
-              >
-                <NextImage
-                  src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
-                  alt={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
-              </button>
-            )}
-          </div>
-
-          {/* ─── Right section: Role + Branch + Profile ─── */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-800 capitalize">
-              {role}
-            </span>
-
-            {branches.length > 0 && (
-              <select
-  value={selectedBranch}
-  onChange={(e) => setSelectedBranch(e.target.value)}
-  className="ui-input text-sm min-w-[140px]"
-  title="Select branch"
->
-  {branches.map((b) => (
-    <option key={b.id} value={b.id}>
-      {b.name}
-    </option>
-  ))}
-</select>
-            )}
-
-            <ProfileMenu role={role} />
-          </div>
-        </header>
-
-        {/* ─── Sidebar + Main grid ───────────────────────── */}
-        <div
-          className="flex-1 grid"
-          style={{
-            gridTemplateColumns: `${collapsed ? "0px" : "150px"} minmax(0,1fr)`,
-          }}
-        >
-          <aside
-            className={[
-              "relative bg-white transition-all duration-200 overflow-hidden",
-              `sticky top-[${HEADER_HEIGHT}px]`,
-              collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
-            ].join(" ")}
-          >
-            <RoleAwareSidebar role={role} />
-          </aside>
-
-          <main
-            className={[
-              "min-w-0 transition-[padding] duration-200",
-              collapsed ? "pl-0" : "pl-2",
-            ].join(" ")}
-          >
-            {children}
-          </main>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* ─── Header ───────────────────────────────────── */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
+        {/* Left logo + sidebar toggle */}
+        <div className="flex items-center gap-2">
+          <NextImage
+            src="/icons/aranlogo.png"
+            alt="ARAN Logo"
+            width={28}
+            height={28}
+            className="w-8 h-8"
+          />
+          <div className="font-semibold">ARAN</div>
+          <div className="h-6 w-px bg-gray-300 mx-2" />
+          {mounted && (
+            <button
+              onClick={toggleSidebar}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
+              title={collapsed ? "Open sidebar" : "Close sidebar"}
+            >
+              <NextImage
+                src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
+                alt={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                width={20}
+                height={20}
+                className="w-5 h-5"
+              />
+            </button>
+          )}
         </div>
 
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: "green",
-              color: "#111",
-              border: "1px solid #e5e7eb",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            },
-            success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
-          }}
-        />
+        {/* ─── Right section: Role + Branch + Profile ─── */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-800 capitalize">
+            {role}
+          </span>
+
+          {branches.length > 0 && (
+            <select
+              value={
+                typeof selectedBranch === "object" && selectedBranch
+                  ? selectedBranch.id
+                  : selectedBranch || ""
+              }
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="ui-input text-sm min-w-[140px]"
+              title="Select branch"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <ProfileMenu role={role} />
+        </div>
+      </header>
+
+      {/* ─── Sidebar + Main grid ───────────────────────── */}
+      <div
+        className="flex-1 grid"
+        style={{
+          gridTemplateColumns: `${collapsed ? "0px" : "150px"} minmax(0,1fr)`,
+        }}
+      >
+        <aside
+          className={[
+            "relative bg-white transition-all duration-200 overflow-hidden",
+            `sticky top-[${HEADER_HEIGHT}px]`,
+            collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
+          ].join(" ")}
+        >
+          <RoleAwareSidebar role={role} />
+        </aside>
+
+        <main
+          className={[
+            "min-w-0 transition-[padding] duration-200",
+            collapsed ? "pl-0" : "pl-2",
+          ].join(" ")}
+        >
+          {children}
+        </main>
       </div>
-    
+
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "green",
+            color: "#111",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          },
+          success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
+        }}
+      />
+    </div>
   );
 }
 
