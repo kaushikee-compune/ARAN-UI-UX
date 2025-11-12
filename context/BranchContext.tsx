@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 /* -------------------------------------------------------------------------- */
 export type Branch = {
   id: string;
+  branchId?: string; 
   name: string;
   status: string;
 };

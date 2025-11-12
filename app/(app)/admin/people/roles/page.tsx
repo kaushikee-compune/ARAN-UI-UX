@@ -81,7 +81,8 @@ export default function RoleAccessPage() {
 
       {/* Table */}
       <div className="ui-card overflow-x-auto">
-        <table className="w-full border text-sm">
+        <table className="w-full border-b border-gray-3
+        00 text-sm">
           <thead className="bg-gray-50 text-gray-700">
             <tr>
               <th className="px-3 py-2 text-left w-16">ID</th>
@@ -102,7 +103,7 @@ export default function RoleAccessPage() {
               branchStaff.map((s) => (
                 <tr
                   key={s.id}
-                  className={`border-t ${
+                  className={`border-b border-gray-200 ${
                     s.status !== "active" ? "opacity-50" : ""
                   }`}
                 >

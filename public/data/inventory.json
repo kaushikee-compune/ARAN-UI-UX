@@ -1,0 +1,142 @@
+[
+  {
+    "branchId": "B001",
+    "items": [
+      {
+        "id": "I001",
+        "name": "Moxifloxacin Eye Drops 0.5%",
+        "category": "Pharmacy",
+        "unit": "Bottle",
+        "stockQty": 18,
+        "threshold": 20,
+        "supplier": "Alcon Laboratories"
+      },
+      {
+        "id": "I002",
+        "name": "Tropicamide + Phenylephrine Eye Drops",
+        "category": "Pharmacy",
+        "unit": "Bottle",
+        "stockQty": 8,
+        "threshold": 10,
+        "supplier": "Sun Pharma"
+      },
+      {
+        "id": "I003",
+        "name": "Artificial Tears (Carboxymethylcellulose 0.5%)",
+        "category": "Pharmacy",
+        "unit": "Bottle",
+        "stockQty": 25,
+        "threshold": 15,
+        "supplier": "Allergan India"
+      },
+      {
+        "id": "I004",
+        "name": "Betadine Solution 5%",
+        "category": "Consumables",
+        "unit": "Bottle",
+        "stockQty": 6,
+        "threshold": 10,
+        "supplier": "Avra Laboratories"
+      },
+      {
+        "id": "I005",
+        "name": "Sterile Cotton Swabs (Eye Pack)",
+        "category": "Consumables",
+        "unit": "Pack",
+        "stockQty": 12,
+        "threshold": 8,
+        "supplier": "Medline"
+      },
+      {
+        "id": "I006",
+        "name": "Eye Pad (Sterile, Adhesive)",
+        "category": "Consumables",
+        "unit": "Box",
+        "stockQty": 5,
+        "threshold": 10,
+        "supplier": "Lotus Surgicals"
+      },
+      {
+        "id": "I007",
+        "name": "Tear Film Strips (Schirmer Test)",
+        "category": "Diagnostic",
+        "unit": "Box",
+        "stockQty": 15,
+        "threshold": 10,
+        "supplier": "TearLab"
+      },
+      {
+        "id": "I008",
+        "name": "Topical Anesthetic (Proparacaine 0.5%)",
+        "category": "Pharmacy",
+        "unit": "Bottle",
+        "stockQty": 9,
+        "threshold": 10,
+        "supplier": "Sentiss Pharma"
+      },
+      {
+        "id": "I009",
+        "name": "Bandage Contact Lens (Hydrogel, Sterile)",
+        "category": "Consumables",
+        "unit": "Pack",
+        "stockQty": 20,
+        "threshold": 10,
+        "supplier": "Bausch & Lomb"
+      },
+      {
+        "id": "I010",
+        "name": "Ophthalmic Surgical Blade 15°",
+        "category": "Surgical",
+        "unit": "Piece",
+        "stockQty": 7,
+        "threshold": 10,
+        "supplier": "Alcon Surgical"
+      },
+      {
+        "id": "I011",
+        "name": "Viscoelastic (Sodium Hyaluronate 1%)",
+        "category": "Surgical",
+        "unit": "Syringe",
+        "stockQty": 3,
+        "threshold": 5,
+        "supplier": "Abbott Medical Optics"
+      },
+      {
+        "id": "I012",
+        "name": "Intraocular Lens (Foldable, Acrylic)",
+        "category": "Surgical Implant",
+        "unit": "Piece",
+        "stockQty": 10,
+        "threshold": 8,
+        "supplier": "Aurolab"
+      },
+      {
+        "id": "I013",
+        "name": "Sterile Gloves (Powder-free, Size 7)",
+        "category": "Consumables",
+        "unit": "Box",
+        "stockQty": 22,
+        "threshold": 15,
+        "supplier": "Medicare India"
+      },
+      {
+        "id": "I014",
+        "name": "Syringe 2 ml with Needle",
+        "category": "Consumables",
+        "unit": "Box",
+        "stockQty": 40,
+        "threshold": 25,
+        "supplier": "Hindustan Syringes"
+      },
+      {
+        "id": "I015",
+        "name": "Antibiotic Ointment (Chloramphenicol 1%)",
+        "category": "Pharmacy",
+        "unit": "Tube",
+        "stockQty": 4,
+        "threshold": 10,
+        "supplier": "GSK Pharma"
+      }
+    ]
+  }
+]
