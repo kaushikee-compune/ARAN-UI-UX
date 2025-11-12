@@ -7,7 +7,6 @@ export type Staff = {
   branch: string;
   email: string;
   phone: string;
-  status: "active" | "inactive" | "waiting for validation";
-  // 👇 add this new optional numeric field
   consultationFee?: number;
+  status: "active" | "inactive" | "waiting for validation";
 };

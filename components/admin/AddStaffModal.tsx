@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Save, UserPlus } from "lucide-react";
+import { X, Save, UserPlus, Mail } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
 import type { Staff } from "@/types/staff";
 
@@ -17,12 +17,12 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
   const [departments, setDepartments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // individual fields
+  // independent state variables
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState<Staff["role"] | "">("");
   const [consultationFee, setConsultationFee] = useState("");
 
   useEffect(() => {
@@ -31,11 +31,8 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
         const res = await fetch("/data/departments-eye.json");
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
-        // ✅ Defensive: only accept array
         if (Array.isArray(data)) setDepartments(data);
-        else if (Array.isArray(data.departments))
-          setDepartments(data.departments);
-        else console.warn("Unexpected departments data shape:", data);
+        else if (Array.isArray(data.departments)) setDepartments(data.departments);
       } catch (err) {
         console.error("Error loading departments:", err);
       }
@@ -71,16 +68,19 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
     const newStaff: Staff = {
       id: `stf${Math.floor(Math.random() * 9000 + 1000)}`,
       name,
-      role: role as Staff["role"], // ✅ explicit cast to correct union
+      role: role as Staff["role"],
       department,
       branch: branchName,
       email,
       phone,
       consultationFee: consultationFee ? Number(consultationFee) : undefined,
-      status: "waiting for validation",
+      // 🔸 Mark as inactive by default
+      status: "inactive",
     };
 
-    console.log("🆕 New Staff Added:", newStaff);
+    console.log("🆕 Staff Added (inactive):", newStaff);
+    console.log(`📧 Invitation sent to ${email}`);
+
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
@@ -92,7 +92,7 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="ui-card w-[min(95vw,500px)] relative p-6 space-y-4 shadow-xl">
-        {/* Close button */}
+        {/* Close */}
         <button
           className="absolute top-2 right-3 text-gray-500 hover:text-gray-700"
           onClick={onClose}
@@ -134,7 +134,6 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          {/* Department dropdown */}
           <select
             className="ui-input w-full"
             value={department}
@@ -148,11 +147,10 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             ))}
           </select>
 
-          {/* Role dropdown */}
           <select
             className="ui-input w-full"
             value={role}
-            onChange={(e) => setRole(e.target.value)}
+            onChange={(e) => setRole(e.target.value as Staff["role"])}
           >
             <option value="">Select Role</option>
             <option>Doctor</option>
@@ -161,7 +159,6 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             <option>Clinic Admin</option>
           </select>
 
-          {/* Consultation Fee */}
           <input
             type="number"
             placeholder="Consultation Fee (₹)"
@@ -170,7 +167,7 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             onChange={(e) => setConsultationFee(e.target.value)}
           />
 
-          {/* Branch info */}
+          {/* Branch Info */}
           <div className="text-sm text-gray-600">
             Branch:{" "}
             <span className="font-medium">
@@ -181,22 +178,22 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
           </div>
 
           <div className="text-xs text-gray-500">
-            Status: Waiting for validation
+            Status: Inactive (Invite Pending)
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex justify-end gap-3 pt-4">
-          <button className="btn-neutral" onClick={onClose}>
+          <button className="btn-secondary" onClick={onClose}>
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="btn-accent flex items-center gap-1"
+            className="btn-primary flex items-center gap-1"
           >
-            <Save size={16} />
-            {saving ? "Saving..." : "Save"}
+            <Mail size={16} />
+            {saving ? "Sending..." : "Save & Send Invite"}
           </button>
         </div>
       </div>
