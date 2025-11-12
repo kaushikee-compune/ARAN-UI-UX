@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Save, UserPlus, Mail } from "lucide-react";
+import { X, Mail, UserPlus } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
 import type { Staff } from "@/types/staff";
+import { useRoles } from "@/hooks/useRoles";
 
 type Props = {
   open: boolean;
@@ -13,18 +14,23 @@ type Props = {
 
 export default function AddStaffModal({ open, onClose, onSave }: Props) {
   const { selectedBranch } = useBranch();
+  const { roles, loading } = useRoles();
 
   const [departments, setDepartments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // independent state variables
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [department, setDepartment] = useState("");
-  const [role, setRole] = useState<Staff["role"] | "">("");
-  const [consultationFee, setConsultationFee] = useState("");
+  // ✅ single unified form state
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    department: "",
+    consultationFee: "",
+    role: [] as string[],
+    status: "inactive",
+  });
 
+  /* ----------------------------- Load Departments ---------------------------- */
   useEffect(() => {
     async function loadDepartments() {
       try {
@@ -32,7 +38,8 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
         if (Array.isArray(data)) setDepartments(data);
-        else if (Array.isArray(data.departments)) setDepartments(data.departments);
+        else if (Array.isArray(data.departments))
+          setDepartments(data.departments);
       } catch (err) {
         console.error("Error loading departments:", err);
       }
@@ -40,23 +47,36 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
     loadDepartments();
   }, []);
 
+  /* ----------------------------- Reset on Close ------------------------------ */
   useEffect(() => {
     if (!open) {
-      setName("");
-      setPhone("");
-      setEmail("");
-      setDepartment("");
-      setRole("");
-      setConsultationFee("");
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        department: "",
+        consultationFee: "",
+        role: [],
+        status: "inactive",
+      });
       setSaving(false);
     }
   }, [open]);
 
   if (!open) return null;
 
+  /* ----------------------------- Save Handler ----------------------------- */
   const handleSave = () => {
-    if (!name || !phone || !email || !department || !role) {
-      alert("Please fill all required fields.");
+    console.log("FormData roles =", formData.role);
+
+    if (
+      !formData.name.trim() ||
+      !formData.phone.trim() ||
+      !formData.email.trim() ||
+      !formData.department.trim() ||
+      formData.role.length === 0
+    ) {
+      alert("Please fill all required fields and assign at least one role.");
       return;
     }
 
@@ -67,19 +87,20 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
 
     const newStaff: Staff = {
       id: `stf${Math.floor(Math.random() * 9000 + 1000)}`,
-      name,
-      role: role as Staff["role"],
-      department,
+      name: formData.name,
+      role: formData.role as Staff["role"],
+      department: formData.department,
       branch: branchName,
-      email,
-      phone,
-      consultationFee: consultationFee ? Number(consultationFee) : undefined,
-      // 🔸 Mark as inactive by default
+      email: formData.email,
+      phone: formData.phone,
+      consultationFee: formData.consultationFee
+        ? Number(formData.consultationFee)
+        : undefined,
       status: "inactive",
     };
 
     console.log("🆕 Staff Added (inactive):", newStaff);
-    console.log(`📧 Invitation sent to ${email}`);
+    console.log(`📧 Invitation sent to ${formData.email}`);
 
     setSaving(true);
     setTimeout(() => {
@@ -89,6 +110,7 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
     }, 600);
   };
 
+  /* ----------------------------- Render Modal ----------------------------- */
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="ui-card w-[min(95vw,500px)] relative p-6 space-y-4 shadow-xl">
@@ -114,30 +136,38 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             type="text"
             placeholder="Full Name"
             className="ui-input w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={formData.name}
+            onChange={(e) =>
+              setFormData({ ...formData, name: e.target.value })
+            }
           />
 
           <input
             type="text"
             placeholder="Phone Number"
             className="ui-input w-full"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={formData.phone}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
           />
 
           <input
             type="email"
             placeholder="Email Address"
             className="ui-input w-full"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
           />
 
           <select
             className="ui-input w-full"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
+            value={formData.department}
+            onChange={(e) =>
+              setFormData({ ...formData, department: e.target.value })
+            }
           >
             <option value="">Select Department</option>
             {departments.map((d) => (
@@ -147,24 +177,51 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
             ))}
           </select>
 
-          <select
-            className="ui-input w-full"
-            value={role}
-            onChange={(e) => setRole(e.target.value as Staff["role"])}
-          >
-            <option value="">Select Role</option>
-            <option>Doctor</option>
-            <option>Nurse</option>
-            <option>Branch Admin</option>
-            <option>Clinic Admin</option>
-          </select>
+          {/* Roles */}
+          <div className="mt-3">
+            <label className="block text-sm font-medium mb-1">
+              Assign Roles
+            </label>
+
+            {loading ? (
+              <div className="text-xs text-gray-500">Loading roles…</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-y-1">
+                {roles.map((r) => (
+                  <label
+                    key={r.id}
+                    className="inline-flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      className="ui-checkbox"
+                      checked={formData.role.includes(r.name)}
+                      onChange={(e) =>
+                        setFormData((prev) => {
+                          const updated = e.target.checked
+                            ? [...prev.role, r.name]
+                            : prev.role.filter(
+                                (x: string) => x !== r.name
+                              );
+                          return { ...prev, role: updated };
+                        })
+                      }
+                    />
+                    <span>{r.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
           <input
             type="number"
             placeholder="Consultation Fee (₹)"
             className="ui-input w-full"
-            value={consultationFee}
-            onChange={(e) => setConsultationFee(e.target.value)}
+            value={formData.consultationFee}
+            onChange={(e) =>
+              setFormData({ ...formData, consultationFee: e.target.value })
+            }
           />
 
           {/* Branch Info */}
@@ -189,7 +246,14 @@ export default function AddStaffModal({ open, onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={
+              saving ||
+              !formData.name.trim() ||
+              !formData.phone.trim() ||
+              !formData.email.trim() ||
+              !formData.department.trim()||
+              formData.role.length === 0
+            }
             className="btn-primary flex items-center gap-1"
           >
             <Mail size={16} />

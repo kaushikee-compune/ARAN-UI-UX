@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useBranch } from "@/context/BranchContext";
+import { useRoles } from "@/hooks/useRoles";
 
 type Staff = {
   id: string;
@@ -11,7 +12,7 @@ type Staff = {
   department: string | string[];
   branch: string;
   branchId: string;
-  role: string;
+  role: string[];
   status: string;
 };
 
@@ -20,6 +21,7 @@ export default function RoleAccessPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Staff | null>(null);
+  const { roles } = useRoles();
 
   // Load staff.json
   useEffect(() => {
@@ -46,8 +48,10 @@ export default function RoleAccessPage() {
   }, [staff, selectedBranch, search]);
 
   // --- Save role ---
-  const saveRole = (id: string, newRole: string) => {
-    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, role: newRole } : s)));
+  const saveRole = (id: string, newRoles: string[]) => {
+    setStaff((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, role: newRoles } : s))
+    );
     setEditing(null);
   };
 
@@ -114,34 +118,79 @@ export default function RoleAccessPage() {
                       : s.department}
                   </td>
                   <td className="px-3 py-2">
-  {editing?.id === s.id ? (
-    <div className="flex items-center gap-2">
-      <select
-        className="ui-input w-40"
-        value={editing.role || ""}
-        onChange={(e) =>
-          setEditing({ ...editing, role: e.target.value })
-        }
-      >
-        <option value="">Select role</option>
-        <option value="Doctor">Doctor</option>
-        <option value="Nurse">Nurse</option>
-        <option value="Receptionist">Receptionist</option>
-        <option value="Billing Staff">Billing Staff</option>
-        <option value="Branch Admin">Branch Admin</option>
-      </select>
+                    {editing?.id === s.id ? (
+                      <div className="flex flex-col gap-1">
+                        {(editing.role || []).map((r, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <select
+                              className="ui-input w-40"
+                              value={r}
+                              onChange={(e) => {
+                                const updated = [...(editing.role || [])];
+                                updated[idx] = e.target.value;
+                                setEditing({ ...editing, role: updated });
+                              }}
+                            >
+                              {roles.map((r) => (
+  <option key={r.id} value={r.name}>
+    {r.name}
+  </option>
+))}
+                            </select>
+                            <button
+                              className="text-xs text-red-500"
+                              onClick={() => {
+                                const updated = (editing.role || []).filter(
+                                  (_, i) => i !== idx
+                                );
+                                setEditing({ ...editing, role: updated });
+                              }}
+                              title="Remove role"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="text-xs text-[--secondary] mt-1 hover:underline"
+                          onClick={() =>
+                            setEditing({
+                              ...editing,
+                              role: [...(editing.role || []), ""],
+                            })
+                          }
+                        >
+                          + Add Role
+                        </button>
 
-      <button
-        className="btn-outline text-xs"
-        onClick={() => saveRole(s.id, editing.role || "")}
-      >
-        Save
-      </button>
-    </div>
-  ) : (
-    <span>{s.role || "—"}</span>
-  )}
-</td>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            className="btn-outline text-xs"
+                            onClick={() => saveRole(s.id, editing.role || [])}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="btn-outline text-xs"
+                            onClick={() => setEditing(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {(s.role || []).map((r: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 text-xs rounded-full bg-[--secondary]/10 text-[--secondary]"
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
 
                   <td className="px-3 py-2">
                     {s.status !== "active" ? (

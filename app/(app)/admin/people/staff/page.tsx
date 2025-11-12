@@ -6,6 +6,7 @@ import { useBranch } from "@/context/BranchContext";
 import StaffDetailModal from "@/components/admin/StaffDetailModal";
 import type { Staff } from "@/types/staff";
 import AddStaffModal from "@/components/admin/AddStaffModal";
+import { useRoles } from "@/hooks/useRoles";
 
 
 type StaffWithMultiDept = Staff & {
@@ -18,6 +19,7 @@ export default function StaffPage() {
   const [staffList, setStaffList] = useState<StaffWithMultiDept[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { roles, loading: loadingRoles } = useRoles();
   const [filters, setFilters] = useState({
     name: "",
     id: "",
@@ -118,7 +120,11 @@ export default function StaffPage() {
             .toLowerCase()
             .includes(filters.department.toLowerCase())
         : true;
-      const matchRole = filters.role ? s.role === filters.role : true;
+      
+const matchRole =
+  !filters.role ||
+  s.role.includes(filters.role as "Doctor" | "Nurse" | "Branch Admin" | "Clinic Admin");
+
       return matchName && matchId && matchDept && matchRole;
     });
   }, [staffList, branchName, filters]);
@@ -250,7 +256,7 @@ export default function StaffPage() {
                         ))}
                       </div>
                     ) : (
-                      s.department || " "
+                      s.department || ","
                     )}
                   </td>
 

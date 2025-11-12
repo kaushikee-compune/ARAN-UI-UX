@@ -1,0 +1,8 @@
+[
+  { "id": "R001", "name": "Doctor", "category": "Medical", "description": "Clinical doctor role" },
+  { "id": "R002", "name": "Nurse", "category": "Medical", "description": "Nursing staff" },
+  { "id": "R003", "name": "Receptionist", "category": "Support", "description": "Front desk operations" },
+  { "id": "R004", "name": "Billing Staff", "category": "Support", "description": "Handles billing & invoices" },
+  { "id": "R005", "name": "Branch Admin", "category": "Administrative", "description": "Manages branch operations" },
+  { "id": "R006", "name": "Clinic Admin", "category": "Administrative", "description": "Manages clinic-wide setup" }
+]

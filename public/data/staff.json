@@ -2,7 +2,7 @@
   {
     "id": "stf001",
     "name": "Dr. Kavya Rao",
-    "role": "Doctor",
+    "role": ["Doctor"],
     "department": ["Pediatric Ophthalmology","Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
@@ -13,7 +13,7 @@
   {
     "id": "stf002",
     "name": "Dr. Vasanth Shetty",
-    "role": "Doctor",
+    "role": ["Doctor", "Branch Admin"],
     "department": ["Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
@@ -24,7 +24,7 @@
   {
     "id": "stf003",
     "name": "Dr. Anil Kumar",
-    "role": "Doctor",
+    "role": ["Doctor"],
     "department": ["Comprehensive Ophthalmology","Pediatric Ophthalmology"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
@@ -35,7 +35,7 @@
   {
     "id": "stf004",
     "name": "Nurse Tapasi",
-    "role": "Nurse",
+    "role": ["Nurse"],
     "department": "Outpatient Services",
     "branch": "Koramangala (Main)",
     "branchId": "B001",
@@ -46,7 +46,7 @@
   {
     "id": "stf005",
     "name": "Nurse Priya",
-    "role": "Nurse",
+    "role": ["Nurse"],
     "department": "Outpatient Services",
     "branch": "JP Nagar",
     "branchId": "B002",
@@ -57,7 +57,7 @@
   {
     "id": "stf006",
     "name": "Mr. Ramesh Iyer",
-    "role": "Branch Admin",
+    "role": ["Branch Admin"],
     "department": "Administration",
     "branch": "JP Nagar",
     "branchId": "B002",
