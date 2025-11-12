@@ -5,6 +5,7 @@
     "role": "Doctor",
     "department": ["Pediatric Ophthalmology","Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
+    "branchId": "B001",
     "email": "kavya.rao@sn.org",
     "phone": "9876543210",
     "status": "active"
@@ -15,6 +16,7 @@
     "role": "Doctor",
     "department": ["Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
+    "branchId": "B001",
     "email": "vasanth.shetty@sn.org",
     "phone": "9876543211",
     "status": "active"
@@ -25,6 +27,7 @@
     "role": "Doctor",
     "department": ["Comprehensive Ophthalmology","Pediatric Ophthalmology"],
     "branch": "Koramangala (Main)",
+    "branchId": "B001",
     "email": "anil.kumar@sn.org",
     "phone": "9876543212",
     "status": "active"
@@ -35,26 +38,29 @@
     "role": "Nurse",
     "department": "Outpatient Services",
     "branch": "Koramangala (Main)",
+    "branchId": "B001",
     "email": "nurse.tapasi@sn.org",
     "phone": "986453239",
     "status": "active"
   },
   {
-    "id": "stf004",
+    "id": "stf005",
     "name": "Nurse Priya",
     "role": "Nurse",
     "department": "Outpatient Services",
     "branch": "JP Nagar",
+    "branchId": "B002",
     "email": "nurse.priya@sn.org",
     "phone": "9876543213",
     "status": "active"
   },
   {
-    "id": "stf005",
+    "id": "stf006",
     "name": "Mr. Ramesh Iyer",
     "role": "Branch Admin",
     "department": "Administration",
     "branch": "JP Nagar",
+    "branchId": "B002",
     "email": "ramesh.iyer@sn.org",
     "phone": "9876543214",
     "status": "pending"

@@ -1,12 +1,12 @@
 {
-  "id": "HFR002",
+  "id": "B002",
   "clinicId": "clinic001",
   "branchName": "Shankar Nethralaya - JP Nagar Branch",
   "status": "active",
   "address": "21, 1st Avenue, JP Nagar, Adyar, Bangalore – 560100",
   "phone": "+91 80 2491 1626",
   "email": "adyar@snmail.org",
-  "hfrId": "HFR002",
+  "hfrId": "B002",
   "abdmLinked": true,
   "departments": [
     "General Ophthalmology",

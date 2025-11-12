@@ -1,6 +1,6 @@
 [
   {
-    "id": "HFR001",
+    "id": "B001",
     "name": "Koramangala (Main)",
     "address": "No. 41, College Road, Koramangala",
     "city": "Bangalore",
@@ -8,7 +8,7 @@
     "isActive": true
   },
   {
-    "id": "HFR002",
+    "id": "B002",
     "name": "JP Nagar",
     "address": "12/4 JP Nagar, Bannerghatta Main Road",
     "city": "Bangalore",
@@ -16,7 +16,7 @@
     "isActive": true
   },
   {
-    "id": "HFR003",
+    "id": "B003",
     "name": "Whitefield",
     "address": "140 PGM Layout, Whitefield",
     "city": "Bangalore",

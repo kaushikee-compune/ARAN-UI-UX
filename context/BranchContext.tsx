@@ -5,21 +5,24 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 /* -------------------------------------------------------------------------- */
 /*                              Type definitions                              */
 /* -------------------------------------------------------------------------- */
-type Branch = {
+export type Branch = {
   id: string;
   name: string;
   status: string;
 };
 
 type BranchContextType = {
-  selectedBranch: string;
-  setSelectedBranch: (id: string) => void;
+  selectedBranch: Branch | string | null;
+  setSelectedBranch: (branch: Branch | string | null) => void;
   branches: Branch[];
   loading: boolean;
 };
 
+/* -------------------------------------------------------------------------- */
+/*                             Default (safe) context                         */
+/* -------------------------------------------------------------------------- */
 const BranchContext = createContext<BranchContextType>({
-  selectedBranch: "",
+  selectedBranch: null,
   setSelectedBranch: () => {},
   branches: [],
   loading: true,
@@ -29,14 +32,19 @@ const BranchContext = createContext<BranchContextType>({
 /*                              Branch Provider                               */
 /* -------------------------------------------------------------------------- */
 export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
-  const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedBranch, setSelectedBranch] = useState<Branch | string | null>(
+    null
+  );
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+  console.log("[BranchContext] selectedBranch =", selectedBranch);
+}, [selectedBranch]);
+
+  useEffect(() => {
     async function loadUserData() {
       try {
-        // ✅ Fetch live users.json (from /public/data/)
         const res = await fetch("/data/users.json");
         if (!res.ok) throw new Error("Failed to load users.json");
         const data = await res.json();
@@ -54,7 +62,9 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Pick first accessible branch as default
         if (currentUser.accessibleBranches.length > 0) {
-          setSelectedBranch(currentUser.accessibleBranches[0]);
+          const firstId = currentUser.accessibleBranches[0];
+          const found = clinic.branches.find((b: Branch) => b.id === firstId);
+          setSelectedBranch(found || firstId);
         }
       } catch (err) {
         console.error("BranchContext error:", err);

@@ -1,12 +1,12 @@
 {
-  "id": "HFR001",
+  "id": "B001",
   "clinicId": "clinic001",
   "branchName": "Koramangala (Main)",
   "status": "active",
   "address": "No. 41, College Road, Koramangala, Bangalore - 560066",
   "phone": "+91 80 2827 1616",
   "email": "koramangala@snmail.org",
-  "hfrId": "HFR001",
+  "hfrId": "B001",
   "abdmLinked": true,
   "departments": [
     "Comprehensive Ophthalmology",
