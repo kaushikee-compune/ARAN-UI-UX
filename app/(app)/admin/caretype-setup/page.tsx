@@ -118,11 +118,18 @@ export default function CaretypeSetupPage() {
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Current Branch:{" "}
-            <span className="font-medium text-gray-700">{selectedBranch}</span>
+            <span className="font-medium text-gray-700">
+              {typeof selectedBranch === "object" && selectedBranch
+                ? selectedBranch.name
+                : selectedBranch}
+            </span>
           </p>
         </div>
         {rows.length > 0 && (
-          <button onClick={saveChanges} className="btn-accent px-4 py-2 text-sm">
+          <button
+            onClick={saveChanges}
+            className="btn-accent px-4 py-2 text-sm"
+          >
             Save Changes
           </button>
         )}

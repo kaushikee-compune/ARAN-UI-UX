@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useBranch } from "@/context/BranchContext"; // ✅ Global branch selector
-import usersData from "@/public/data/users.json"; 
+import usersData from "@/public/data/users.json";
 
 type Doctor = { id: string; name: string };
 type DepartmentRow = { department: string; doctor?: string };
@@ -22,22 +22,22 @@ export default function DepartmentSetupPage() {
   /*                     Detect branch status from users.json                   */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
-  if (!selectedBranch) return;
+    if (!selectedBranch) return;
 
-  const clinic = usersData.clinics?.[0];
-  const foundBranch = clinic?.branches?.find(
-    (b: any) => b.id === selectedBranch
-  );
+    const clinic = usersData.clinics?.[0];
+    const foundBranch = clinic?.branches?.find(
+      (b: any) => b.id === selectedBranch
+    );
 
-  const status =
-    foundBranch?.status === "active"
-      ? "active"
-      : foundBranch?.status === "pending"
-      ? "pending"
-      : null;
+    const status =
+      foundBranch?.status === "active"
+        ? "active"
+        : foundBranch?.status === "pending"
+        ? "pending"
+        : null;
 
-  setBranchStatus(status);
-}, [selectedBranch]);
+    setBranchStatus(status);
+  }, [selectedBranch]);
 
   /* -------------------------------------------------------------------------- */
   /*                         Load predefined lists (once)                       */
@@ -49,12 +49,15 @@ export default function DepartmentSetupPage() {
         const deptRes = await fetch(`${base}/data/departments-eye.json`);
         const docRes = await fetch(`${base}/data/doctors.json`);
 
-        if (!deptRes.ok || !docRes.ok) throw new Error("Failed to fetch JSON data");
+        if (!deptRes.ok || !docRes.ok)
+          throw new Error("Failed to fetch JSON data");
 
         const deptData = await deptRes.json();
         const docData = await docRes.json();
 
-        setDepartments(Array.isArray(deptData) ? deptData : deptData.departments || []);
+        setDepartments(
+          Array.isArray(deptData) ? deptData : deptData.departments || []
+        );
         setDoctors(Array.isArray(docData) ? docData : docData.doctors || []);
       } catch (err) {
         console.error("❌ Error loading predefined lists:", err);
@@ -140,11 +143,19 @@ export default function DepartmentSetupPage() {
             Department Configuration
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Current Branch: <span className="font-medium">{selectedBranch}</span>
+            Current Branch:{" "}
+            <span className="font-medium">
+              {typeof selectedBranch === "object" && selectedBranch
+                ? selectedBranch.name
+                : selectedBranch}
+            </span>
           </p>
         </div>
         {rows.length > 0 && (
-          <button onClick={saveChanges} className="btn-accent px-4 py-2 text-sm">
+          <button
+            onClick={saveChanges}
+            className="btn-accent px-4 py-2 text-sm"
+          >
             Save Changes
           </button>
         )}
@@ -190,7 +201,10 @@ export default function DepartmentSetupPage() {
           </div>
 
           {/* Add Button */}
-          <button onClick={addRow} className="btn-outline text-sm px-4 py-2 shrink-0">
+          <button
+            onClick={addRow}
+            className="btn-outline text-sm px-4 py-2 shrink-0"
+          >
             + Add
           </button>
         </div>
@@ -212,7 +226,9 @@ export default function DepartmentSetupPage() {
                 <tr key={i} className="border-b border-gray-200">
                   <td className="px-3 py-2 text-gray-800">{row.department}</td>
                   <td className="px-3 py-2 text-gray-600">
-                    {row.doctor || <span className="italic text-gray-400">—</span>}
+                    {row.doctor || (
+                      <span className="italic text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="text-center px-3 py-2">
                     <button
@@ -226,7 +242,10 @@ export default function DepartmentSetupPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-gray-400 italic">
+                <td
+                  colSpan={3}
+                  className="px-3 py-6 text-center text-gray-400 italic"
+                >
                   No departments added yet.
                 </td>
               </tr>
