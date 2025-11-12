@@ -1,0 +1,13 @@
+[
+  {
+    "branchId": "B001",
+    "doctorId": "D001",
+    "slotDuration": 15,
+    "availability": [
+      { "day": "Mon", "slots": [{ "start": "08:00", "end": "14:00" }] },
+      { "day": "Tue", "slots": [{ "start": "08:00", "end": "14:00" }] },
+      { "day": "Wed", "slots": [{ "start": "08:00", "end": "14:00" }] },
+      { "day": "Thu", "slots": [{ "start": "08:00", "end": "14:00" }] }
+    ]
+  }
+]

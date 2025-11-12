@@ -1,0 +1,9 @@
+[
+  {
+    "doctorId": "D001",
+    "branchId": "B001",
+    "fromDate": "2025-11-16",
+    "toDate": "2025-11-18",
+    "reason": "Conference"
+  }
+]
