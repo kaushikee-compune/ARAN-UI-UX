@@ -6,12 +6,12 @@ import { generateSlots } from "./utils";
 
 /**
  * QuickAddPanel
- * ----------------------------------------------------------------------
- * Lets admin quickly create a recurring pattern:
- *  - choose days (Mon–Sun)
- *  - choose start/end times
- *  - choose slot duration
- * Then emits an array of DayAvailability via onApply().
+ * --------------------------------------------------------------------------
+ * Lets admin quickly add Session 1 or Session 2 pattern
+ * - Select days
+ * - Choose start, end, slot duration
+ * - Choose session type (Session 1 / Session 2)
+ * --------------------------------------------------------------------------
  */
 export default function QuickAddPanel({
   onApply,
@@ -20,15 +20,7 @@ export default function QuickAddPanel({
   onApply: (pattern: DayAvailability[]) => void;
   disabled?: boolean;
 }) {
-  const DAY_ORDER: DayName[] = [
-    "Mon",
-    "Tue",
-    "Wed",
-    "Thu",
-    "Fri",
-    "Sat",
-    "Sun",
-  ];
+  const DAY_ORDER: DayName[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const [selectedDays, setSelectedDays] = useState<DayName[]>([
     "Mon",
@@ -36,51 +28,73 @@ export default function QuickAddPanel({
     "Wed",
     "Thu",
   ]);
+  const [session, setSession] = useState<"session1" | "session2">("session1");
   const [start, setStart] = useState("08:00");
   const [end, setEnd] = useState("14:00");
   const [duration, setDuration] = useState(15);
 
   const toggleDay = (day: DayName) => {
     setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day]
     );
   };
 
   const apply = () => {
-    if (!selectedDays.length) return;
+    const slots = generateSlots(start, end, duration);
     const pattern: DayAvailability[] = selectedDays.map((d) => ({
       day: d,
-      slots: generateSlots(start, end, duration),
+      session1: session === "session1" ? slots : [],
+      session2: session === "session2" ? slots : [],
     }));
     onApply(pattern);
   };
 
   return (
     <div className="ui-card p-4 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold">Quick Add Pattern</div>
-          <div className="text-xs text-gray-500">
-            Select days, time, and slot duration
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold">Quick Add Pattern</div>
+
+        <div className="flex gap-2 text-xs">
+          <button
+            className={`px-3 py-1.5 rounded-md border ${
+              session === "session1"
+                ? "bg-[--secondary] text-[--on-secondary] border-[--secondary]"
+                : "bg-white text-gray-700 border-gray-300"
+            }`}
+            onClick={() => setSession("session1")}
+          >
+            Session 1
+          </button>
+
+          <button
+            className={`px-3 py-1.5 rounded-md border ${
+              session === "session2"
+                ? "bg-[--secondary] text-[--on-secondary] border-[--secondary]"
+                : "bg-white text-gray-700 border-gray-300"
+            }`}
+            onClick={() => setSession("session2")}
+          >
+            Session 2
+          </button>
         </div>
       </div>
 
-      {/* Days Row */}
+      {/* Days selector */}
       <div className="flex flex-wrap gap-2">
         {DAY_ORDER.map((d) => {
           const active = selectedDays.includes(d);
           return (
             <button
               key={d}
-              type="button"
               onClick={() => toggleDay(d)}
-              className={[
-                "px-3 py-1.5 rounded-md text-sm border transition",
+              className={`px-3 py-1.5 rounded-md text-sm border ${
                 active
                   ? "bg-[--secondary] text-[--on-secondary] border-[--secondary]"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300",
-              ].join(" ")}
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
             >
               {d}
             </button>
@@ -88,10 +102,10 @@ export default function QuickAddPanel({
         })}
       </div>
 
-      {/* Time & Duration Inputs */}
+      {/* Time Inputs */}
       <div className="grid sm:grid-cols-3 gap-3">
         <div className="grid gap-1">
-          <label className="text-[11px] text-gray-600">Start Time</label>
+          <label className="text-[11px] text-gray-600">Start</label>
           <input
             type="time"
             className="ui-input"
@@ -99,9 +113,8 @@ export default function QuickAddPanel({
             onChange={(e) => setStart(e.target.value)}
           />
         </div>
-
         <div className="grid gap-1">
-          <label className="text-[11px] text-gray-600">End Time</label>
+          <label className="text-[11px] text-gray-600">End</label>
           <input
             type="time"
             className="ui-input"
@@ -109,9 +122,8 @@ export default function QuickAddPanel({
             onChange={(e) => setEnd(e.target.value)}
           />
         </div>
-
         <div className="grid gap-1">
-          <label className="text-[11px] text-gray-600">Slot Duration (min)</label>
+          <label className="text-[11px] text-gray-600">Slot Duration</label>
           <select
             className="ui-input"
             value={duration}
@@ -126,15 +138,13 @@ export default function QuickAddPanel({
         </div>
       </div>
 
-      {/* Action */}
       <div className="pt-1">
         <button
-          type="button"
+          onClick={apply}
           className="btn-primary"
           disabled={disabled || !selectedDays.length}
-          onClick={apply}
         >
-          Apply Pattern
+          Add {session === "session1" ? "Session 1" : "Session 2"} Schedule
         </button>
       </div>
     </div>

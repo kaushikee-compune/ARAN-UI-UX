@@ -9,9 +9,9 @@ export interface TimeSlot {
 
 export interface DayAvailability {
   day: DayName;
-  slots: TimeSlot[];
+  session1: TimeSlot[];
+  session2: TimeSlot[];
 }
-
 export interface DoctorSchedule {
   doctorId: string;
   branchId: string;

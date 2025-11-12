@@ -40,3 +40,22 @@ export function generateSlots(
   }
   return slots;
 }
+
+/** Format [{start,end},...] → "8.00 am – 2.00 pm" */
+export function formatTimeRange(slots: { start: string; end: string }[]): string {
+  if (!slots || slots.length === 0) return "—";
+
+  const first = slots[0].start;
+  const last = slots[slots.length - 1].end;
+
+  const fmt = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    const hour12 = ((h + 11) % 12) + 1;
+    const ampm = h < 12 ? "am" : "pm";
+    const mins = m.toString().padStart(2, "0");
+    return `${hour12}.${mins}${ampm}`;
+  };
+
+  return `${fmt(first)} – ${fmt(last)}`;
+}
+

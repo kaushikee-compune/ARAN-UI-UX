@@ -1,16 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type {
-  DoctorInfo,
-  DoctorSchedule,
-  OffDay,
-  DayAvailability,
-} from "./types";
-import ScheduleGrid from "./ScheduleGrid";
+import type { DoctorInfo, DoctorSchedule, DayAvailability, TimeSlot } from "./types";
 import QuickAddPanel from "./QuickAddPanel";
-import OffDayModal from "./OffDayModal";
-import { useBranch } from "@/context/BranchContext"; // ✅ global branch context
+import SchedulePreview from "./SchedulePreview";
+import { useBranch } from "@/context/BranchContext";
 
 export default function DoctorSlotScheduler() {
   const { selectedBranch } = useBranch();
@@ -18,14 +12,16 @@ export default function DoctorSlotScheduler() {
     typeof selectedBranch === "string"
       ? selectedBranch
       : selectedBranch?.id ?? "";
+  const branchName =
+    typeof selectedBranch === "object"
+      ? selectedBranch?.name ?? branchId
+      : branchId;
+
   const [doctors, setDoctors] = useState<DoctorInfo[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorInfo | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
-  const [offDays, setOffDays] = useState<OffDay[]>([]);
-  const [showOffModal, setShowOffModal] = useState(false);
 
-  // ──────────────────────────────
-  // Load doctors from JSON
+  // ─────────────────────────────────────────────
   useEffect(() => {
     fetch("/data/staff.json")
       .then((r) => r.json())
@@ -33,8 +29,6 @@ export default function DoctorSlotScheduler() {
       .catch(console.error);
   }, []);
 
-  // ──────────────────────────────
-  // Filter doctors for the active branch
   const filteredDoctors = useMemo(() => {
     if (!branchId) return [];
     return doctors.filter((d) => {
@@ -43,63 +37,79 @@ export default function DoctorSlotScheduler() {
     });
   }, [doctors, branchId]);
 
-  // Reset doctor if branch changes
   useEffect(() => {
     setSelectedDoctor(null);
+    setSchedule(null);
   }, [branchId]);
 
-  // ──────────────────────────────
-  // Load doctor’s schedule + off-days
-  useEffect(() => {
-    if (!selectedDoctor || !branchId) return;
-    Promise.all([
-      fetch("/data/doctor-schedule.json").then((r) => r.json()),
-      fetch("/data/offdays.json").then((r) => r.json()),
-    ]).then(([allSchedules, allOffDays]) => {
-      const sch = allSchedules.find(
-        (s: DoctorSchedule) =>
-          s.doctorId === selectedDoctor.id && s.branchId === branchId
-      );
-      setSchedule(sch || null);
-      setOffDays(
-        allOffDays.filter(
-          (o: OffDay) =>
-            o.doctorId === selectedDoctor.id && o.branchId === branchId
-        )
-      );
-    });
-  }, [selectedDoctor, branchId]);
-
-  // ──────────────────────────────
-  // Pattern + Save handlers
-  const handleApplyPattern = (dayPattern: DayAvailability[]) => {
-    if (!schedule) {
-      // create a new schedule if none exists
-      const newSchedule: DoctorSchedule = {
-        doctorId: selectedDoctor?.id || "",
-        branchId,
-        slotDuration: 15,
-        availability: dayPattern,
-      };
-      setSchedule(newSchedule);
-    } else {
-      setSchedule({
-        ...schedule,
-        availability: dayPattern,
-      });
-    }
+  // ─────────────────────────────────────────────
+  // Helpers to merge patterns (append without overwriting)
+  const dedupeSlots = (slots: TimeSlot[]): TimeSlot[] => {
+    const key = (s: TimeSlot) => `${s.start}-${s.end}`;
+    const map = new Map<string, TimeSlot>();
+    for (const s of slots) map.set(key(s), s);
+    return Array.from(map.values()).sort((a, b) => (a.start < b.start ? -1 : 1));
+    // (sorted for stable preview)
   };
 
+  const mergeAvailability = (
+    base: DayAvailability[],
+    incoming: DayAvailability[]
+  ): DayAvailability[] => {
+    const next = [...base.map((d) => ({ ...d,
+      session1: [...(d.session1 || [])],
+      session2: [...(d.session2 || [])],
+    }))];
+
+    for (const inc of incoming) {
+      const idx = next.findIndex((d) => d.day === inc.day);
+      if (idx === -1) {
+        next.push({
+          day: inc.day,
+          session1: dedupeSlots(inc.session1 || []),
+          session2: dedupeSlots(inc.session2 || []),
+        });
+      } else {
+        next[idx] = {
+          day: next[idx].day,
+          session1: dedupeSlots([...(next[idx].session1 || []), ...(inc.session1 || [])]),
+          session2: dedupeSlots([...(next[idx].session2 || []), ...(inc.session2 || [])]),
+        };
+      }
+    }
+    // keep day order Mon..Sun
+    const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    next.sort((a, b) => order.indexOf(a.day as any) - order.indexOf(b.day as any));
+    return next;
+  };
+
+  const handleAddPattern = (newPattern: DayAvailability[]) => {
+    if (!selectedDoctor) return;
+    setSchedule((prev) => {
+      if (!prev) {
+        return {
+          doctorId: selectedDoctor.id,
+          branchId,
+          slotDuration: 15,
+          availability: mergeAvailability([], newPattern),
+        };
+      }
+      return {
+        ...prev,
+        availability: mergeAvailability(prev.availability, newPattern),
+      };
+    });
+  };
+
+  // ─────────────────────────────────────────────
   const handleSave = async () => {
-    if (!selectedDoctor || !branchId || !schedule) return;
+    if (!schedule) return;
     console.log("Saving schedule:", schedule);
   };
 
-  // ──────────────────────────────
-  // Render
   return (
     <div className="space-y-4">
-      {/* Header Row */}
+      {/* Doctor selector */}
       <div className="flex flex-wrap items-center gap-3">
         <select
           className="ui-input"
@@ -117,49 +127,25 @@ export default function DoctorSlotScheduler() {
             </option>
           ))}
         </select>
-
-        <button
-          onClick={handleSave}
-          className="btn-primary"
-          disabled={!selectedDoctor}
-        >
-          Save Schedule
-        </button>
       </div>
 
-      {/* QuickAddPanel */}
-      <QuickAddPanel onApply={handleApplyPattern} disabled={!selectedDoctor} />
+      {/* Add pattern */}
+      <QuickAddPanel onApply={handleAddPattern} disabled={!selectedDoctor} />
 
-      {/* Grid */}
-      {schedule && (
-        <ScheduleGrid
-          availability={schedule.availability}
-          slotDuration={schedule.slotDuration}
-          onChange={(a) =>
-            setSchedule((prev) => (prev ? { ...prev, availability: a } : prev))
-          }
-        />
-      )}
-
-      {/* Off Days */}
-      <div className="flex items-center gap-2">
-        <button
-          className="btn-outline"
-          onClick={() => setShowOffModal(true)}
-          disabled={!selectedDoctor}
-        >
-          Block Days
-        </button>
-      </div>
-
-      {showOffModal && selectedDoctor && (
-        <OffDayModal
-          doctorId={selectedDoctor.id}
-          branchId={branchId}
-          existing={offDays}
-          onClose={() => setShowOffModal(false)}
-          onSave={(newList) => setOffDays(newList)}
-        />
+      {/* Preview + Save */}
+      {schedule && schedule.availability.length > 0 && (
+        <div className="space-y-3">
+          <SchedulePreview
+            availability={schedule.availability}
+            doctorName={selectedDoctor?.name || ""}
+            branchName={branchName}
+          />
+          <div className="flex justify-end">
+            <button onClick={handleSave} className="btn-accent">
+              Save Schedule
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
