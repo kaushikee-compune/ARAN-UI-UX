@@ -151,11 +151,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
           {branches.length > 0 && (
             <select
-              value={
-                typeof selectedBranch === "object" && selectedBranch
-                  ? selectedBranch.id
-                  : selectedBranch || ""
-              }
+              value={selectedBranch} // always a string branchId
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="ui-input text-sm min-w-[140px]"
               title="Select branch"
