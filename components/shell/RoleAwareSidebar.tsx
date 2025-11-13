@@ -182,7 +182,7 @@ const MENU: Record<Role, Item[]> = {
     },
      {
       href: "/admin/billing",
-      label: "Billing & Finance",
+      label: "Payments & Billing",
       icon: BiRupee,
       color: "text-green-600",
     },

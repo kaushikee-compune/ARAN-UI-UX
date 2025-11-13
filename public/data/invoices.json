@@ -1,0 +1,128 @@
+[
+  {
+    "invoiceId": "INV-B001-1001",
+    "branchId": "B001",
+    "date": "2025-11-12T10:15:00Z",
+    "module": "Consultation",
+    "patientId": "P1001",
+    "patientName": "Rekha Devi",
+    "doctorId": "stf001",
+    "doctorName": "Dr. Kavya Rao",
+    "items": [
+      {
+        "itemId": "CONSULT01",
+        "name": "OPD Consultation",
+        "quantity": 1,
+        "unitPrice": 600,
+        "total": 600
+      }
+    ],
+    "totalAmount": 600,
+    "paymentMode": "Cash",
+    "status": "Paid",
+    "reconciled": false
+  },
+
+  {
+    "invoiceId": "INV-B001-1002",
+    "branchId": "B001",
+    "date": "2025-11-12T11:40:00Z",
+    "module": "Consultation",
+    "patientId": "P1002",
+    "patientName": "Amit Sharma",
+    "doctorId": "stf002",
+    "doctorName": "Dr. Vasanth Shetty",
+    "items": [
+      {
+        "itemId": "CONSULT01",
+        "name": "OPD Consultation",
+        "quantity": 1,
+        "unitPrice": 700,
+        "total": 700
+      },
+      {
+        "itemId": "EYE_TEST",
+        "name": "Comprehensive Eye Test",
+        "quantity": 1,
+        "unitPrice": 350,
+        "total": 350
+      }
+    ],
+    "totalAmount": 1050,
+    "paymentMode": "UPI",
+    "status": "Paid",
+    "reconciled": true
+  },
+
+  {
+    "invoiceId": "INV-B001-1003",
+    "branchId": "B001",
+    "date": "2025-11-11T16:20:00Z",
+    "module": "Lab",
+    "patientId": "P1003",
+    "patientName": "Nithya R",
+    "doctorId": "stf003",
+    "doctorName": "Dr. Anil Kumar",
+    "items": [
+      {
+        "itemId": "LAB-CBC",
+        "name": "CBC Test",
+        "quantity": 1,
+        "unitPrice": 400,
+        "total": 400
+      }
+    ],
+    "totalAmount": 400,
+    "paymentMode": "Card",
+    "status": "Pending",
+    "reconciled": false
+  },
+
+  {
+    "invoiceId": "INV-B002-2001",
+    "branchId": "B002",
+    "date": "2025-11-12T09:50:00Z",
+    "module": "Consultation",
+    "patientId": "P2001",
+    "patientName": "S. Pradeep",
+    "doctorId": "stf005",
+    "doctorName": "Nurse Priya",
+    "items": [
+      {
+        "itemId": "DRESS01",
+        "name": "Dressing Charge",
+        "quantity": 1,
+        "unitPrice": 250,
+        "total": 250
+      }
+    ],
+    "totalAmount": 250,
+    "paymentMode": "Cash",
+    "status": "Paid",
+    "reconciled": false
+  },
+
+  {
+    "invoiceId": "INV-B002-2002",
+    "branchId": "B002",
+    "date": "2025-11-11T14:10:00Z",
+    "module": "Consultation",
+    "patientId": "P2002",
+    "patientName": "Vijaya Lakshmi",
+    "doctorId": "stf006",
+    "doctorName": "Mr. Ramesh Iyer",
+    "items": [
+      {
+        "itemId": "ADMIN01",
+        "name": "Admin Service Charge",
+        "quantity": 1,
+        "unitPrice": 300,
+        "total": 300
+      }
+    ],
+    "totalAmount": 300,
+    "paymentMode": "UPI",
+    "status": "Pending",
+    "reconciled": false
+  }
+]
