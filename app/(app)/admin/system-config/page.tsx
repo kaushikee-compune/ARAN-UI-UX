@@ -19,11 +19,8 @@ export default function SystemConfigPage() {
     setConfig(data);
 
     // Ensure selectedBranch is always a string branchId
-    const branchId =
-      typeof selectedBranch === "string"
-        ? selectedBranch
-        : selectedBranch?.id ?? null;
-
+    const branchId = selectedBranch;
+      
     if (!branchId) {
       setBranchCfg({});
     } else {
@@ -52,10 +49,8 @@ export default function SystemConfigPage() {
     alert("Saved (console only for now)");
   };
 
-  const branchId =
-  typeof selectedBranch === "string"
-    ? selectedBranch
-    : selectedBranch?.id ?? "";
+  const branchId = selectedBranch;
+  
 
   return (
     <div className="space-y-6 p-6 ui-card max-w-3xl">
