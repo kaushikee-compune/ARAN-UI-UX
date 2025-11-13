@@ -8,6 +8,10 @@ type CareTypeRow = { careType: string };
 
 export default function CaretypeSetupPage() {
   const { selectedBranch } = useBranch();
+
+  // Always a string now
+  const branchId = selectedBranch;
+
   const [careTypes, setCareTypes] = useState<string[]>([]);
   const [rows, setRows] = useState<CareTypeRow[]>([]);
   const [newCareType, setNewCareType] = useState("");
@@ -15,28 +19,33 @@ export default function CaretypeSetupPage() {
     null
   );
 
+  // NEW: store branchName separately
+  const [branchName, setBranchName] = useState<string>("");
+
   /* -------------------------------------------------------------------------- */
-  /*                     Detect branch status from users.json                   */
+  /*                     Detect branch status & name                            */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
-    if (!selectedBranch) return;
-    const clinic = usersData.clinics?.[0];
-    const foundBranch = clinic?.branches?.find(
-      (b: any) => b.id === selectedBranch
-    );
+    if (!branchId) return;
 
+    const clinic = usersData.clinics?.[0];
+    const foundBranch = clinic?.branches?.find((b: any) => b.id === branchId);
+
+    // Status
     const status =
       foundBranch?.status === "active"
         ? "active"
         : foundBranch?.status === "pending"
         ? "pending"
         : null;
-
     setBranchStatus(status);
-  }, [selectedBranch]);
+
+    // Name (THIS FIXES THE selectedBranch.name PROBLEM)
+    setBranchName(foundBranch?.name ?? branchId);
+  }, [branchId]);
 
   /* -------------------------------------------------------------------------- */
-  /*                       Load predefined care types JSON                      */
+  /*                       Load predefined care types                           */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
     const loadCareTypes = async () => {
@@ -59,7 +68,7 @@ export default function CaretypeSetupPage() {
   useEffect(() => {
     setRows([]);
     setNewCareType("");
-  }, [selectedBranch]);
+  }, [branchId]);
 
   /* -------------------------------------------------------------------------- */
   /*                           Add / Remove / Save                              */
@@ -77,7 +86,7 @@ export default function CaretypeSetupPage() {
 
   const saveChanges = () => {
     const payload = {
-      branchId: selectedBranch,
+      branchId,
       careTypes: rows,
     };
     console.log("✅ Caretype configuration saved:", payload);
@@ -86,7 +95,7 @@ export default function CaretypeSetupPage() {
   /* -------------------------------------------------------------------------- */
   /*                           Conditional Rendering                            */
   /* -------------------------------------------------------------------------- */
-  if (!selectedBranch) {
+  if (!branchId) {
     return (
       <div className="ui-card p-6 text-center text-gray-600">
         Please select a branch to configure care types.
@@ -118,11 +127,7 @@ export default function CaretypeSetupPage() {
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Current Branch:{" "}
-            <span className="font-medium text-gray-700">
-              {typeof selectedBranch === "object" && selectedBranch
-                ? selectedBranch.name
-                : selectedBranch}
-            </span>
+            <span className="font-medium text-gray-700">{branchName}</span>
           </p>
         </div>
         {rows.length > 0 && (

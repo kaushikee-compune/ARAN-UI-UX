@@ -27,10 +27,11 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
 
   // Extract branchId EXACTLY like RoleAccessPage
-  const branchId =
-    typeof selectedBranch === "string"
-      ? selectedBranch
-      : selectedBranch?.id ?? null;
+  const branchId = selectedBranch;
+  // const branchId =
+  //   typeof selectedBranch === "string"
+  //     ? selectedBranch
+  //     : selectedBranch?.id ?? null;
 
   /* -------------------------------------------------------------------------- */
   /*                              ALWAYS RUN HOOKS                              */

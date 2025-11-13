@@ -110,11 +110,8 @@ export default function BranchEditPage() {
         </button>
       </div>
 
-      <BranchSetupPanel branchId={String(
-  typeof selectedBranch === "object" && selectedBranch
-    ? selectedBranch.id
-    : selectedBranch
-)} />
+      <BranchSetupPanel branchId={selectedBranch} />
+      
     </div>
   );
 }

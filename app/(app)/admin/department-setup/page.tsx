@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useBranch } from "@/context/BranchContext"; // ✅ Global branch selector
+import { useBranch } from "@/context/BranchContext"; 
 import usersData from "@/public/data/users.json";
 
 type Doctor = { id: string; name: string };
@@ -9,6 +9,13 @@ type DepartmentRow = { department: string; doctor?: string };
 
 export default function DepartmentSetupPage() {
   const { selectedBranch } = useBranch();
+
+  // selectedBranch is ALWAYS a string (branchId)
+  const branchId = selectedBranch;
+
+  // NEW: correct branch.name storage
+  const [branchName, setBranchName] = useState<string>("");
+
   const [departments, setDepartments] = useState<string[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [rows, setRows] = useState<DepartmentRow[]>([]);
@@ -19,15 +26,13 @@ export default function DepartmentSetupPage() {
   );
 
   /* -------------------------------------------------------------------------- */
-  /*                     Detect branch status from users.json                   */
+  /*            Detect branch status & FIX branch.name resolution               */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
-    if (!selectedBranch) return;
+    if (!branchId) return;
 
     const clinic = usersData.clinics?.[0];
-    const foundBranch = clinic?.branches?.find(
-      (b: any) => b.id === selectedBranch
-    );
+    const foundBranch = clinic?.branches?.find((b: any) => b.id === branchId);
 
     const status =
       foundBranch?.status === "active"
@@ -37,7 +42,10 @@ export default function DepartmentSetupPage() {
         : null;
 
     setBranchStatus(status);
-  }, [selectedBranch]);
+
+    // FIX: Store actual name or fallback to branchId
+    setBranchName(foundBranch?.name ?? branchId);
+  }, [branchId]);
 
   /* -------------------------------------------------------------------------- */
   /*                         Load predefined lists (once)                       */
@@ -65,15 +73,15 @@ export default function DepartmentSetupPage() {
     };
     loadLists();
   }, []);
+
   /* -------------------------------------------------------------------------- */
-  /*                 Clear data when branch changes (fresh state)               */
+  /*            Clear rows when branch changes (fresh start per branch)         */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
-    // Whenever branch switches, clear existing rows and inputs
     setRows([]);
     setNewDept("");
     setNewDoctor("");
-  }, [selectedBranch]);
+  }, [branchId]);
 
   /* -------------------------------------------------------------------------- */
   /*                           Add / Remove / Save                              */
@@ -95,7 +103,7 @@ export default function DepartmentSetupPage() {
 
   const saveChanges = () => {
     const payload = {
-      branchId: selectedBranch,
+      branchId,
       departments: rows,
     };
     console.log("✅ Department configuration saved:", payload);
@@ -104,7 +112,7 @@ export default function DepartmentSetupPage() {
   /* -------------------------------------------------------------------------- */
   /*                              Conditional Views                             */
   /* -------------------------------------------------------------------------- */
-  if (!selectedBranch) {
+  if (!branchId) {
     return (
       <div className="ui-card p-6 text-center text-gray-600">
         Please select a branch to configure departments.
@@ -124,16 +132,8 @@ export default function DepartmentSetupPage() {
   }
 
   /* -------------------------------------------------------------------------- */
-  /*                              Render UI                                     */
+  /*                                  Render UI                                 */
   /* -------------------------------------------------------------------------- */
-  if (!selectedBranch) {
-    return (
-      <div className="ui-card p-6 text-center text-gray-600">
-        Please select a branch to configure departments.
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white p-8 space-y-8 max-w-4xl mx-auto">
       {/* Header */}
@@ -144,11 +144,7 @@ export default function DepartmentSetupPage() {
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Current Branch:{" "}
-            <span className="font-medium">
-              {typeof selectedBranch === "object" && selectedBranch
-                ? selectedBranch.name
-                : selectedBranch}
-            </span>
+            <span className="font-medium text-gray-700">{branchName}</span>
           </p>
         </div>
         {rows.length > 0 && (
@@ -168,7 +164,7 @@ export default function DepartmentSetupPage() {
         </h2>
 
         <div className="flex flex-wrap gap-3 items-center">
-          {/* Department input with datalist */}
+          {/* Department input */}
           <div className="flex-1 min-w-[240px]">
             <input
               list="dept-options"
@@ -184,7 +180,7 @@ export default function DepartmentSetupPage() {
             </datalist>
           </div>
 
-          {/* Doctor dropdown (no free text) */}
+          {/* Doctor dropdown */}
           <div className="flex-1 min-w-[240px]">
             <select
               className="ui-input w-full text-sm"
@@ -210,7 +206,7 @@ export default function DepartmentSetupPage() {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Table */}
       <div className="ui-card p-4">
         <table className="w-full text-sm border-collapse">
           <thead>
