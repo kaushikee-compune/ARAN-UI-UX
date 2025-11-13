@@ -7,6 +7,7 @@
         "name": "Moxifloxacin Eye Drops 0.5%",
         "category": "Pharmacy",
         "unit": "Bottle",
+        "unitPrice": 95,
         "stockQty": 18,
         "threshold": 20,
         "supplier": "Alcon Laboratories"
@@ -16,6 +17,7 @@
         "name": "Tropicamide + Phenylephrine Eye Drops",
         "category": "Pharmacy",
         "unit": "Bottle",
+        "unitPrice": 50,
         "stockQty": 8,
         "threshold": 10,
         "supplier": "Sun Pharma"
@@ -25,6 +27,7 @@
         "name": "Artificial Tears (Carboxymethylcellulose 0.5%)",
         "category": "Pharmacy",
         "unit": "Bottle",
+        "unitPrice": 120,
         "stockQty": 25,
         "threshold": 15,
         "supplier": "Allergan India"
@@ -34,6 +37,7 @@
         "name": "Betadine Solution 5%",
         "category": "Consumables",
         "unit": "Bottle",
+        "unitPrice": 75,
         "stockQty": 6,
         "threshold": 10,
         "supplier": "Avra Laboratories"
@@ -43,6 +47,7 @@
         "name": "Sterile Cotton Swabs (Eye Pack)",
         "category": "Consumables",
         "unit": "Pack",
+        "unitPrice": 100,
         "stockQty": 12,
         "threshold": 8,
         "supplier": "Medline"
@@ -52,6 +57,7 @@
         "name": "Eye Pad (Sterile, Adhesive)",
         "category": "Consumables",
         "unit": "Box",
+        "unitPrice": 250,
         "stockQty": 5,
         "threshold": 10,
         "supplier": "Lotus Surgicals"
@@ -61,6 +67,7 @@
         "name": "Tear Film Strips (Schirmer Test)",
         "category": "Diagnostic",
         "unit": "Box",
+        "unitPrice": 195,
         "stockQty": 15,
         "threshold": 10,
         "supplier": "TearLab"
@@ -70,6 +77,7 @@
         "name": "Topical Anesthetic (Proparacaine 0.5%)",
         "category": "Pharmacy",
         "unit": "Bottle",
+        "unitPrice": 55,
         "stockQty": 9,
         "threshold": 10,
         "supplier": "Sentiss Pharma"
@@ -79,6 +87,7 @@
         "name": "Bandage Contact Lens (Hydrogel, Sterile)",
         "category": "Consumables",
         "unit": "Pack",
+        "unitPrice": 150,
         "stockQty": 20,
         "threshold": 10,
         "supplier": "Bausch & Lomb"
@@ -88,6 +97,7 @@
         "name": "Ophthalmic Surgical Blade 15°",
         "category": "Surgical",
         "unit": "Piece",
+        "unitPrice": 550,
         "stockQty": 7,
         "threshold": 10,
         "supplier": "Alcon Surgical"
@@ -97,6 +107,7 @@
         "name": "Viscoelastic (Sodium Hyaluronate 1%)",
         "category": "Surgical",
         "unit": "Syringe",
+        "unitPrice": 20,
         "stockQty": 3,
         "threshold": 5,
         "supplier": "Abbott Medical Optics"
@@ -106,6 +117,7 @@
         "name": "Intraocular Lens (Foldable, Acrylic)",
         "category": "Surgical Implant",
         "unit": "Piece",
+        "unitPrice": 20000,
         "stockQty": 10,
         "threshold": 8,
         "supplier": "Aurolab"
@@ -115,6 +127,7 @@
         "name": "Sterile Gloves (Powder-free, Size 7)",
         "category": "Consumables",
         "unit": "Box",
+        "unitPrice": 500,
         "stockQty": 22,
         "threshold": 15,
         "supplier": "Medicare India"
@@ -124,6 +137,7 @@
         "name": "Syringe 2 ml with Needle",
         "category": "Consumables",
         "unit": "Box",
+        "unitPrice": 100,
         "stockQty": 40,
         "threshold": 25,
         "supplier": "Hindustan Syringes"
@@ -132,6 +146,7 @@
         "id": "I015",
         "name": "Antibiotic Ointment (Chloramphenicol 1%)",
         "category": "Pharmacy",
+        "unitPrice": 65,
         "unit": "Tube",
         "stockQty": 4,
         "threshold": 10,

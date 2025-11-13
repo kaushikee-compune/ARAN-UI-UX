@@ -25,6 +25,7 @@ export default function InventoryFormModal({
     unit: "",
     stockQty: 0,
     threshold: 0,
+    unitPrice: 0,
     supplier: "",
   });
 
@@ -39,6 +40,7 @@ export default function InventoryFormModal({
         unit: "",
         stockQty: 0,
         threshold: 0,
+        unitPrice: 0,
         supplier: "",
       });
   }, [editing, branchId]);
@@ -71,9 +73,21 @@ export default function InventoryFormModal({
         </div>
 
         <div className="grid gap-2 text-sm">
-          <Input label="Name" value={form.name} onChange={(v) => update("name", v)} />
-          <Input label="Category" value={form.category} onChange={(v) => update("category", v)} />
-          <Input label="Unit" value={form.unit} onChange={(v) => update("unit", v)} />
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(v) => update("name", v)}
+          />
+          <Input
+            label="Category"
+            value={form.category}
+            onChange={(v) => update("category", v)}
+          />
+          <Input
+            label="Unit"
+            value={form.unit}
+            onChange={(v) => update("unit", v)}
+          />
           <Input
             label="Stock Quantity"
             type="number"
@@ -87,6 +101,12 @@ export default function InventoryFormModal({
             onChange={(v) => update("threshold", Number(v))}
           />
           <Input
+            label="Unit Price (₹)"
+            type="number"
+            value={String(form.unitPrice)}
+            onChange={(v) => update("unitPrice", Number(v))}
+          />
+          <Input
             label="Supplier"
             value={form.supplier || ""}
             onChange={(v) => update("supplier", v)}
@@ -97,7 +117,10 @@ export default function InventoryFormModal({
           <button className="btn-outline px-3 py-1 text-sm" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn-primary px-3 py-1 text-sm" onClick={handleSubmit}>
+          <button
+            className="btn-primary px-3 py-1 text-sm"
+            onClick={handleSubmit}
+          >
             Save
           </button>
         </div>

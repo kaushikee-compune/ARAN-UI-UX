@@ -6,5 +6,6 @@ export type InventoryItem = {
   unit: string;
   stockQty: number;
   threshold: number;
+  unitPrice: number; 
   supplier?: string;
 };

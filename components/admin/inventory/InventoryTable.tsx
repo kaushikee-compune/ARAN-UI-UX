@@ -18,6 +18,7 @@ export default function InventoryTable({ items, onEdit }: Props) {
             <Th>Stock</Th>
             <Th>Threshold</Th>
             <Th>Unit</Th>
+            <Th>Unit Price (₹)</Th>
             <Th>Supplier</Th>
             <Th>Action</Th>
           </tr>
@@ -71,6 +72,7 @@ export default function InventoryTable({ items, onEdit }: Props) {
                 <Td>{it.stockQty}</Td>
                 <Td>{it.threshold}</Td>
                 <Td>{it.unit}</Td>
+                <Td>₹{it.unitPrice?.toFixed(2) || "0.00"}</Td>
                 <Td>{it.supplier || "—"}</Td>
                 <Td>
                   <button
