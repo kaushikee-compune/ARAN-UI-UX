@@ -8,14 +8,10 @@ import { useBranch } from "@/context/BranchContext";
 
 export default function DoctorSlotScheduler() {
   const { selectedBranch } = useBranch();
-  const branchId =
-    typeof selectedBranch === "string"
-      ? selectedBranch
-      : selectedBranch?.id ?? "";
-  const branchName =
-    typeof selectedBranch === "object"
-      ? selectedBranch?.name ?? branchId
-      : branchId;
+  const branchId = selectedBranch;
+    
+  const branchName = selectedBranch;
+   
 
   const [doctors, setDoctors] = useState<DoctorInfo[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorInfo | null>(null);
