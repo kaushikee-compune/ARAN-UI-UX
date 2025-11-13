@@ -163,37 +163,37 @@ const MENU: Record<Role, Item[]> = {
   ],
   admin: [
     {
+      href: "/admin/",
+      label: "Dashboard",
+      icon: AnalyticsOutlined,
+      color: "text-pink-600",
+    },
+    {
       href: "/admin/branch-setup",
       label: "Branch Setup",
       icon: LayoutDashboard,
-      color: "text-sky-600",
+      color: "text-green-600",
     },
      {
       href: "/admin/people",
       label: "People Management",
       icon: Users,
-      color: "text-emerald-600",
+      color: "text-purple-600",
     },
      {
       href: "/admin/inventory",
       label: "Inventory",
       icon: MonitorCog,
-      color: "text-blue-600",
+      color: "text-red-600",
     },
      {
       href: "/admin/billing",
       label: "Payments & Billing",
       icon: BiRupee,
       color: "text-green-600",
-    },
-     {
-      href: "/admin/compliance",
-      label: "Compliance",
-      icon: Folder,
-      color: "text-amber-600",
-    },
+    },     
     {
-      href: "/admin/system",
+      href: "/admin/system-config",
       label: "System Configuration",
       icon: Settings,
       color: "text-amber-600",

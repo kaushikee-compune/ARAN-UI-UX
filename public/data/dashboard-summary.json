@@ -1,0 +1,51 @@
+{
+  "branches": {
+    "B001": {
+      "clinicStats": {
+        "clinicName": "Shankar Nethralaya",
+        "totalBranches": 3,
+        "activeBranches": 3,
+        "status": "Operational"
+      },
+      "inventory": {
+        "lowStock": 4,
+        "totalItems": 128
+      },
+      "staff": {
+        "total": 22,
+        "doctors": 6,
+        "active": 18,
+        "pendingApprovals": 2
+      },
+      "billing": {
+        "today": 18500,
+        "month": 425000,
+        "pendingInvoices": 7
+      }
+    },
+
+    "B002": {
+      "clinicStats": {
+        "clinicName": "Shankar Nethralaya – City Center",
+        "totalBranches": 3,
+        "activeBranches": 3,
+        "status": "Operational"
+      },
+      "inventory": {
+        "lowStock": 2,
+        "totalItems": 90
+      },
+      "staff": {
+        "total": 14,
+        "doctors": 4,
+        "active": 11,
+        "pendingApprovals": 1
+      },
+      "billing": {
+        "today": 8200,
+        "month": 220000,
+        "pendingInvoices": 3
+      }
+    }
+  }
+}

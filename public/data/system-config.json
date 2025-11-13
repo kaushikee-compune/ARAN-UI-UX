@@ -1,0 +1,21 @@
+{
+  "lastUpdated": "2025-01-01T00:00:00Z",
+  "global": {
+    "smsProvider": "twilio",
+    "emailProvider": "smtp",
+    "timezone": "Asia/Kolkata",
+    "dateFormat": "DD-MM-YYYY"
+  },
+  "branchConfigs": {
+    "B001": {
+      "appointmentPrefix": "SN",
+      "invoicePrefix": "SNINV",
+      "currency": "INR"
+    },
+    "B002": {
+      "appointmentPrefix": "CC",
+      "invoicePrefix": "CCINV",
+      "currency": "INR"
+    }
+  }
+}
