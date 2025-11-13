@@ -19,20 +19,17 @@ export default function InventoryPage() {
 
   // Load JSON
   useEffect(() => {
-    if (!selectedBranch) return;
-    const branchId =
-      typeof selectedBranch === "string"
-        ? selectedBranch
-        : selectedBranch.branchId || selectedBranch.id;
-    if (!branchId) return;
+  const branchId = selectedBranch; // always a string now
+  if (!branchId) return;
 
-    fetch("/data/inventory.json")
-      .then((res) => res.json())
-      .then((data) => {
-        const branch = data.find((b: any) => b.branchId === branchId);
-        setItems(branch ? branch.items : []);
-      });
-  }, [selectedBranch]);
+  fetch("/data/inventory.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const branch = data.find((b: any) => b.branchId === branchId);
+      setItems(branch ? branch.items : []);
+    })
+    .catch((err) => console.error("Inventory load error:", err));
+}, [selectedBranch]);
 
   // Filtered view
   const filtered = useMemo(() => {
@@ -142,11 +139,7 @@ export default function InventoryPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         editing={editing}
-        branchId={
-          typeof selectedBranch === "string"
-            ? selectedBranch
-            : selectedBranch?.branchId || selectedBranch?.id || ""
-        }
+        branchId={selectedBranch}
       />
     </div>
   );
