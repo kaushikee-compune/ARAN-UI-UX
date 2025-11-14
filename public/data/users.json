@@ -10,27 +10,99 @@
       ]
     }
   ],
+
   "users": [
     {
       "id": "u1",
+      "email": "vasanth@example.com",
       "name": "Dr. Vasanth Shetty",
-      "role": "doctor",
+      "status": "active",
       "clinicId": "clinic001",
-      "accessibleBranches": ["B001", "B002"]
+
+      "role": "doctor",
+      "accessibleBranches": ["B001", "B002"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" },
+        { "branchId": "B002", "role": "doctor" }
+      ]
     },
+
+    {
+      "id": "u1",
+      "email": "kalam@example.com",
+      "name": "Dr. Abdul Kalam",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "doctor",
+      "accessibleBranches": ["B001"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" }       
+      ]
+    },
+
     {
       "id": "u2",
-      "name": "Nurse Priya",
-      "role": "staff",
+      "email": "vikram@example.com",
+      "name": "Dr. Vikram Sarabhai",
+      "status": "active",
       "clinicId": "clinic001",
-      "accessibleBranches": ["B002"]
+
+      "role": "doctor",
+      "accessibleBranches": ["B001", "B002"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" },
+        { "branchId": "B001", "role": "admin" }, 
+        { "branchId": "B002", "role": "doctor" }
+      ]
     },
+
     {
       "id": "u3",
-      "name": "Clinic Admin",
-      "role": "admin",
+      "email": "staff@example.com",
+      "name": "Staff User",
+      "status": "active",
       "clinicId": "clinic001",
-      "accessibleBranches": ["B001", "B002", "B003"]
+
+      "role": "staff",
+      "accessibleBranches": ["B002"],
+
+      "access": [
+        { "branchId": "B002", "role": "staff" }
+      ]
+    },
+
+    {
+      "id": "u4",
+      "email": "admin@example.com",
+      "name": "Admin User",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "admin",
+      "accessibleBranches": ["B001", "B002", "B003"],
+
+      "access": [
+        { "branchId": "B001", "role": "admin" },
+        { "branchId": "B002", "role": "admin" },
+        { "branchId": "B003", "role": "admin" }
+      ]
+    },
+
+    {
+      "id": "u5",
+      "email": "blocked@example.com",
+      "name": "Blocked User",
+      "status": "suspended",
+      "clinicId": "clinic001",
+
+      "role": "staff",
+      "accessibleBranches": [],
+
+      "access": []
     }
   ]
 }

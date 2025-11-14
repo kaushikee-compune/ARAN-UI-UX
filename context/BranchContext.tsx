@@ -1,132 +1,156 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { SessionData, AccessEntry } from "@/lib/auth/role";
 
-/* -------------------------------------------------------------------------- */
-/*                              Type definitions                              */
-/* -------------------------------------------------------------------------- */
 export type Branch = {
   id: string;
-  branchId?: string; // optional support
   name: string;
   status: string;
 };
 
-// Hard default (fallback)
 const DEFAULT_BRANCH_ID = "B001";
 
 type BranchContextType = {
-  /**
-   * Always a *string* BranchId after initialization.
-   * Never null once loading=false.
-   */
   selectedBranch: string;
   setSelectedBranch: (branchId: string) => void;
-
   branches: Branch[];
   loading: boolean;
 };
 
-/* -------------------------------------------------------------------------- */
-/*                             Default (safe) context                         */
-/* -------------------------------------------------------------------------- */
 const BranchContext = createContext<BranchContextType>({
   selectedBranch: DEFAULT_BRANCH_ID,
-  setSelectedBranch: (_branchId: string) => {},
+  setSelectedBranch: () => {},
   branches: [],
   loading: true,
 });
 
-/* -------------------------------------------------------------------------- */
-/*                              Branch Provider                               */
-/* -------------------------------------------------------------------------- */
-export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
-  const [selectedBranch, setSelectedBranch] = useState<string>(() => {
-    // SSR-safe localStorage read
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("aran:selectedBranch") || DEFAULT_BRANCH_ID;
-    }
-    return DEFAULT_BRANCH_ID;
-  });
+/* Utility: read cookie value */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="));
+  return match ? match.split("=")[1] : null;
+}
 
+/* Utility: decode session cookie */
+function loadSession(): SessionData | null {
+  if (typeof document === "undefined") return null;
+
+  const raw = getCookie("aran.session");
+  if (!raw) return null;
+
+  try {
+    const decoded = atob(raw.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
+  } catch (err) {
+    console.error("Session decode failed:", err);
+    return null;
+  }
+}
+
+export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
+  const [selectedBranch, setSelectedBranch] = useState<string>(DEFAULT_BRANCH_ID);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ---------------------- Persist branch selection ---------------------- */
   useEffect(() => {
-    if (typeof window !== "undefined" && selectedBranch) {
-      localStorage.setItem("aran:selectedBranch", selectedBranch);
-    }
-  }, [selectedBranch]);
-
-  /* ---------------------- Load user + clinic + branches ---------------------- */
-  useEffect(() => {
-    async function loadUserData() {
+    async function init() {
       try {
-        const res = await fetch("/data/users.json");
-        if (!res.ok) throw new Error("Failed to load users.json");
+        const session = loadSession();
+        if (!session || !session.clinicId) {
+          console.warn("No session found → no branches");
+          setBranches([]);
+          setSelectedBranch(DEFAULT_BRANCH_ID);
+          return;
+        }
+
+        /* Load NEW ARAN users.json with clinic+users */
+        const res = await fetch("/data/users.json?" + Date.now()); 
         const data = await res.json();
 
-        const currentUser = data.users.find((u: any) => u.role === "admin");
-        if (!currentUser) throw new Error("Admin user not found");
-
         const clinic = data.clinics.find(
-          (c: any) => c.id === currentUser.clinicId
+          (c: any) => c.id === session.clinicId
         );
-        if (!clinic) throw new Error("Clinic not found");
+        if (!clinic) throw new Error("Clinic not found for user");
 
-        setBranches(clinic.branches);
+        const clinicBranches: Branch[] = clinic.branches;
 
-        /* ---------------- Ensure selectedBranch is valid ---------------- */
-        // 1) If selectedBranch is already in localStorage and valid → accept
-        const valid = clinic.branches.some((b: Branch) => b.id === selectedBranch);
+        /* Determine active role */
+        const activeRole =
+          getCookie("aran.activeRole") || session.legacyRole;
 
-        if (valid) {
-          // Already valid, no action needed
+        if (!activeRole) {
+          console.warn("No activeRole → fallback to all branches");
+          setBranches(clinicBranches);
+          setSelectedBranch(DEFAULT_BRANCH_ID);
           return;
         }
 
-        // 2) Else pick user's first accessible branch
-        if (currentUser.accessibleBranches.length > 0) {
-          const fallbackId = currentUser.accessibleBranches[0];
-          setSelectedBranch(fallbackId);
+        /* Determine allowed branch IDs for this role */
+        const allowedBranchIds =
+          session.access
+            ?.filter((a: AccessEntry) => a.role === activeRole)
+            .map((a: AccessEntry) => a.branchId) || [];
+
+        /* SPECIAL FIX:
+           If user has EXACTLY ONE allowed branch, dropdown MUST contain only that */
+        if (allowedBranchIds.length === 1) {
+          const onlyBranch = clinicBranches.find(
+            (b) => b.id === allowedBranchIds[0]
+          );
+          setBranches(onlyBranch ? [onlyBranch] : []);
+          setSelectedBranch(onlyBranch?.id || DEFAULT_BRANCH_ID);
           return;
         }
 
-        // 3) Else fallback to first clinic branch
-        if (clinic.branches.length > 0) {
-          setSelectedBranch(clinic.branches[0].id);
-          return;
-        }
+        /* Filter branches */
+        const visibleBranches = clinicBranches.filter((b: Branch) =>
+          allowedBranchIds.includes(b.id)
+        );
 
-        // 4) Final last fallback: DEFAULT_BRANCH_ID
-        setSelectedBranch(DEFAULT_BRANCH_ID);
+        setBranches(visibleBranches);
+
+        /* Set selected branch from cookie or first allowed */
+        const cookieBranch = getCookie("aran.activeBranch");
+
+        if (cookieBranch && allowedBranchIds.includes(cookieBranch)) {
+          setSelectedBranch(cookieBranch);
+        } else if (visibleBranches.length > 0) {
+          setSelectedBranch(visibleBranches[0].id);
+        } else {
+          setSelectedBranch(DEFAULT_BRANCH_ID);
+        }
       } catch (err) {
-        console.error("BranchContext error:", err);
-        // Hard fallback to default branch
+        console.error("BranchProvider Error:", err);
+        setBranches([]);
         setSelectedBranch(DEFAULT_BRANCH_ID);
       } finally {
         setLoading(false);
       }
     }
 
-    loadUserData();
+    init();
   }, []);
 
-  /* ---------------------- Provide consistent types ---------------------- */
- const ctx: BranchContextType = {
-  selectedBranch,
-  // use the state setter directly – it's already typed as (value: string) => void
-  setSelectedBranch,
-  branches,
-  loading,
+  /* Persist branch → cookie */
+  useEffect(() => {
+    if (typeof document !== "undefined" && selectedBranch) {
+      document.cookie = `aran.activeBranch=${selectedBranch}; Path=/`;
+    }
+  }, [selectedBranch]);
+
+  const ctx: BranchContextType = {
+    selectedBranch,
+    setSelectedBranch,
+    branches,
+    loading,
+  };
+
+  return (
+    <BranchContext.Provider value={ctx}>{children}</BranchContext.Provider>
+  );
 };
 
-
-  return <BranchContext.Provider value={ctx}>{children}</BranchContext.Provider>;
-};
-
-/* -------------------------------------------------------------------------- */
-/*                                Hook export                                 */
-/* -------------------------------------------------------------------------- */
 export const useBranch = () => useContext(BranchContext);

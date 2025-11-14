@@ -1,0 +1,47 @@
+[
+  {
+    "email": "vasanth@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Vasanth Shetty",
+    "status": "active"
+  },
+  
+  {
+    "email": "vikram@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Vikram Sarabhai",
+    "status": "active"
+  },
+
+  {
+    "email": "kalam@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Abdul Kalam",
+    "status": "active"
+  },
+
+  {
+    "email": "staff@example.com",
+    "password": "Aran@123",
+    "role": "staff",
+    "name": "Staff User",
+    "status": "active"
+  },
+  {
+    "email": "admin@example.com",
+    "password": "Aran@123",
+    "role": "admin",
+    "name": "Admin User",
+    "status": "active"
+  },
+  {
+    "email": "blocked@example.com",
+    "password": "blocked123",
+    "role": "staff",
+    "name": "Blocked User",
+    "status": "suspended"
+  }
+]

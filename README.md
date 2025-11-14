@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+---
 
-First, run the development server:
+# 6. 🔧 Mock Data Files (API replacements)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+| File | Purpose |
+|------|---------|
+| `branches.json` | Branch master + IDs |
+| `departments.json` | Department master |
+| `caretypes.json` | Care type master |
+| `staff.json` | Doctors & staff with role & branch mapping |
+| `roles.json` | Role → permissions matrix |
+| `schedules.json` | Doctor slot schedules |
+| `inventory.json` | Billing items, unit prices |
+| `invoices.json` | Invoice data |
+| `patients.json` | Patient list (future) |
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+These will be replaced by REST/GraphQL endpoints later.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 7. 🧠 Advanced Systems
 
-## Learn More
+## **Voice & Scribe System**
+- AI classification: Complaints, Advice, Other Notes  
+- Integrated with consultation form  
+- Works with both streaming & final transcript chunks  
 
-To learn more about Next.js, take a look at the following resources:
+## **FHIR Bundle Engine**
+- Generic endpoint: `/api/fhir/v1/prefhirbundle`  
+- Generates ABDM-compliant bundles from form JSON  
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## **Theme & UI Style Engine**
+- Saved in localStorage (`aran_theme`, `aran_ui`)  
+- Affects global CSS variables  
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+# 8. 🧭 Roadmap (Next Milestones)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Finalize Staff UI layout  
+- Integrate Schedule → Appointments sync  
+- Backend API integration  
+- SNOMED CT + ICD-10 mapping (phase 2)  
+- OPD Billing Enhancements  
+- PDF/Print templates for all HI Types  
+- Mobile-responsive optimization  
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+# 9. 📜 License
+© 2025 ARAN Care — All rights reserved.
+
+---
+
+# 10. 👤 Author / Maintainer
+**Compune Digital Solutions Pvt. Ltd.**  
+Product: ARAN Care  

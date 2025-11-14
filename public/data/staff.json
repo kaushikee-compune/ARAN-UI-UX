@@ -3,7 +3,7 @@
     "id": "stf001",
     "name": "Dr. Kavya Rao",
     "role": ["Doctor"],
-    "department": ["Pediatric Ophthalmology","Oculoplasty & Orbit Services"],
+    "department": ["Pediatric Ophthalmology", "Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
     "email": "kavya.rao@sn.org",
@@ -17,7 +17,7 @@
     "department": ["Oculoplasty & Orbit Services"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
-    "email": "vasanth.shetty@sn.org",
+    "email": "vasanth@example.com",
     "phone": "9876543211",
     "status": "active"
   },
@@ -25,7 +25,7 @@
     "id": "stf003",
     "name": "Dr. Anil Kumar",
     "role": ["Doctor"],
-    "department": ["Comprehensive Ophthalmology","Pediatric Ophthalmology"],
+    "department": ["Comprehensive Ophthalmology", "Pediatric Ophthalmology"],
     "branch": "Koramangala (Main)",
     "branchId": "B001",
     "email": "anil.kumar@sn.org",
@@ -64,5 +64,16 @@
     "email": "ramesh.iyer@sn.org",
     "phone": "9876543214",
     "status": "pending"
+  },
+  {
+    "id": "stf001",
+    "name": "Dr. Vasanth Shetty",
+    "role": ["Doctor"],
+    "department": "Comprehensive Ophthalmology",
+    "branch": "JP Nagar",
+    "branchId": "B002",
+    "email": "vasanth@example.com",
+    "phone": "9876543211",
+    "status": "active"
   }
 ]

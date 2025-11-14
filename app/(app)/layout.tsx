@@ -2,102 +2,80 @@
 
 import type { ReactNode } from "react";
 import {
-  createContext,
-  useContext,
   useEffect,
   useMemo,
   useState,
   useRef,
 } from "react";
 import NextImage from "next/image";
-import RoleAwareSidebar, {
-  type Role,
-} from "@/components/shell/RoleAwareSidebar";
+import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
 import { Toaster } from "react-hot-toast";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import usersData from "@/public/data/users.json";
-import { useBranch, BranchProvider } from "@/context/BranchContext";
+import BranchProviderClient from "@/context/BranchProviderClient";
+import { useBranch } from "@/context/BranchContext";
 
 const SIDEBAR_KEY = "aran:sidebarCollapsed";
 const HEADER_HEIGHT = 56;
 
-/* ---------- Helpers ---------- */
-function base64UrlDecode(str: string): string {
-  try {
-    const norm =
-      str.replace(/-/g, "+").replace(/_/g, "/") +
-      "===".slice((str.length + 3) % 4);
-    const bin = atob(norm);
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return "";
-  }
+/* ---------- Read role from cookie ---------- */
+function getActiveRoleFromCookie(): Role {
+  if (typeof document === "undefined") return "doctor";
+  const raw = document.cookie
+    .split("; ")
+    .find((x) => x.startsWith("aran.activeRole="));
+  const role = raw?.split("=")[1];
+  return role === "doctor" || role === "staff" || role === "admin"
+    ? role
+    : "doctor";
 }
 
-function readClientRoleFromCookie(): Role {
-  const cookie = typeof document !== "undefined" ? document.cookie : "";
-  const part = cookie.split("; ").find((c) => c.startsWith("aran.session="));
-  if (!part) return "doctor";
-  const raw = part.split("=")[1];
-  try {
-    const obj = JSON.parse(base64UrlDecode(raw));
-    const role = obj?.role as Role | undefined;
-    return role === "doctor" || role === "staff" || role === "admin"
-      ? role
-      : "doctor";
-  } catch {
-    return "doctor";
-  }
+/* ----------------------------------------------------------- */
+/*          MAIN EXPORTED WRAPPER (fixes refresh bug)          */
+/* ----------------------------------------------------------- */
+
+export default function AppShellLayoutWrapper({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <BranchProviderClient>
+      <ThemeProvider>
+        <AppShellLayout>{children}</AppShellLayout>
+      </ThemeProvider>
+    </BranchProviderClient>
+  );
 }
 
-/* ---------- Layout ---------- */
-export default function AppShellLayout({ children }: { children: ReactNode }) {
+/* ----------------------------------------------------------- */
+/*                     Actual Layout Component                 */
+/* ----------------------------------------------------------- */
+
+function AppShellLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role>("doctor");
-  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-  const { selectedBranch, setSelectedBranch } = useBranch();
-  const [accessibleBranches, setAccessibleBranches] = useState<string[]>([]);
 
-  // 1️⃣ First effect: handles mount + role + sidebar
+  const { branches, selectedBranch, setSelectedBranch, loading } = useBranch();
+
+  /* ---------- Initial mount ---------- */
   useEffect(() => {
     setMounted(true);
     setCollapsed(readCollapsedFromStorage());
-    setRole(readClientRoleFromCookie());
+    setRole(getActiveRoleFromCookie());
   }, []);
 
-  // 2️⃣ Second effect: load user + branches
+  /* ---------- Update role when context done loading ---------- */
   useEffect(() => {
-    const currentUser = usersData.users.find((u) => u.id === "u3");
-    if (currentUser) setAccessibleBranches(currentUser.accessibleBranches);
+    if (!loading) {
+      const activeRole = getActiveRoleFromCookie();
+      setRole(activeRole);
+    }
+  }, [loading]);
 
-    fetch("/data/users.json")
-      .then((r) => r.json())
-      .then((d) => {
-        const roleFromCookie = readClientRoleFromCookie();
-        const user = d.users.find((u: any) => u.role === roleFromCookie);
-        const clinic = d.clinics.find((c: any) => c.id === user?.clinicId);
-
-        if (!clinic) return;
-
-        let allowedBranches = [];
-        if (roleFromCookie === "admin") {
-          allowedBranches = clinic.branches;
-        } else {
-          allowedBranches = clinic.branches.filter((b: any) =>
-            user?.accessibleBranches?.includes(b.id)
-          );
-        }
-
-        setBranches(allowedBranches);
-        setSelectedBranch(allowedBranches[0]?.id || "");
-      })
-      .catch((err) => console.error("Failed to load users.json:", err));
-  }, []);
-
+  /* ---------- Sidebar toggle ---------- */
   const toggleSidebar = useMemo(
     () => () => {
       setCollapsed((prev) => {
@@ -111,11 +89,19 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
     []
   );
 
+  /* ---------- Prevent blank dropdown until ready ---------- */
+  if (!mounted || loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center text-gray-500">
+        Loading ARAN…
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ─── Header ───────────────────────────────────── */}
+      {/* ---------------- Header ---------------- */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
-        {/* Left logo + sidebar toggle */}
         <div className="flex items-center gap-2">
           <NextImage
             src="/icons/aranlogo.png"
@@ -126,35 +112,33 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           />
           <div className="font-semibold">ARAN</div>
           <div className="h-6 w-px bg-gray-300 mx-2" />
-          {mounted && (
-            <button
-              onClick={toggleSidebar}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
-              title={collapsed ? "Open sidebar" : "Close sidebar"}
-            >
-              <NextImage
-                src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
-                alt={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                width={20}
-                height={20}
-                className="w-5 h-5"
-              />
-            </button>
-          )}
+
+          <button
+            onClick={toggleSidebar}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
+            title={collapsed ? "Open sidebar" : "Close sidebar"}
+          >
+            <NextImage
+              src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
+              alt="Toggle Sidebar"
+              width={20}
+              height={20}
+            />
+          </button>
         </div>
 
-        {/* ─── Right section: Role + Branch + Profile ─── */}
+        {/* Role + Branch + Profile */}
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-gray-800 capitalize">
             {role}
           </span>
 
+          {/* ---------------- Branch dropdown ---------------- */}
           {branches.length > 0 && (
             <select
-              value={selectedBranch} // always a string branchId
+              value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="ui-input text-sm min-w-[140px]"
-              title="Select branch"
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -168,7 +152,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* ─── Sidebar + Main grid ───────────────────────── */}
+      {/* ---------------- Sidebar + Main ---------------- */}
       <div
         className="flex-1 grid"
         style={{
@@ -178,7 +162,6 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         <aside
           className={[
             "relative bg-white transition-all duration-200 overflow-hidden",
-            `sticky top-[${HEADER_HEIGHT}px]`,
             collapsed ? "w-0 p-0 pointer-events-none" : "w-[150px]",
           ].join(" ")}
         >
@@ -195,23 +178,15 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: "green",
-            color: "#111",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          },
-          success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
-        }}
-      />
+      <Toaster />
     </div>
   );
 }
 
-/* ---------- Utils ---------- */
+/* ----------------------------------------------------------- */
+/*                        Utils                                */
+/* ----------------------------------------------------------- */
+
 function readCollapsedFromStorage(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -221,66 +196,18 @@ function readCollapsedFromStorage(): boolean {
   }
 }
 
-/* ---------- Profile menu (unchanged) ---------- */
-function ProfileMenu({
-  role = "doctor",
-  name = role === "admin"
-    ? "Clinic Admin"
-    : role === "staff"
-    ? "Clinic Staff"
-    : "Dr. Vasanth Shetty",
-}: {
-  role?: Role;
-  name?: string;
-}) {
+/* ----------------------------------------------------------- */
+/*                       Profile Menu                          */
+/* ----------------------------------------------------------- */
+
+function ProfileMenu({ role }: { role: Role }) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(t) &&
-        btnRef.current &&
-        !btnRef.current.contains(t)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
-  const menuItems =
-    role === "admin"
-      ? [
-          {
-            label: "Clinic Configuration",
-            onClick: () => alert("Open Clinic Setup"),
-          },
-          {
-            label: "User & Access Control",
-            onClick: () => alert("Open People Management"),
-          },
-          {
-            label: "System Settings",
-            onClick: () => alert("Open System Configuration"),
-          },
-          { label: "Help", icon: "❓", onClick: () => alert("Help Section") },
-          { label: "Logout", onClick: logout },
-        ]
-      : [
-          { label: "Profile", onClick: () => alert("Open Profile") },
-          { label: "Settings", onClick: () => alert("Open Settings") },
-          { label: "Help", icon: "❓", onClick: () => alert("Help Section") },
-          { label: "Logout", onClick: logout },
-        ];
-
   return (
     <div className="relative">
+      {/* Your existing profile button content */}
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
@@ -294,38 +221,25 @@ function ProfileMenu({
               ? "/icons/administrator.png"
               : "/icons/doctor.png"
           }
-          alt="User Profile"
           width={24}
           height={24}
-          className="w-6 h-6 rounded-full"
+          alt="User Avatar"
+          className="w-6 h-6"
         />
       </button>
 
+      {/* Dropdown */}
       {open && (
         <div
           ref={menuRef}
           className="absolute right-0 mt-2 w-48 rounded-lg bg-white shadow-lg z-50 py-2"
-          role="menu"
         >
-          <div className="px-4 pb-2">
-            <div className="text-sm font-semibold text-gray-900">{name}</div>
-          </div>
-          <div className="h-px bg-gray-200 mb-2" />
-          <div className="space-y-1">
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => {
-                  setOpen(false);
-                  item.onClick();
-                }}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <span className="w-4 text-center">{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={logout}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+          >
+            Logout
+          </button>
         </div>
       )}
     </div>
