@@ -197,7 +197,7 @@ function readCollapsedFromStorage(): boolean {
 }
 
 /* ----------------------------------------------------------- */
-/*                       Profile Menu                          */
+/*                         Profile Menu                        */
 /* ----------------------------------------------------------- */
 
 function ProfileMenu({ role }: { role: Role }) {
@@ -205,22 +205,43 @@ function ProfileMenu({ role }: { role: Role }) {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  // Load user session details
+  const [session, setSession] = useState<any>(null);
+  const { selectedBranch } = useBranch();
+
+  useEffect(() => {
+    try {
+      const raw = document.cookie
+        .split("; ")
+        .find((r) => r.startsWith("aran.session="));
+
+      if (raw) {
+        const encoded = raw.split("=")[1];
+        const decoded = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
+        setSession(JSON.parse(decoded));
+      }
+    } catch (err) {
+      console.error("Session decode error:", err);
+    }
+  }, []);
+
+  const avatarIcon =
+    role === "staff"
+      ? "/icons/nurse.png"
+      : role === "admin"
+      ? "/icons/administrator.png"
+      : "/icons/doctor.png";
+
   return (
     <div className="relative">
-      {/* Your existing profile button content */}
+      {/* Profile Button */}
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center justify-center w-9 h-9 rounded-full border hover:bg-gray-50"
       >
         <NextImage
-          src={
-            role === "staff"
-              ? "/icons/nurse.png"
-              : role === "admin"
-              ? "/icons/administrator.png"
-              : "/icons/doctor.png"
-          }
+          src={avatarIcon}
           width={24}
           height={24}
           alt="User Avatar"
@@ -232,13 +253,59 @@ function ProfileMenu({ role }: { role: Role }) {
       {open && (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-48 rounded-lg bg-white shadow-lg z-50 py-2"
+          className="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg z-50 py-3 border border-gray-200"
         >
+          {/* User Info Section */}
+          <div className="px-4 pb-3 border-b border-gray-200">
+            <div className="font-semibold text-gray-800">
+              {session?.name || "User"}
+            </div>
+            <div className="text-xs text-gray-600">{session?.email}</div>
+
+            <div className="mt-1 text-xs text-gray-500">
+              Role: <span className="capitalize">{role}</span>
+            </div>
+
+            <div className="text-xs text-gray-500">
+              Branch: {selectedBranch}
+            </div>
+          </div>
+
+          {/* Menu Items */}
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            onClick={() => alert("Profile Page Coming Soon")}
+          >
+            <span>👤</span> My Profile
+          </button>
+
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            onClick={() => alert("Edit Profile Coming Soon")}
+          >
+            <span>⚙️</span> Edit Profile
+          </button>
+
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            onClick={() => alert("Help Section Coming Soon")}
+          >
+            <span>❓</span> Help & Support
+          </button>
+
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            onClick={() => alert("Keyboard Shortcuts Coming Soon")}
+          >
+            <span>⌨️</span> Keyboard Shortcuts
+          </button>
+
+          {/* Logout */}
           <button
             onClick={logout}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 mt-1"
           >
-            Logout
+            <span>🚪</span> Logout
           </button>
         </div>
       )}

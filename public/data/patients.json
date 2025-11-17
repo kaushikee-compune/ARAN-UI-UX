@@ -1,182 +1,417 @@
 [
   {
     "patientId": "pat_001",
-    "name": "Ananya Sharma",
-    "phone": "9876543210",
-    "dob": "1990-05-15",
-    "age": 34,
-    "gender":"Female",
-    "uhid": "UHID1001",
-    "abhaNumber": "91-1234-5678-9012",
-    "abhaAddress": "ananya@sbx",
-    "registrationDate": "2025-10-23"
+    "demographics": {
+      "name": "Arjun Rao",
+      "phone": "9876500010",
+      "dob": "1992-03-10",
+      "age": 33,
+      "gender": "Male",
+      "uhid": "U1B001_0001",
+      "abhaNumber": "91-1122-3344-5566",
+      "abhaAddress": "arjunrao@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u1",
+        "registrationDate": "2025-10-10",
+        "lastVisitDate": "2025-10-20",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_002",
-    "name": "Rahul Verma",
-    "phone": "9123456780",
-    "dob": "1985-07-22",
-    "age": 39,
-    "gender":"Male",
-    "uhid": "UHID1002",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2025-10-20"
+    "demographics": {
+      "name": "Megha Jain",
+      "phone": "9876500020",
+      "dob": "1996-07-08",
+      "age": 29,
+      "gender": "Female",
+      "uhid": "U1B001_0002",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u1",
+        "registrationDate": "2025-10-14",
+        "lastVisitDate": "2025-10-18",
+        "lastVisitType": "Daycare"
+      }
+    ]
   },
+
   {
     "patientId": "pat_003",
-    "name": "Priya Nair",
-    "phone": "9988776655",
-    "dob": "1995-03-10",
-    "age": 29,
-    "gender":"Female",
-    "uhid": "UHID1003",
-    "abhaNumber": "91-2345-6789-0123",
-    "abhaAddress": "priya@sbx",
-    "registrationDate": "2024-07-20"
+    "demographics": {
+      "name": "Sneha Dube",
+      "phone": "9876500030",
+      "dob": "1999-05-12",
+      "age": 26,
+      "gender": "Female",
+      "uhid": "U1B002_0001",
+      "abhaNumber": "91-2211-3322-4433",
+      "abhaAddress": "snehadube@sbx"
+    },
+    "registrations": [
+      {
+      
+        "branchId": "B001",
+        "doctorId": "u1",
+        "registrationDate": "2025-09-05",
+        "lastVisitDate": "2025-09-20",
+        "lastVisitType": "OPD"
+      },
+      {
+        "branchId": "B002",
+        "doctorId": "u1",
+        "registrationDate": "2025-10-01",
+        "lastVisitDate": "2025-10-15",
+        "lastVisitType": "Review"
+      }
+    ]
   },
+
   {
     "patientId": "pat_004",
-    "name": "Arjun Mehta",
-    "phone": "9876000001",
-    "dob": "2000-01-01",
-    "age": 25,
-    "gender":"Male",
-    "uhid": "UHID1004",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-09-05"
+    "demographics": {
+      "name": "Sriram Hegde",
+      "phone": "9876500040",
+      "dob": "1980-11-15",
+      "age": 44,
+      "gender": "Male",
+      "uhid": "U1B002_0002",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B002",
+        "doctorId": "u1",
+        "registrationDate": "2025-08-22",
+        "lastVisitDate": "2025-09-02",
+        "lastVisitType": "Immunization"
+      }
+    ]
   },
+
   {
     "patientId": "pat_005",
-    "name": "Sneha Kapoor",
-    "phone": "9811111111",
-    "dob": "1992-11-11",
-    "age": 32,
-    "gender":"Female",
-    "uhid": "UHID1005",
-    "abhaNumber": "91-3456-7890-1234",
-    "abhaAddress": "sneha@sbx",
-    "registrationDate": "2024-06-15"
+    "demographics": {
+      "name": "Kavita Murthy",
+      "phone": "9876500050",
+      "dob": "1990-01-01",
+      "age": 35,
+      "gender": "Female",
+      "uhid": "U1B001_0003",
+      "abhaNumber": "91-6677-8899-0011",
+      "abhaAddress": "kavitam@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u1",
+        "registrationDate": "2025-07-10",
+        "lastVisitDate": "2025-07-25",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_006",
-    "name": "Karan Singh",
-    "phone": "9822222222",
-    "dob": "1988-09-09",
-    "age": 36,
-    "gender":"Male",
-    "uhid": "UHID1006",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-05-01"
+    "demographics": {
+      "name": "Rohan Sinha",
+      "phone": "9866600010",
+      "dob": "2000-01-15",
+      "age": 25,
+      "gender": "Male",
+      "uhid": "U2B001_1001",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-10-12",
+        "lastVisitDate": "2025-10-13",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_007",
-    "name": "Divya Gupta",
-    "phone": "9833333333",
-    "dob": "1993-04-20",
-    "age": 31,
-    "gender":"Female",
-    "uhid": "UHID1007",
-    "abhaNumber": "91-4567-8901-2345",
-    "abhaAddress": "divya@sbx",
-    "registrationDate": "2024-07-11"
+    "demographics": {
+      "name": "Nisha Pandey",
+      "phone": "9866600020",
+      "dob": "1994-08-22",
+      "age": 31,
+      "gender": "Female",
+      "uhid": "U2B001_1002",
+      "abhaNumber": "91-9988-7766-5544",
+      "abhaAddress": "nishap@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-09-15",
+        "lastVisitDate": "2025-10-01",
+        "lastVisitType": "Review"
+      }
+    ]
   },
+
   {
     "patientId": "pat_008",
-    "name": "Manoj Kumar",
-    "phone": "9844444444",
-    "dob": "1980-02-02",
-    "age": 45,
-    "gender":"Male",
-    "uhid": "UHID1008",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-08-22"
+    "demographics": {
+      "name": "Yogesh Patel",
+      "phone": "9866600030",
+      "dob": "1989-11-11",
+      "age": 35,
+      "gender": "Male",
+      "uhid": "U2B001_1003",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-07-10",
+        "lastVisitDate": "2025-07-20",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_009",
-    "name": "Pooja Reddy",
-    "phone": "9855555555",
-    "dob": "1998-12-12",
-    "age": 26,
-    "gender":"Female",
-    "uhid": "UHID1009",
-    "abhaNumber": "91-5678-9012-3456",
-    "abhaAddress": "pooja@sbx",
-    "registrationDate": "2024-09-01"
+    "demographics": {
+      "name": "Harini Krishnan",
+      "phone": "9866600040",
+      "dob": "1997-12-10",
+      "age": 27,
+      "gender": "Female",
+      "uhid": "U2B001_1004",
+      "abhaNumber": "91-1111-2222-3333",
+      "abhaAddress": "harinik@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-06-01",
+        "lastVisitDate": "2025-06-10",
+        "lastVisitType": "Immunization"
+      }
+    ]
   },
+
   {
     "patientId": "pat_010",
-    "name": "Ravi Shankar",
-    "phone": "9866666666",
-    "dob": "1975-06-06",
-    "age": 49,
-    "gender":"Male",
-    "uhid": "UHID1010",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-04-10"
+    "demographics": {
+      "name": "Deepak Naik",
+      "phone": "9866600050",
+      "dob": "1990-10-10",
+      "age": 34,
+      "gender": "Male",
+      "uhid": "U2B001_1005",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-04-01",
+        "lastVisitDate": "2025-04-12",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_011",
-    "name": "Neha Patel",
-    "phone": "9877777777",
-    "dob": "1997-01-25",
-    "age": 28,
-    "gender":"Female",
-    "uhid": "UHID1011",
-    "abhaNumber": "91-6789-0123-4567",
-    "abhaAddress": "neha@sbx",
-    "registrationDate": "2024-09-04"
+    "demographics": {
+      "name": "Lakshmi Narayan",
+      "phone": "9855500010",
+      "dob": "1995-02-15",
+      "age": 29,
+      "gender": "Female",
+      "uhid": "U3B001_2001",
+      "abhaNumber": "91-4343-5454-6565",
+      "abhaAddress": "lakshmi@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u3",
+        "registrationDate": "2025-10-18",
+        "lastVisitDate": "2025-10-22",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_012",
-    "name": "Vikram Malhotra",
-    "phone": "9888888888",
-    "dob": "1991-08-08",
-    "age": 33,
-    "gender":"Male",
-    "uhid": "UHID1012",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-03-05"
+    "demographics": {
+      "name": "Gopal Menon",
+      "phone": "9855500020",
+      "dob": "1985-05-22",
+      "age": 39,
+      "gender": "Male",
+      "uhid": "U3B002_2001",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B002",
+        "doctorId": "u3",
+        "registrationDate": "2025-09-10",
+        "lastVisitDate": "2025-09-15",
+        "lastVisitType": "Review"
+      }
+    ]
   },
+
   {
     "patientId": "pat_013",
-    "name": "Aditi Joshi",
-    "phone": "9899999999",
-    "dob": "1999-09-09",
-    "age": 25,
-    "gender":"Female",
-    "uhid": "UHID1013",
-    "abhaNumber": "91-7890-1234-5678",
-    "abhaAddress": "aditi@sbx",
-    "registrationDate": "2024-09-03"
+    "demographics": {
+      "name": "Shweta Kulkarni",
+      "phone": "9855500030",
+      "dob": "1998-07-10",
+      "age": 26,
+      "gender": "Female",
+      "uhid": "U3B001_2002",
+      "abhaNumber": "91-7878-6767-5656",
+      "abhaAddress": "shwetak@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u3",
+        "registrationDate": "2025-07-11",
+        "lastVisitDate": "2025-07-25",
+        "lastVisitType": "OPD"
+      }
+    ]
   },
+
   {
     "patientId": "pat_014",
-    "name": "Suresh Das",
-    "phone": "9812121212",
-    "dob": "1983-03-03",
-    "age": 41,
-    "gender":"Male",
-    "uhid": "UHID1014",
-    "abhaNumber": null,
-    "abhaAddress": null,
-    "registrationDate": "2024-05-12"
+    "demographics": {
+      "name": "Tarun Bhat",
+      "phone": "9855500040",
+      "dob": "1993-03-02",
+      "age": 32,
+      "gender": "Male",
+      "uhid": "U3B002_2002",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        "branchId": "B002",
+        "doctorId": "u3",
+        "registrationDate": "2025-06-10",
+        "lastVisitDate": "2025-06-14",
+        "lastVisitType": "Immunization"
+      }
+    ]
   },
+
   {
     "patientId": "pat_015",
-    "name": "Meera Iyer",
-    "phone": "9823232323",
-    "dob": "1996-10-10",
-    "age": 28,
-    "gender":"Female",
-    "uhid": "UHID1015",
-    "abhaNumber": "91-8901-2345-6789",
-    "abhaAddress": "meera@sbx",
-    "registrationDate": "2024-07-28"
+    "demographics": {
+      "name": "Ritika Kapoor",
+      "phone": "9855500050",
+      "dob": "1991-04-04",
+      "age": 33,
+      "gender": "Female",
+      "uhid": "U3B001_2003",
+      "abhaNumber": "91-9090-8080-7070",
+      "abhaAddress": "ritikak@sbx"
+    },
+    "registrations": [
+      {
+        "branchId": "B001",
+        "doctorId": "u3",
+        "registrationDate": "2025-04-20",
+        "lastVisitDate": "2025-04-25",
+        "lastVisitType": "Review"
+      }
+    ]
+  },
+
+  
+  {
+    "patientId": "pat_016",
+    "demographics": {
+      "name": "Sameer Kulkarni",
+      "phone": "9844400010",
+      "dob": "1992-09-12",
+      "age": 32,
+      "gender": "Male",
+      "uhid": "CROSS_0001",
+      "abhaNumber": "91-4321-7654-9876",
+      "abhaAddress": "sameer@sbx"
+    },
+    "registrations": [
+      {
+      
+        "branchId": "B001",
+        "doctorId": "u1",
+        "registrationDate": "2025-07-10",
+        "lastVisitDate": "2025-07-12",
+        "lastVisitType": "OPD"
+      },
+      {
+        "branchId": "B001",
+        "doctorId": "u2",
+        "registrationDate": "2025-08-01",
+        "lastVisitDate": "2025-08-05",
+        "lastVisitType": "Review"
+      }
+    ]
+  },
+
+  {
+    "patientId": "pat_017",
+    "demographics": {
+      "name": "Asha Shetty",
+      "phone": "9844400020",
+      "dob": "1987-02-02",
+      "age": 38,
+      "gender": "Female",
+      "uhid": "CROSS_0002",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        
+        "branchId": "B001",
+        "doctorId": "u3",
+        "registrationDate": "2025-03-10",
+        "lastVisitDate": "2025-03-15",
+        "lastVisitType": "OPD"
+      },
+      {
+        "branchId": "B002",
+        "doctorId": "u3",
+        "registrationDate": "2025-09-10",
+        "lastVisitDate": "2025-09-12",
+        "lastVisitType": "Review"
+      }
+    ]
   }
 ]
