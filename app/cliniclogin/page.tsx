@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authenticate } from "@/lib/auth/authenticate";
-import RolePicker from "@/components/auth/RolePicker";
 
 // Encode session cookie into base64url
 function encodeBase64Url(input: string) {
@@ -18,8 +17,7 @@ export default function ClinicLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [rolePickerVisible, setRolePickerVisible] = useState(false);
-  const [session, setSession] = useState<any>(null);
+
   const router = useRouter();
 
   function setSessionCookie(sessionObj: any) {
@@ -39,40 +37,34 @@ export default function ClinicLoginPage() {
     }
 
     const sessionObj = result.session;
-    setSession(sessionObj);
     setSessionCookie(sessionObj);
 
     const access = sessionObj.access || [];
 
-    // Case 1: Single role → redirect directly
-    const uniqueRoles = [...new Set(access.map((a: any) => a.role))];
-
-    if (uniqueRoles.length === 1) {
-      const chosenRole = uniqueRoles[0];
-      const chosenBranch = access.find((a: any) => a.role === chosenRole)?.branchId;
-
-      document.cookie = `aran.activeRole=${chosenRole}; Path=/`;
-      document.cookie = `aran.activeBranch=${chosenBranch}; Path=/`;
-
-      if (chosenRole === "doctor") router.push("/doctor");
-      else if (chosenRole === "admin") router.push("/admin");
-      else router.push("/staff");
-
+    if (!access.length) {
+      setError("No access permissions found.");
       return;
     }
 
-    // Case 2: Multiple roles → show selector modal
-    setRolePickerVisible(true);
-  }
+    /* --------------------------------------------------------------
+       AUTO SELECT DEFAULT ROLE (FIRST UNIQUE ROLE)
+       Since RolePicker is removed, default = first unique role
+    -------------------------------------------------------------- */
 
-  function handleRoleSelected(role: string) {
-    const branch = session.access.find((a: any) => a.role === role)?.branchId;
+    const uniqueRoles = [...new Set(access.map((a: any) => a.role))] as string[];
 
-    document.cookie = `aran.activeRole=${role}; Path=/`;
-    document.cookie = `aran.activeBranch=${branch}; Path=/`;
+    const chosenRole = uniqueRoles[0]; // FIRST role
+    const chosenBranch =
+      access.find((a: any) => a.role === chosenRole)?.branchId ||
+      access[0].branchId; // fallback
 
-    if (role === "doctor") router.push("/doctor");
-    else if (role === "admin") router.push("/admin");
+    // Store the selected role + branch
+    document.cookie = `aran.activeRole=${chosenRole}; Path=/`;
+    document.cookie = `aran.activeBranch=${chosenBranch}; Path=/`;
+
+    // Redirect based on role
+    if (chosenRole === "doctor") router.push("/doctor/console");
+    else if (chosenRole === "admin") router.push("/admin");
     else router.push("/staff");
   }
 
@@ -135,10 +127,6 @@ export default function ClinicLoginPage() {
           © {new Date().getFullYear()} ARAN Care
         </footer>
       </div>
-
-      {rolePickerVisible && session && (
-        <RolePicker session={session} onSelect={handleRoleSelected} />
-      )}
     </div>
   );
 }

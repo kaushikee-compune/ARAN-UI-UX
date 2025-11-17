@@ -55,6 +55,20 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /* 
+    ⭐ CRUCIAL FIX: Re-run this effect 
+    whenever the role cookie changes.
+    
+    This lets role switching dynamically
+    refresh the allowed branches.
+  */
+  const activeRoleCookie = 
+    typeof document !== "undefined"
+      ? document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("aran.activeRole="))
+      : null;
+
   useEffect(() => {
     async function init() {
       try {
@@ -66,8 +80,8 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        /* Load NEW ARAN users.json with clinic+users */
-        const res = await fetch("/data/users.json?" + Date.now()); 
+        /* Load USERS + CLINICS from JSON */
+        const res = await fetch("/data/users.json?" + Date.now());
         const data = await res.json();
 
         const clinic = data.clinics.find(
@@ -88,14 +102,13 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        /* Determine allowed branch IDs for this role */
+        /* Determine allowed branches for the role */
         const allowedBranchIds =
           session.access
             ?.filter((a: AccessEntry) => a.role === activeRole)
             .map((a: AccessEntry) => a.branchId) || [];
 
-        /* SPECIAL FIX:
-           If user has EXACTLY ONE allowed branch, dropdown MUST contain only that */
+        /* If exactly one allowed branch → force select it */
         if (allowedBranchIds.length === 1) {
           const onlyBranch = clinicBranches.find(
             (b) => b.id === allowedBranchIds[0]
@@ -105,7 +118,7 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        /* Filter branches */
+        /* Filter visible branches */
         const visibleBranches = clinicBranches.filter((b: Branch) =>
           allowedBranchIds.includes(b.id)
         );
@@ -132,9 +145,9 @@ export const BranchProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     init();
-  }, []);
+  }, [activeRoleCookie]); // 🔥 Effect now triggers when role changes
 
-  /* Persist branch → cookie */
+  /* Persist branch to cookie */
   useEffect(() => {
     if (typeof document !== "undefined" && selectedBranch) {
       document.cookie = `aran.activeBranch=${selectedBranch}; Path=/`;

@@ -7,6 +7,7 @@ import {
   useState,
   useRef,
 } from "react";
+import { useRouter } from "next/navigation";
 import NextImage from "next/image";
 import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
@@ -57,8 +58,28 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role>("doctor");
+  const [session, setSession] = useState<any>(null);
 
+  const router = useRouter();
   const { branches, selectedBranch, setSelectedBranch, loading } = useBranch();
+
+  /* ---------- Read session cookie ---------- */
+  useEffect(() => {
+    try {
+      const raw = document.cookie
+        .split("; ")
+        .find((r) => r.startsWith("aran.session="));
+      if (raw) {
+        const encoded = raw.split("=")[1];
+        const decoded = atob(
+          encoded.replace(/-/g, "+").replace(/_/g, "/")
+        );
+        setSession(JSON.parse(decoded));
+      }
+    } catch (err) {
+      console.error("Session decode error:", err);
+    }
+  }, []);
 
   /* ---------- Initial mount ---------- */
   useEffect(() => {
@@ -66,14 +87,6 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     setCollapsed(readCollapsedFromStorage());
     setRole(getActiveRoleFromCookie());
   }, []);
-
-  /* ---------- Update role when context done loading ---------- */
-  useEffect(() => {
-    if (!loading) {
-      const activeRole = getActiveRoleFromCookie();
-      setRole(activeRole);
-    }
-  }, [loading]);
 
   /* ---------- Sidebar toggle ---------- */
   const toggleSidebar = useMemo(
@@ -89,8 +102,26 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     []
   );
 
+  /* ---------- Role dropdown options ---------- */
+  const roleOptions = useMemo<string[]>(() => {
+  if (!session?.access) return [];
+  return Array.from(
+    new Set(session.access.map((a: any) => a.role))
+  ) as string[];
+}, [session]);
+  /* ---------- Handle role change ---------- */
+  const handleRoleChange = (newRole: Role) => {
+    document.cookie = `aran.activeRole=${newRole}; Path=/`;
+    setRole(newRole);
+
+    // Redirect based on role
+    if (newRole === "doctor") router.push("/doctor/console");
+    else if (newRole === "admin") router.push("/admin");
+    else if (newRole === "staff") router.push("/staff");
+  };
+
   /* ---------- Prevent blank dropdown until ready ---------- */
-  if (!mounted || loading) {
+  if (!mounted || loading || !session) {
     return (
       <div className="w-full h-screen flex items-center justify-center text-gray-500">
         Loading ARAN…
@@ -129,11 +160,26 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
         {/* Role + Branch + Profile */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-800 capitalize">
-            {role}
-          </span>
+          {/* ------------- ROLE DROPDOWN ------------- */}
+          {roleOptions.length > 1 ? (
+            <select
+              className="ui-input text-sm min-w-[120px]"
+              value={role}
+              onChange={(e) => handleRoleChange(e.target.value as Role)}
+            >
+              {roleOptions.map((r: string) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-sm font-medium text-gray-800 capitalize">
+              {role}
+            </span>
+          )}
 
-          {/* ---------------- Branch dropdown ---------------- */}
+          {/* ------------- BRANCH DROPDOWN ------------- */}
           {branches.length > 0 && (
             <select
               value={selectedBranch}
@@ -148,7 +194,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             </select>
           )}
 
-          <ProfileMenu role={role} />
+          <ProfileMenu role={role} session={session} />
         </div>
       </header>
 
@@ -197,33 +243,14 @@ function readCollapsedFromStorage(): boolean {
 }
 
 /* ----------------------------------------------------------- */
-/*                         Profile Menu                        */
+/*                       Profile Menu                          */
 /* ----------------------------------------------------------- */
 
-function ProfileMenu({ role }: { role: Role }) {
+function ProfileMenu({ role, session }: { role: Role; session: any }) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  // Load user session details
-  const [session, setSession] = useState<any>(null);
   const { selectedBranch } = useBranch();
-
-  useEffect(() => {
-    try {
-      const raw = document.cookie
-        .split("; ")
-        .find((r) => r.startsWith("aran.session="));
-
-      if (raw) {
-        const encoded = raw.split("=")[1];
-        const decoded = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
-        setSession(JSON.parse(decoded));
-      }
-    } catch (err) {
-      console.error("Session decode error:", err);
-    }
-  }, []);
 
   const avatarIcon =
     role === "staff"
@@ -253,16 +280,16 @@ function ProfileMenu({ role }: { role: Role }) {
       {open && (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg z-50 py-3 border border-gray-200"
+          className="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg z-50 border border-gray-200 py-1"
         >
           {/* User Info Section */}
-          <div className="px-4 pb-3 border-b border-gray-200">
+          <div className="px-4 py-3 border-b border-gray-200">
             <div className="font-semibold text-gray-800">
               {session?.name || "User"}
             </div>
             <div className="text-xs text-gray-600">{session?.email}</div>
 
-            <div className="mt-1 text-xs text-gray-500">
+            <div className="text-xs text-gray-500 mt-1">
               Role: <span className="capitalize">{role}</span>
             </div>
 
@@ -272,38 +299,15 @@ function ProfileMenu({ role }: { role: Role }) {
           </div>
 
           {/* Menu Items */}
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            onClick={() => alert("Profile Page Coming Soon")}
-          >
-            <span>👤</span> My Profile
-          </button>
-
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            onClick={() => alert("Edit Profile Coming Soon")}
-          >
-            <span>⚙️</span> Edit Profile
-          </button>
-
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            onClick={() => alert("Help Section Coming Soon")}
-          >
-            <span>❓</span> Help & Support
-          </button>
-
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            onClick={() => alert("Keyboard Shortcuts Coming Soon")}
-          >
-            <span>⌨️</span> Keyboard Shortcuts
-          </button>
+          <MenuButton label="My Profile" icon="👤" onClick={() => alert("My Profile")} />
+          <MenuButton label="Edit Profile" icon="✏️" onClick={() => alert("Edit Profile")} />
+          <MenuButton label="Help & Support" icon="❓" onClick={() => alert("Help & Support")} />
+          <MenuButton label="Keyboard Shortcuts" icon="⌨️" onClick={() => alert("Shortcuts")} />
 
           {/* Logout */}
           <button
             onClick={logout}
-            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 mt-1"
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-200 mt-1"
           >
             <span>🚪</span> Logout
           </button>
@@ -312,3 +316,24 @@ function ProfileMenu({ role }: { role: Role }) {
     </div>
   );
 }
+
+/* Small Clean Helper Component */
+function MenuButton({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+    >
+      <span>{icon}</span> {label}
+    </button>
+  );
+}
+
