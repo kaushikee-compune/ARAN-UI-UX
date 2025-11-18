@@ -1,0 +1,25 @@
+{
+  "default": {
+    "pluginId": "default",
+    "label": "General Digital Prescription",
+    "sections": ["vitals", "complaints", "diagnosis", "medications", "investigation", "procedure", "followup"]
+  },
+  "oph": {
+    "pluginId": "oph",
+    "label": "Ophthalmology Prescription",
+    "extends": "default",
+    "overrides": ["complaints", "investigation"]
+  },
+  "gyn": {
+    "pluginId": "gyn",
+    "label": "Gynecology Prescription",
+    "extends": "default",
+    "overrides": ["vitals", "followup"]
+  },
+  "gen": {
+    "pluginId": "gen",
+    "label": "General Physician Prescription",
+    "extends": "default",
+    "overrides": []
+  }
+}

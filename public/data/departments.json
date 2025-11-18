@@ -1,0 +1,38 @@
+[
+  {
+    "id": "oph",
+    "name": "Ophthalmology",
+    "category": "Clinical",
+    "rxPlugin": "oph"
+  },
+  {
+    "id": "peds_oph",
+    "name": "Pediatric Ophthalmology",
+    "category": "Clinical",
+    "rxPlugin": "oph"  
+  },
+  {
+    "id": "oculo",
+    "name": "Oculoplasty & Orbit Services",
+    "category": "Clinical",
+    "rxPlugin": "oph"
+  },
+  {
+    "id": "gyn",
+    "name": "Gynecology",
+    "category": "Clinical",
+    "rxPlugin": "gyn"
+  },
+  {
+    "id": "gen",
+    "name": "General Medicine",
+    "category": "Clinical",
+    "rxPlugin": "gen"
+  },
+  {
+    "id": "general_admin",
+    "name": "General Administration",
+    "category": "Non-Clinical",
+    "rxPlugin": null
+  }
+]

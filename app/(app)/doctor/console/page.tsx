@@ -2,37 +2,50 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+/* Companion / Voice */
 import CompanionToggle from "@/components/doctor/CompanionToggle";
 import VoiceOverlay from "@/components/doctor/VoiceOverlay";
 import ScribePanel from "@/components/doctor/ScribePanel";
+
+/* Tools */
 import ImmunizationForm from "@/components/doctor/ImmunizationForm";
 import DaycareSummary from "@/components/doctor/DaycareSummary";
 import LabRequestForm from "@/components/lab/LabRequestForm";
-import { useRouter } from "next/navigation";
+
+/* Common */
 import UploadModal from "@/components/common/UploadModal";
 import InvoiceModal from "@/components/common/InvoiceModal";
-import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 import { RoundPill } from "@/components/common/RoundPill";
 
+/* Digital Rx Plugin Loader */
+import { getDigitalRxPlugin } from "@/components/doctor/digital-rx/plugin-loader";
 
-/* External forms */
-import DigitalRxForm, {
-  type DigitalRxFormState as RxState,
-} from "@/components/doctor/DigitalRxForm";
-
-/* Past records tiny controller */
+/* Past records button */
 import PastRecordButton from "@/components/doctor/PastRecordButton";
 
-/* ------------------------------ Canonical types ------------------------------ */
-type DigitalRxFormState = RxState;
+/* Types */
+import type { DigitalRxFormState } from "@/components/doctor/DigitalRxForm";
+
+/* Icons */
+//import { MicIcon, ScribeIcon, SummaryIcon } from "@/components/";
+
+/* -------------------------------------------------------------------------- */
+/*                               Types & Constants                            */
+/* -------------------------------------------------------------------------- */
+
+type CompanionMode = "off" | "form" | "voice" | "scribe";
+
+type ActiveTool = "digitalrx" | "immunization" | "daycare" | "lab" | "none";
 
 type CanonicalRecord = {
   id: string;
   patientId: string;
-  dateISO: string; // dd-mm-yyyy
-  type: "Prescription" | "Vitals" | "Immunization" | "Lab" | "DischargeSummary";
+  dateISO: string;
+  type: "Prescription";
   source: "digital-rx";
-  canonical: DigitalRxFormState;
+  canonical: any;
 };
 
 type DayRecords = {
@@ -40,20 +53,23 @@ type DayRecords = {
   items: CanonicalRecord[];
 };
 
-/* --------------------------------- Helpers --------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                            Utility functions                               */
+/* -------------------------------------------------------------------------- */
+
 const nonEmpty = (v: unknown) =>
   v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "");
+
 const safe = (s?: string) => (nonEmpty(s) ? String(s) : "");
 
-const anyRowHas = <T extends Record<string, any>>(
+function compactRows<T extends Record<string, any>>(
   rows?: T[],
   keys: (keyof T)[] = []
-) => !!rows?.some((r) => keys.some((k) => nonEmpty(r?.[k as string])));
-
-const compactRows = <T extends Record<string, any>>(
-  rows?: T[],
-  keys: (keyof T)[] = []
-) => (rows ?? []).filter((r) => keys.some((k) => nonEmpty(r?.[k as string])));
+) {
+  return (rows ?? []).filter((r) =>
+    keys.some((k) => nonEmpty(r?.[k as string]))
+  );
+}
 
 function parseDDMMYYYY(s: string) {
   const [dd, mm, yyyy] = s.split("-").map((n) => parseInt(n, 10));
@@ -63,107 +79,80 @@ function parseDDMMYYYY(s: string) {
 async function loadMockRecords(patientId?: string): Promise<CanonicalRecord[]> {
   if (typeof window === "undefined") return [];
   const res = await fetch("/data/mock-records.json", { cache: "no-store" });
-  if (!res.ok)
-    throw new Error("Mock JSON not found at /public/data/mock-records.json");
+  if (!res.ok) throw new Error("mock-records.json missing");
   const all = (await res.json()) as CanonicalRecord[];
   return patientId ? all.filter((r) => r.patientId === patientId) : all;
 }
 
 function groupByDate<T extends { dateISO: string }>(rows: T[]) {
   const map = new Map<string, T[]>();
-  rows.forEach((r) => map.set(r.dateISO, [...(map.get(r.dateISO) || []), r]));
+  rows.forEach((r) => {
+    map.set(r.dateISO, [...(map.get(r.dateISO) || []), r]);
+  });
   return Array.from(map.entries())
     .sort((a, b) => parseDDMMYYYY(b[0]) - parseDDMMYYYY(a[0]))
     .map(([dateISO, items]) => ({ dateISO, items }));
 }
 
-/* -------------------------------- Constants -------------------------------- */
-type TopMenuKey = "upload" | "consent" | "queue";
-type CompanionMode = "off" | "form" | "voice" | "scribe";
-type ActiveTool = "none" | "digitalrx" | "immunization" | "daycare" | "lab";
+/* Simple ID + Date helpers */
+function ddmmyyyy(now = new Date()) {
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
 
-/* Sidebar collapse broadcast (from your base) */
-const collapseSidebar = (collapse: boolean) => {
+function cuidLike() {
+  return `rec_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
+/* Sidebar collapse state sync */
+const collapseSidebar = (b: boolean) => {
   try {
-    localStorage.setItem("aran:sidebarCollapsed", collapse ? "1" : "0");
+    localStorage.setItem("aran:sidebarCollapsed", b ? "1" : "0");
     window.dispatchEvent(new Event("aran:sidebar"));
   } catch {}
 };
-
-/* --------------------------------- Page --------------------------------- */
-const INITIAL_RX: DigitalRxFormState = {
-  vitals: {
-    temperature: "",
-    bp: "",
-    bpSys: "",
-    bpDia: "",
-    spo2: "",
-    pulse: "",
-    weight: "",
-    height: "",
-  },
-  chiefComplaintRows: [{ symptom: "", since: "", severity: "" }],
-  diagnosisRows: [{ diagnosis: "", type: "", status: "" }],
-  allergies: "",
-  medicalHistory: "",
-  investigationRows: [{ investigation: "", notes: "", status: "" }],
-  procedureRows: [{ procedure: "", notes: "", status: "" }],
-  followUpText: "",
-  followUpDate: "",
-  medications: [
-    {
-      medicine: "",
-      frequency: "",
-      timing: "",
-      duration: "",
-      dosage: "",
-      instruction: "",
-      snomedCode: "",
-    },
-  ],
-  // uploads: { files: [], note: "" },
-};
-
-type ImmunizationState = {
-  patient?: { name?: string; id?: string };
-  entries: Array<{
-    vaccine?: string;
-    dose?: string;
-    date?: string;
-    batch?: string;
-    nextDue?: string;
-    notes?: string;
-  }>;
-};
+/* -------------------------------------------------------------------------- */
+/*                             MAIN PAGE COMPONENT                            */
+/* -------------------------------------------------------------------------- */
 
 export default function DoctorConsolePage() {
-  /* Header */
-  const [activeTop, setActiveTop] = useState<TopMenuKey>("upload");
-
   const router = useRouter();
-  const [showUpload, setShowUpload] = useState(false);
-  /* Companion */
-  const [companionMode, setCompanionMode] = useState<CompanionMode>("off");
-  const companionOn = companionMode !== "off";
 
-  /* Right tools */
-  const [activeTool, setActiveTool] = useState<ActiveTool>("none");
+  /* ------------------------------------------------------------ */
+  /* Doctor (TEMP placeholder — you will replace with real state) */
+  /* ------------------------------------------------------------ */
+  const doctor = useMemo(
+    () => ({
+      id: "u1",
+      name: "Dr. Vasanth Shetty",
+      departments: ["oph"], // ← exact match triggers oph plugin
+    }),
+    []
+  );
 
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  /* -------------------------------------------------------------------------- */
+  /*             🔌 LOAD PLUGIN BASED ON DOCTOR DEPARTMENT (default/oph)        */
+  /* -------------------------------------------------------------------------- */
 
-  const [activeForm, setActiveForm] = useState<
-    "digitalRx" | "immunization" | "lab" | null
-  >(null);
+  const plugin = useMemo(() => {
+    const dept = doctor.departments?.find((d) => d === "oph") ?? "default";
+    return getDigitalRxPlugin(dept);
+  }, [doctor]);
 
-  const [showImmunization, setShowImmunization] = useState(false);
+  const DigitalRxFormComponent = plugin.Form;
+  const DigitalRxPreviewComponent = plugin.Preview;
+  const canonicalFn = plugin.canonical;
 
-  const [bpTrend, setBpTrend] = useState<
-    Array<{ date: string; sys: number; dia: number }>
-  >([]);
-
-  /* Patient header (placeholder) */
+  /* -------------------------------------------------------------------------- */
+  /*                            Patient placeholder                             */
+  /* -------------------------------------------------------------------------- */
   const patient = useMemo(
     () => ({
+      id: "pat_001",
       name: "Ms Ananya Sharma",
       age: "34 yrs",
       gender: "Female",
@@ -173,71 +162,249 @@ export default function DoctorConsolePage() {
     []
   );
 
-  // Preview convenience (kept so you don’t get unused-vars errors elsewhere)
-  const [previewChiefComplaints, setPreviewChiefComplaints] = useState<
-    string[]
-  >([]);
-  const [previewDoctorNote, setPreviewDoctorNote] = useState<string[]>([]);
+  /* -------------------------------------------------------------------------- */
+  /*                                Companion Mode                              */
+  /* -------------------------------------------------------------------------- */
+  const [companionMode, setCompanionMode] = useState<CompanionMode>("off");
 
-  /* Digital Rx form (live) */
+  const companionOn = companionMode !== "off";
+
+  const handleCompanionSwitch = useCallback((v: boolean) => {
+    if (v) {
+      setCompanionMode("form");
+      collapseSidebar(true);
+      setVirtIndex(0);
+    } else {
+      setCompanionMode("off");
+      collapseSidebar(false);
+    }
+  }, []);
+
+  const pickCompanion = useCallback(
+    (mode: Exclude<CompanionMode, "off">) => {
+      if (!companionOn) return;
+      setCompanionMode(mode);
+      collapseSidebar(true);
+      setVirtIndex(0);
+    },
+    [companionOn]
+  );
+
+  const [voiceOpen, setVoiceOpen] = useState(false);
+
+  /* -------------------------------------------------------------------------- */
+  /*                                   Tools                                    */
+  /* -------------------------------------------------------------------------- */
+  const [activeTool, setActiveTool] = useState<ActiveTool>("digitalrx");
+
+  const openTool = useCallback((tool: ActiveTool) => {
+    setCompanionMode("off");
+    setActiveTool(tool);
+    setVirtIndex(0);
+    collapseSidebar(true);
+  }, []);
+
+  /* -------------------------------------------------------------------------- */
+  /*                            Digital Rx main FORM state                       */
+  /* -------------------------------------------------------------------------- */
+  const INITIAL_RX: DigitalRxFormState = {
+    vitals: {
+      temperature: "",
+      bp: "",
+      bpSys: "",
+      bpDia: "",
+      spo2: "",
+      pulse: "",
+      weight: "",
+      height: "",
+    },
+    chiefComplaintRows: [{ symptom: "", since: "", severity: "" }],
+    diagnosisRows: [{ diagnosis: "", type: "", status: "" }],
+    allergies: "",
+    medicalHistory: "",
+    investigationRows: [{ investigation: "", notes: "", status: "" }],
+    procedureRows: [{ procedure: "", notes: "", status: "" }],
+    followUpText: "",
+    followUpDate: "",
+    medications: [
+      {
+        medicine: "",
+        frequency: "",
+        timing: "",
+        duration: "",
+        dosage: "",
+        instruction: "",
+        snomedCode: "",
+      },
+    ],
+  };
+
   const [rxForm, setRxForm] = useState<DigitalRxFormState>(INITIAL_RX);
 
-  /* Past records */
+  /* -------------------------------------------------------------------------- */
+  /*                       🔍 Past Records: SAME UI as before                    */
+  /* -------------------------------------------------------------------------- */
+
   const [pastDays, setPastDays] = useState<DayRecords[]>([]);
   const [loadingPast, setLoadingPast] = useState(false);
   const [errorPast, setErrorPast] = useState<string | null>(null);
 
-  const doctor = useMemo(
-    () => ({
-      name: "Dr. A. Banerjee",
-      regNo: "KMC/2011/12345",
-      specialty: "Internal Medicine",
-      qualifications: "MBBS, MD",
-    }),
-    []
-  );
+  // Virtual index: 0 = live form, 1..N = past days
+  const [virtIndex, setVirtIndex] = useState(0);
 
-  const clinic = useMemo(
-    () => ({
-      name: "Sushila Mathrutva Clinic",
-      address: "Banashankari, Bengaluru, KA 560070",
-      phone: "+91 97420 00134",
-      website: "sushilamathrutvaclinic.com",
-    }),
-    []
-  );
+  const totalDays = pastDays.length;
+  const totalSlots = totalDays + 1; // include live/0
 
-  /*** Voice Overlay Code */
-  // Voice overlay
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const showPast = virtIndex > 0;
+  const dayIdx = showPast ? Math.max(0, virtIndex - 1) : 0;
 
-  const handleVoiceInsert = useCallback(
-    (target: "chiefComplaints" | "doctorNote", text: string) => {
-      const t = (text || "").trim();
-      if (!t) {
-        setVoiceOpen(false);
-        return;
-      }
+  const prevSlot = () => setVirtIndex((i) => Math.max(0, i - 1));
+  const nextSlot = () => setVirtIndex((i) => Math.min(i + 1, totalDays));
 
-      setRxForm((prev) => {
-        if (target === "chiefComplaints") {
-          const prevCC = prev.chiefComplaintRows || "";
-          const merged = [prevCC, t].filter(Boolean).join(prevCC ? " " : "");
-          return { ...prev, chiefComplaints: merged };
-        }
+  /* -------------------------------------------------------------------------- */
+  /*                           Load past records on mount                        */
+  /* -------------------------------------------------------------------------- */
 
-        // doctorNote maps to followUpText in the new flat structure
-        const prevNote = prev.followUpText || "";
-        const merged = [prevNote, t].filter(Boolean).join(prevNote ? " " : "");
-        return { ...prev, followUpText: merged };
+  useEffect(() => {
+    let alive = true;
+    setLoadingPast(true);
+
+    loadMockRecords(patient.id)
+      .then((canon) => {
+        if (!alive) return;
+
+        const grouped = groupByDate(canon);
+        setPastDays(grouped);
+        setErrorPast(null);
+      })
+      .catch((e: unknown) => {
+        if (!alive) return;
+        setErrorPast((e as Error)?.message ?? "Failed to load past records");
+      })
+      .finally(() => {
+        if (alive) setLoadingPast(false);
       });
 
-      setVoiceOpen(false);
-    },
-    []
-  );
+    return () => {
+      alive = false;
+    };
+  }, [patient.id]);
 
-  /* ---------- NEW: merge bullets helper for Scribe submit (dedupe + bullets) ---------- */
+  /* -------------------------------------------------------------------------- */
+  /*                                 Save Rx                                     */
+  /* -------------------------------------------------------------------------- */
+
+  const onSave = useCallback(() => {
+    const record: CanonicalRecord = {
+      id: cuidLike(),
+      patientId: patient.id,
+      dateISO: ddmmyyyy(new Date()),
+      type: "Prescription",
+      source: "digital-rx",
+      canonical: canonicalFn(rxForm), // plugin-specific canonical
+    };
+
+    setPastDays((prev) => {
+      if (prev.length > 0 && prev[0].dateISO === record.dateISO) {
+        const updated = {
+          dateISO: record.dateISO,
+          items: [record, ...prev[0].items],
+        };
+        return [updated, ...prev.slice(1)];
+      }
+      return [{ dateISO: record.dateISO, items: [record] }, ...prev];
+    });
+
+    setVirtIndex(1);
+    setRxForm(INITIAL_RX);
+  }, [rxForm, patient.id, canonicalFn]);
+
+  const onSend = useCallback(() => {
+    console.log("Send prescription → (future API)");
+  }, []);
+
+  /* -------------------------------------------------------------------------- */
+  /*                                Print Rx                                     */
+  /* -------------------------------------------------------------------------- */
+
+  const onPrint = async () => {
+    const { generatePrescriptionPdf } = await import(
+      "@/lib/pdf/generatePrescriptionPdf"
+    );
+
+    await generatePrescriptionPdf({
+      rx: { medications: rxForm.medications },
+      patient: {
+        name: patient.name,
+        age: patient.age,
+        gender: patient.gender,
+        abhaNumber: patient.abhaNumber,
+        abhaAddress: patient.abhaAddress,
+        vitals: {
+          temperature: rxForm.vitals.temperature,
+          bp: rxForm.vitals.bp,
+          spo2: rxForm.vitals.spo2,
+          pulse: rxForm.vitals.pulse,
+        },
+        chiefComplaints: (rxForm.chiefComplaintRows ?? [])
+          .map((r) => r.symptom)
+          .filter(Boolean)
+          .join(", "),
+        diagnosis: (rxForm.diagnosisRows ?? [])
+          .map((r) => r.diagnosis)
+          .filter(Boolean)
+          .join(", "),
+        investigations: (rxForm.investigationRows ?? [])
+          .map((r) => r.investigation)
+          .filter(Boolean)
+          .join(", "),
+        followUpText: rxForm.followUpText,
+        followUpDate: rxForm.followUpDate,
+      },
+      doctor: {
+        name: doctor.name,
+        regNo: "KMC/2011/12345",
+        specialty: "Ophthalmology",
+      },
+      clinic: {
+        name: "Shankar Nethralaya",
+        address: "Chennai",
+        phone: "000",
+        logoUrl: "/White logo.png",
+      },
+    });
+  };
+
+  /* -------------------------------------------------------------------------- */
+  /*                        Consultation Status (In/Pause/Done)                 */
+  /* -------------------------------------------------------------------------- */
+
+  const [consultStatus, setConsultStatus] = useState<
+    "idle" | "active" | "paused" | "done"
+  >("idle");
+
+  /* -------------------------------------------------------------------------- */
+  /*                                Lab Modal                                    */
+  /* -------------------------------------------------------------------------- */
+
+  const [showLabModal, setShowLabModal] = useState(false);
+
+  const handleLabSubmit = (data: any) => {
+    console.log("Lab submitted: ", data);
+    setShowLabModal(false);
+  };
+
+  /* -------------------------------------------------------------------------- */
+  /*                           Upload & Invoice Modals                           */
+  /* -------------------------------------------------------------------------- */
+
+  const [showUpload, setShowUpload] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  /* -------------------------------------------------------------------------- */
+  /*                         Scribe → merge complaint + advice                   */
+  /* -------------------------------------------------------------------------- */
+
   function mergeUniqueBullets(existing: string | undefined, items: string[]) {
     const clean = (s: string) => s.replace(/^[•\-\s]+/, "").trim();
     const current = (existing || "").split(/\n+/).map(clean).filter(Boolean);
@@ -249,313 +416,57 @@ export default function DoctorConsolePage() {
     return next.map((t) => `• ${t}`).join("\n");
   }
 
-  /**
-   * VIRTUAL INDEX for PastRecordButton:
-   *   0 ............. = CURRENT (live / blank preview)
-   *   1..totalDays .. = pastDays[0..totalDays-1]
-   */
-  const [virtIdx, setVirtIdx] = useState(0);
+  /* -------------------------------------------------------------------------- */
+  /*                                  JSX LAYOUT                                */
+  /* -------------------------------------------------------------------------- */
 
-  useEffect(() => {
-    let alive = true;
-    setLoadingPast(true);
-    loadMockRecords("pat_001")
-      .then((canon) => {
-        if (!alive) return;
-
-        // Group by date for Past Records viewer
-        const grouped = groupByDate(canon);
-        setPastDays(grouped);
-        setErrorPast(null);
-
-        // ✅ Prefill Allergies + Medical History from the LATEST record that has them
-        const latest = canon
-          .slice()
-          .reverse()
-          .find(
-            (r) =>
-              (r.canonical?.allergies && r.canonical.allergies.trim() !== "") ||
-              (r.canonical?.medicalHistory &&
-                r.canonical.medicalHistory.trim() !== "")
-          );
-
-        if (latest) {
-          setRxForm((prev) => ({
-            ...prev,
-            allergies: latest.canonical.allergies || prev.allergies,
-            medicalHistory:
-              latest.canonical.medicalHistory || prev.medicalHistory,
-          }));
-        }
-
-        // ✅ Derive BP trend from all available vitals
-        const bpData = canon
-          .map((r) => {
-            const v = r.canonical?.vitals || {};
-            const sys = parseFloat(v.bpSys || "");
-            const dia = parseFloat(v.bpDia || "");
-            if (!isNaN(sys) && !isNaN(dia)) {
-              return { date: r.dateISO, sys, dia };
-            }
-            return null;
-          })
-          .filter(Boolean) as Array<{ date: string; sys: number; dia: number }>;
-
-        setBpTrend(bpData);
-      })
-      .catch((e: any) => {
-        if (!alive) return;
-        setErrorPast(e?.message ?? "Failed to load mock data");
-      })
-      .finally(() => alive && setLoadingPast(false));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const totalDays = pastDays.length;
-  const totalSlots = totalDays + 1; // include "0 = current"
-  const clampDayIdx = (i: number) =>
-    totalDays === 0 ? 0 : Math.min(Math.max(i, 0), totalDays - 1);
-  const clampVirt = (i: number) =>
-    totalSlots === 0 ? 0 : Math.min(Math.max(i, 0), totalSlots - 1);
-
-  const showPast = virtIdx > 0;
-  const dayIdx = showPast ? clampDayIdx(virtIdx - 1) : 0;
-
-  const prevSlot = () => setVirtIdx((i) => Math.max(i - 1, 0));
-  const nextSlot = () => setVirtIdx((i) => Math.min(i + 1, totalDays));
-
-  /* Actions */
-  const onSave = useCallback(() => {
-    // 1) Make a canonical record from the current DigitalRx form
-    const record: CanonicalRecord = {
-      id: cuidLike(),
-      patientId: "pat_001", // same patient your mock loader filters by
-      dateISO: ddmmyyyy(new Date()), // groups under "today"
-      type: "Prescription",
-      source: "digital-rx",
-      canonical: rxForm, // snapshot of what you just filled
-    };
-
-    setPastDays((prev) => {
-      // If the first day is today, prepend into that day
-      if (prev.length > 0 && prev[0].dateISO === record.dateISO) {
-        const updatedFirstDay: DayRecords = {
-          dateISO: prev[0].dateISO,
-          items: [record, ...prev[0].items],
-        };
-        return [updatedFirstDay, ...prev.slice(1)];
-      }
-      // Otherwise create a new "today" bucket and put it at the top
-      return [{ dateISO: record.dateISO, items: [record] }, ...prev];
-    });
-
-    // 3) Reset the live/current tab so it’s blank again
-    setRxForm(INITIAL_RX);
-
-    // 4) Optional UX: immediately show Past view on the new entry (1/N)
-    //    If you prefer to stay on the live blank form, change 1 -> 0.
-    setVirtIdx(1);
-
-    // (Optional) close companion or keep it — leaving as-is to not surprise the user
-    console.log("Saved to Past Records.");
-  }, [rxForm]);
-
-  const onSend = useCallback(() => console.log("Send (no-op)"), []);
-  // inside your DoctorConsole component (same place where old onPrint existed)
-  const onPrint = async () => {
-    // Dynamically import the PDF generator — browser only
-    const { generatePrescriptionPdf } = await import(
-      "@/lib/pdf/generatePrescriptionPdf"
-    );
-
-    await generatePrescriptionPdf({
-      rx: {
-        medications: rxForm?.medications || [], // your form array
-      },
-      patient: {
-        name: patient?.name || "Unknown",
-        age: patient?.age || "",
-        gender: patient?.gender || "",
-        abhaNumber: patient?.abhaNumber || "",
-        abhaAddress: patient?.abhaAddress || "",
-        vitals: {
-          temperature: rxForm?.vitals?.temperature || "",
-          bp: rxForm?.vitals?.bp || "",
-          spo2: rxForm?.vitals?.spo2 || "",
-          pulse: rxForm?.vitals?.pulse || "",
-        },
-        chiefComplaints:
-          rxForm?.chiefComplaintRows
-            ?.map((r) => r.symptom)
-            .filter(Boolean)
-            .join(", ") || "",
-        diagnosis:
-          rxForm?.diagnosisRows
-            ?.map((r) => r.diagnosis)
-            .filter(Boolean)
-            .join(", ") || "",
-        investigations:
-          rxForm?.investigationRows
-            ?.map((r) => r.investigation)
-            .filter(Boolean)
-            .join(", ") || "",
-        // procedures:
-        //   rxForm?.procedureRows
-        //     ?.map((r) => r.procedure)
-        //     .filter(Boolean)
-        //     .join(", ") || "",
-        followUpText: rxForm?.followUpText || "",
-        followUpDate: rxForm?.followUpDate || "",
-      },
-      doctor: {
-        name: doctor?.name || "Dr. Name",
-        regNo: doctor?.regNo || "",
-        specialty: doctor?.specialty || "",
-      },
-      clinic: {
-        name: clinic?.name || "Clinic Name",
-        address: clinic?.address || "",
-        phone: clinic?.phone || "",
-        logoUrl: "/White logo.png", // path in /public
-      },
-    });
-  };
-
-  const onLanguage = useCallback(() => console.log("Language (no-op)"), []);
-
-  /* Companion switch + picks */
-  const handleCompanionSwitch = useCallback((checked: boolean) => {
-    if (checked) {
-      setCompanionMode("form"); // default ON → Form
-      setActiveTool("none");
-      collapseSidebar(true);
-      setVirtIdx(0); // leave any past-view, back to current
-    } else {
-      setCompanionMode("off");
-      setActiveTool("none");
-      collapseSidebar(false);
-    }
-  }, []);
-
-  const pickCompanion = useCallback(
-    (mode: Extract<CompanionMode, "form" | "voice" | "scribe">) => {
-      if (!companionOn) return;
-      setCompanionMode(mode);
-      setActiveTool("none");
-      setVirtIdx(0); // leave past when changing companion view
-      collapseSidebar(true);
-    },
-    [companionOn]
-  );
-
-  /* Tool open — clicking DigitalRx must return to form-in-preview */
-  const openTool = useCallback((tool: ActiveTool) => {
-    setCompanionMode("off");
-    setActiveTool(tool);
-    setVirtIdx(0); // ALWAYS leave past view
-    collapseSidebar(true);
-  }, []);
-
-  const [consultStatus, setConsultStatus] = useState<
-    "idle" | "paused" | "active" | "done"
-  >("idle");
-  const [doctorIn, setDoctorIn] = useState(true);
-
-  const handlePause = () => setConsultStatus("paused");
-  const handleResume = () => setConsultStatus("active");
-  const handleFinish = () => {
-    setConsultStatus("done");
-    // TODO: implement logic to mark consultation as complete and call next
-  };
-
-  /* Layout (kept from your base file, but simplified for no tabs/filters) */
-  const layout =
-    companionMode === "scribe"
-      ? "grid-cols-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,0.3fr)_72px]"
-      : companionMode === "form"
-      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px]"
-      : activeTool !== "none"
-      ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]"
-      : "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]";
-
-  useEffect(() => {
-    console.log("ActiveTool changed:", activeTool);
-  }, [activeTool]);
+  /* Layout for main content (no split-screen now) */
+  const layout = "grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]";
 
   return (
     <div className="space-y-3">
-      {/* ------------------------------- Header Panel ------------------------------- */}
+      {/* ------------------------------------------------------------------ */}
+      {/*                            HEADER AREA                              */}
+      {/* ------------------------------------------------------------------ */}
       <div className="ui-card px-5 py-1 mt-2 mx-4">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 ml-3">
-            {/* Doctor In/Out toggle */}
-            <button
-              onClick={() => setDoctorIn((v) => !v)}
-              className="btn-neutral text-xs rounded px-2 py-1 hover:bg-gray-50"
-              title="Toggle doctor in/out"
-            >
-              {doctorIn ? "Out" : "In"}
-            </button>
-
-            {/* Control buttons */}
-            {(consultStatus as string) !== "paused" ? (
-              <IconButton
-                label=""
-                pressed={consultStatus === "paused"}
-                onClick={() => setConsultStatus("paused")}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                >
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              </IconButton>
-            ) : (
-              <IconButton
-                label=""
-                pressed={consultStatus === "active"}
-                onClick={() => setConsultStatus("active")}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                >
-                  <polygon points="5,3 19,12 5,21 5,3" />
-                </svg>
-              </IconButton>
-            )}
-          </div>
-
+          {/* Doctor In/Out toggle */}
           <button
-            onClick={() => setActiveTop("queue")}
-            title="OPD Queue"
-            className={[
-              "inline-flex items-center justify-center w-9 h-9 rounded-full border shadow-sm transition",
-              activeTop === "queue"
-                ? "bg-White text-white border-gray-900"
-                : "bg-white text-gray-800 hover:bg-gray-50 border-gray-300",
-            ].join(" ")}
+            onClick={() => console.log("Doctor in/out toggled")}
+            className="btn-neutral text-xs rounded px-2 py-1 hover:bg-gray-50"
           >
-            <Image
-              src="/icons/queue.png"
-              alt="OPD Queue"
-              width={20}
-              height={20}
-              className="object-contain"
-            />
+            In
           </button>
 
-          {/* ---------------- Consultation Done Button ---------------- */}
+          {/* Pause / Resume Toggle */}
+          {consultStatus !== "paused" ? (
+            <button
+              title="Pause Consultation"
+              onClick={() => setConsultStatus("paused")}
+              className="btn-neutral text-xs rounded px-2 py-1 hover:bg-gray-50"
+            >
+              ❚❚
+            </button>
+          ) : (
+            <button
+              title="Resume Consultation"
+              onClick={() => setConsultStatus("active")}
+              className="btn-neutral text-xs rounded px-2 py-1 hover:bg-gray-50"
+            >
+              ►
+            </button>
+          )}
+
+          {/* Queue Icon */}
+          <button
+            onClick={() => console.log("Queue clicked")}
+            title="OPD Queue"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full border bg-white hover:bg-gray-50 text-gray-900"
+          >
+            <img src="/icons/queue.png" className="w-5 h-5" />
+          </button>
+
+          {/* Consultation Done */}
           <button
             type="button"
             onClick={() => alert("Consultation done")}
@@ -564,157 +475,129 @@ export default function DoctorConsolePage() {
             Consultation Done
           </button>
 
-          {/* ---------------- Companion Cluster (right) ---------------- */}
-          <div className="ml-auto flex items-center gap-2">
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Companion controls (unchanged) */}
+          <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600">Companion Mode</span>
+
             <CompanionToggle
               checked={companionOn}
               onChange={(v) => handleCompanionSwitch(!!v)}
               onCheckedChange={(v) => handleCompanionSwitch(!!v)}
             />
 
-            <IconButton
-              label="Voice"
-              disabled={!companionOn}
-              pressed={companionMode === "voice"}
+            {/* Voice */}
+            <button
+              className={`inline-flex items-center justify-center w-9 h-9 rounded-full border ${
+                companionMode === "voice"
+                  ? "bg-green-600 text-black"
+                  : "bg-white hover:bg-gray-50 text-gray-900"
+              }`}
               onClick={() => {
                 pickCompanion("voice");
                 setVoiceOpen(true);
               }}
             >
               <MicIcon className="w-4 h-4" />
-            </IconButton>
-            <IconButton
-              label="Scribe"
-              disabled={!companionOn}
-              pressed={companionMode === "scribe"}
+            </button>
+
+            {/* Scribe */}
+            <button
+              className={`inline-flex items-center justify-center w-9 h-9 rounded-full border ${
+                companionMode === "scribe"
+                  ? "bg-green-600 text-black"
+                  : "bg-white hover:bg-gray-50 text-gray-900"
+              }`}
               onClick={() => pickCompanion("scribe")}
             >
               <ScribeIcon className="w-4 h-4" />
-            </IconButton>
-
-            {/* ---------------- Doctor Control Icons ---------------- */}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* --------------------- Main Area & Sticky Right Toolbar --------------------- */}
+      {/* ------------------------------------------------------------------ */}
+      {/*                           MAIN GRID AREA                            */}
+      {/* ------------------------------------------------------------------ */}
       <div className="mt-2 px-1 md:px-6 lg:px-8">
         <div className={`grid gap-2 items-start ${layout}`}>
-          {/* LEFT: Preview paper (NO tabs, NO filter) */}
+          {/* ================================================================== */}
+          {/*                         LEFT: PREVIEW PAPER                        */}
+          {/* ================================================================== */}
           <PreviewPaper
             patient={patient}
-            bodyOverride={
-              virtIdx === 0 && companionMode === "off" ? (
-                activeTool === "digitalrx" ? (
-                  <DigitalRxForm
-                    value={rxForm}
-                    onChange={setRxForm}
-                    bpHistory={bpTrend}
-                  />
-                ) : activeTool === "immunization" ? (
-                  <ImmunizationForm />
-                ) : activeTool === "daycare" ? (
-                  <DaycareSummary
-                    pastVitals={{
-                      temp: [98.7, 99.3, 98.4],
-                      bpSys: [120, 130],
-                      bpDia: [80, 85],
-                      spo2: [98, 97],
-                      allergies: ["Penicillin"],
-                      conditions: ["Diabetes", "Hypertension"],
-                    }}
-                  />
-                ) : activeTool === "lab" ? (
-                  <LabRequestForm
-                    isDoctorContext
-                    patientName={patient.name}
-                    onSubmit={() => setActiveTool("none")}
-                    onCancel={() => setActiveTool("none")}
-                  />
-                ) : undefined
-              ) : undefined
-            }
-            payload={
-              virtIdx === 0 && activeTool === "digitalrx" ? rxForm : undefined
-            }
             past={{
-              active: virtIdx > 0,
-              index: virtIdx > 0 ? virtIdx - 1 : 0,
+              active: showPast,
+              index: showPast ? dayIdx : 0,
               total: totalDays,
               loading: loadingPast,
               error: errorPast ?? undefined,
-              day: virtIdx > 0 ? pastDays[virtIdx - 1] : undefined,
-              onOpen: () => setVirtIdx(1),
-              onClose: () => setVirtIdx(0),
+              day: showPast ? pastDays[dayIdx] : undefined,
+              onOpen: () => setVirtIndex(1),
+              onClose: () => setVirtIndex(0),
               onPrev: prevSlot,
               onNext: nextSlot,
             }}
+            bodyOverride={
+              !showPast &&
+              activeTool === "digitalrx" &&
+              companionMode === "off" ? (
+                <DigitalRxFormComponent value={rxForm} onChange={setRxForm} />
+              ) : undefined
+            }
           />
 
-          {/* RIGHT panel in companion modes */}
+          {/* ================================================================== */}
+          {/*                      RIGHT: COMPANION PANEL                        */}
+          {/* ================================================================== */}
           {companionMode === "form" && (
-            <SectionCard ariaLabel="Consultation form (Companion)">
-              <DigitalRxForm
-                value={rxForm}
-                onChange={setRxForm}
-                bpHistory={bpTrend}
-              />
-            </SectionCard>
+            <div className="hidden md:block sticky top-20 self-start w-[72px]">
+              <div className="ui-card p-1.5 flex flex-col items-center gap-3">
+                <RoundPill
+                  label="Digital Rx"
+                  img="/icons/digitalrx.png"
+                  onClick={() => openTool("digitalrx")}
+                  variant="green"
+                />
+              </div>
+            </div>
           )}
 
-          {companionMode === "scribe" && (
-            <SectionCard ariaLabel="Scribe editor">
-              <ScribePanel
-                onSubmit={({ complaints, advice }) => {
-                  setPreviewChiefComplaints(complaints);
-                  setPreviewDoctorNote(advice);
-                  setRxForm((prev) => ({
-                    ...prev,
-                    chiefComplaints:
-                      rxForm?.chiefComplaintRows
-                        ?.map((r) => r.symptom)
-                        .filter(Boolean)
-                        .join(", ") || "",
-                    followUpText: mergeUniqueBullets(prev.followUpText, advice),
-                  }));
-                }}
-                onCancel={() => {}}
-              />
-            </SectionCard>
-          )}
-
-          {/* RIGHT: Sticky toolbar (always on md+) */}
+          {/* ================================================================== */}
+          {/*                     RIGHT: STICKY TOOLBAR                          */}
+          {/* ================================================================== */}
           <aside className="hidden md:block sticky top-20 self-start w-[72px]">
             <div className="flex flex-col items-center gap-4">
-              <div className="ui-card p-1.5 w-[58px] flex flex-col items-center gap-2">
+              <div className="ui-card p-1.5 w-[58px] flex flex-col items-center gap-4">
                 {/* Group A */}
                 <RoundPill
-                  label=""
+                  label="Digital Rx"
                   img="/icons/digitalrx.png"
                   onClick={() => openTool("digitalrx")}
                   variant="green"
                 />
                 <RoundPill
-                  label=""
+                  label="Immunization"
                   img="/icons/syringe.png"
                   onClick={() => openTool("immunization")}
                   variant="blue"
                 />
                 <RoundPill
-                  label=""
+                  label="Daycare"
                   img="/icons/discharge-summary.png"
                   onClick={() => openTool("daycare")}
                   variant="blue"
                 />
                 <RoundPill
-                  label=""
+                  label="Lab"
                   img="/icons/lab-request.png"
-                  onClick={() => openTool("lab")}
+                  onClick={() => setShowLabModal(true)}
                   variant="gray"
                 />
 
-                {/* Divider */}
+                {/* Separator */}
                 <div className="my-10 h-px w-full bg-gray-300" />
 
                 {/* Group B */}
@@ -730,18 +613,46 @@ export default function DoctorConsolePage() {
                   label="Payment"
                   onClick={() => setShowInvoiceModal(true)}
                 />
-
-                <TinyIcon
-                  img="/icons/language.png"
-                  label="Language"
-                  onClick={onLanguage}
-                />
               </div>
             </div>
           </aside>
         </div>
       </div>
 
+      {/* ------------------------------------------------------------------ */}
+      {/*                         COMPANION RIGHT PANEL                        */}
+      {/* ------------------------------------------------------------------ */}
+      {companionMode === "form" && (
+        <div className="ui-card p-4 md:hidden">
+          <DigitalRxFormComponent value={rxForm} onChange={setRxForm} />
+        </div>
+      )}
+
+      {companionMode === "scribe" && (
+        <div className="ui-card p-4 md:hidden">
+          <ScribePanel
+            onSubmit={({ complaints, advice }) => {
+              setRxForm((prev) => ({
+                ...prev,
+                chiefComplaintRows: [
+                  ...(prev.chiefComplaintRows ?? []),
+                  ...complaints.map((c) => ({
+                    symptom: c,
+                    since: "",
+                    severity: "",
+                  })),
+                ],
+                followUpText: mergeUniqueBullets(prev.followUpText, advice),
+              }));
+            }}
+            onCancel={() => {}}
+          />
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/*                             VOICE OVERLAY                           */}
+      {/* ------------------------------------------------------------------ */}
       <VoiceOverlay
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
@@ -750,15 +661,11 @@ export default function DoctorConsolePage() {
             ...prev,
             chiefComplaintRows: [
               ...(prev.chiefComplaintRows ?? []),
-              // add only new unique complaints as { symptom: string }
-              ...complaints
-                .filter(
-                  (c) =>
-                    !prev.chiefComplaintRows?.some(
-                      (r) => r.symptom.toLowerCase() === c.toLowerCase()
-                    )
-                )
-                .map((c) => ({ symptom: c, since: "", severity: "" })),
+              ...complaints.map((c) => ({
+                symptom: c,
+                since: "",
+                severity: "",
+              })),
             ],
             followUpText: mergeUniqueBullets(prev.followUpText, advice),
           }));
@@ -766,43 +673,55 @@ export default function DoctorConsolePage() {
         }}
       />
 
+      {/* ------------------------------------------------------------------ */}
+      {/*                           UPLOAD MODAL                              */}
+      {/* ------------------------------------------------------------------ */}
       <UploadModal
         open={showUpload}
         onClose={() => setShowUpload(false)}
-        patient={{ name: "Ananya Sharma", uhid: "UHID1001" }}
+        patient={{ name: patient.name, uhid: patient.id }}
         onUpload={(formData) => {
           console.log("Uploaded:", Object.fromEntries(formData));
         }}
       />
 
+      {/* ------------------------------------------------------------------ */}
+      {/*                           INVOICE MODAL                             */}
+      {/* ------------------------------------------------------------------ */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
         onSave={(amount, patientName) => {
-          console.log("Invoice saved:", { amount, patientName });
+          console.log("Invoice saved: ", { amount, patientName });
           setShowInvoiceModal(false);
-          // optional: trigger toast or refresh invoice list
         }}
       />
+
+      {/* ------------------------------------------------------------------ */}
+      {/*                           LAB REQUEST MODAL                         */}
+      {/* ------------------------------------------------------------------ */}
+      {showLabModal && (
+        <LabRequestForm
+          isDoctorContext
+          patientName={patient.name}
+          onSubmit={handleLabSubmit}
+          onCancel={() => setShowLabModal(false)}
+        />
+      )}
     </div>
   );
 }
-/* -------------------------------- Preview -------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/*                              PREVIEW PAPER                                 */
+/* -------------------------------------------------------------------------- */
+
 function PreviewPaper({
   patient,
-  payload,
-  bodyOverride,
   past,
+  bodyOverride,
 }: {
-  patient: {
-    name: string;
-    age: string;
-    gender: string;
-    abhaNumber: string;
-    abhaAddress: string;
-  };
-  payload?: DigitalRxFormState;
-  bodyOverride?: React.ReactNode;
+  patient: any;
   past: {
     active: boolean;
     index: number;
@@ -815,495 +734,112 @@ function PreviewPaper({
     onPrev: () => void;
     onNext: () => void;
   };
+  bodyOverride?: React.ReactNode;
 }) {
   const showingPast = past.active;
-  const [showUpload, setShowUpload] = useState(false);
 
   return (
-    <>
-      <div className="min-w-0 md:sticky md:top-20 self-start">
-        <div
-          className="relative mx-auto bg-white border border-gray-300 rounded-xl shadow-sm overflow-visible"
-          style={{
-            minHeight: 680,
-            background: "linear-gradient(180deg,#ffffff 0%,#fcfcfc 100%)",
-          }}
-        >
-          <div className="relative z-0 p-4 md:p-6">
-            {/* Patient demography header */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-start">
-              <div className="min-w-0 pr-3">
-                <div className="text-sm font-semibold">{patient.name}</div>
-                <div className="text-xs text-gray-700 mt-0.5">
-                  {patient.gender} • {patient.age}
+    <div className="min-w-0 md:sticky md:top-20 self-start">
+      <div
+        className="relative mx-auto bg-white border border-gray-300 rounded-xl shadow-sm"
+        style={{ minHeight: 680 }}
+      >
+        <div className="p-4 md:p-6">
+          {/* HEADER: Patient */}
+          <div className="text-sm font-semibold">{patient.name}</div>
+          <div className="text-xs text-gray-700">
+            {patient.gender} • {patient.age}
+          </div>
+          <div className="text-xs text-gray-600 mt-1">
+            ABHA No: {patient.abhaNumber}
+          </div>
+          <div className="text-xs text-gray-600">
+            ABHA Address: {patient.abhaAddress}
+          </div>
+
+          
+
+          <div className="my-3 border-t border-gray-200" />
+
+          
+
+          {/* BODY */}
+          <div className="mt-2">
+            {showingPast ? (
+              past.loading ? (
+                <div className="ui-card p-4 text-sm text-gray-500">
+                  Loading…
                 </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  ABHA No: {patient.abhaNumber}
+              ) : past.error ? (
+                <div className="ui-card p-4 text-red-600">{past.error}</div>
+              ) : !past.day ? (
+                <div className="ui-card p-4 text-sm text-gray-500">
+                  No records.
                 </div>
-                <div className="text-xs text-gray-600">
-                  ABHA Address: {patient.abhaAddress}
-                </div>
-              </div>
-
-              <Image
-                src="/icons/logo.png"
-                alt="Clinic Logo"
-                width={40}
-                height={40}
-              />
-
-              <div className="flex items-start justify-end pl-3">
-                <div className="flex flex-col items-end gap-2">
-                  {/* --- Row 1: Patient Summary + Upload + Consent --- */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="inline-flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900"
-                      title="Open Patient Summary"
-                      type="button"
-                    >
-                      <SummaryIcon className="w-4 h-4" />
-                    </button>
-
-                    {/* Upload icon */}
-                    <button
-                      type="button"
-                      title="Upload Report"
-                      onClick={() => setShowUpload(true)}
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={1.5}
-                      >
-                        <path
-                          d="M12 16V4m0 0-4 4m4-4 4 4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 16v4h16v-4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-
-                    {/* Consent icon */}
-                    <button
-                      type="button"
-                      title="Consent Management"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 text-gray-700"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={1.5}
-                      >
-                        <path
-                          d="M12 21C7 17.5 4 13.5 4 9a8 8 0 1 1 16 0c0 4.5-3 8.5-8 12Z"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 9v3m0 3h.01"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* --- Row 2: View Past Record or Pager --- */}
-                  {!past.active ? (
-                    <button
-                      type="button"
-                      onClick={past.onOpen}
-                      className="btn-primary inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-green-600 text-gray-700 hover:bg-gray-50"
-                    >
-                      View Past Record
-                    </button>
-                  ) : (
-                    <div className="backdrop-blur bg-white/70 border border-gray-200 rounded-full px-2 py-1 shadow-sm">
-                      <PastRecordButton
-                        active={past.active}
-                        index={past.index}
-                        total={past.total}
-                        onOpen={past.onClose}
-                        onPrev={past.onPrev}
-                        onNext={past.onNext}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="my-3 border-t border-gray-200" />
-
-            {/* Record body */}
-            <div className="mt-2">
-              {showingPast ? (
-                past.loading ? (
-                  <div className="ui-card p-4 text-sm text-gray-500">
-                    Loading past records…
-                  </div>
-                ) : past.error ? (
-                  <div className="ui-card p-4 text-sm text-red-600">
-                    Error: {past.error}
-                  </div>
-                ) : past.total === 0 || !past.day ? (
-                  <div className="ui-card p-4 text-sm text-gray-500">
-                    No past records available.
-                  </div>
-                ) : (
-                  <PastRecordsPanel day={past.day} />
-                )
               ) : (
-                bodyOverride ?? <LivePreview payload={payload} />
-              )}
+                <PastRecordDay day={past.day} />
+              )
+            ) : (
+              bodyOverride ?? (
+                <div className="ui-card p-4 text-gray-400">
+                  (Preview will appear here)
+                </div>
+              )
+            )}
+          </div>
+
+          {/* NAVIGATION */}
+          {showingPast && (
+            <div className="flex items-center justify-between mt-4">
+              <button
+                className="btn-neutral text-xs px-2 py-1"
+                onClick={past.onPrev}
+                disabled={past.index <= 0}
+              >
+                ← Prev
+              </button>
+              <div className="text-xs">
+                {past.index + 1}/{past.total}
+              </div>
+              <button
+                className="btn-neutral text-xs px-2 py-1"
+                onClick={past.onNext}
+                disabled={past.index >= past.total - 1}
+              >
+                Next →
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ✅ MOUNT MODAL AT ROOT LEVEL SO IT SHOWS FULL SCREEN */}
-      <UploadModal
-        open={showUpload}
-        onClose={() => setShowUpload(false)}
-        patient={{
-          name: patient.name,
-          uhid: "UHID1001", // replace with actual ID later
-        }}
-        onUpload={(formData) => {
-          console.log("Uploaded:", Object.fromEntries(formData));
-        }}
-      />
-    </>
-  );
-}
-
-/* -------------------- Past Records (per selected day) -------------------- */
-function PastRecordsPanel({ day }: { day: DayRecords }) {
-  // Show the canonical DigitalRx-mapped preview for this date
-  const first = day?.items?.[0];
-  const payload = first?.canonical;
-  return <LivePreview payload={payload} />;
-}
-
-/* ------------------------------ Live Preview ------------------------------ */
-function LivePreview({ payload }: { payload?: DigitalRxFormState }) {
-  if (!payload) {
-    return (
-      <div className="ui-card p-4 text-sm text-gray-700 min-h-[320px]">
-        <div className="text-gray-400">
-          (Blank preview — start typing in the form or select a past record.)
-        </div>
-      </div>
-    );
-  }
-
-  const {
-    vitals = {},
-    chiefComplaintRows = [],
-    allergies = "",
-    medicalHistory = "",
-    investigationRows = [],
-    procedureRows = [],
-    followUpText = "",
-    followUpDate = "",
-    medications = [],
-    // uploads = { files: [], note: "" },
-  } = payload;
-
-  const rxRows = compactRows(medications, [
-    "medicine",
-    "frequency",
-    "dosage",
-    "duration",
-    "instruction",
-  ]);
-
-  const hasVitals =
-    nonEmpty(vitals.temperature) ||
-    nonEmpty(vitals.bp) ||
-    (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia)) ||
-    nonEmpty(vitals.spo2) ||
-    nonEmpty(vitals.pulse);
-
-  const hasClinical =
-    nonEmpty(chiefComplaintRows) ||
-    nonEmpty(allergies) ||
-    nonEmpty(medicalHistory) ||
-    nonEmpty(investigationRows) ||
-    nonEmpty(procedureRows) ||
-    nonEmpty(followUpText) ||
-    nonEmpty(followUpDate);
-
-  const hasRx = rxRows.length > 0;
-
-  const hasPlan = nonEmpty(followUpText) || nonEmpty(followUpDate);
-  // (uploads?.files?.length ?? 0) > 0 ||
-  // nonEmpty(uploads?.note);
-
-  const showVitals = hasVitals;
-  const showClinical = hasClinical;
-  const showRx = rxRows.length > 0;
-  const showPlan = hasPlan;
-
-  const nothing = !showVitals && !showClinical && !showRx && !showPlan;
-  if (nothing) {
-    return (
-      <div className="ui-card p-4 text-sm text-gray-700 min-h-[320px]">
-        <div className="text-gray-400">
-          (Nothing to preview for the current record.)
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* 🩺 Vitals */}
-      {showVitals && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Vitals</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-            {nonEmpty(vitals.temperature) && (
-              <KV k="Temperature" v={`${safe(vitals.temperature)} °C`} />
-            )}
-            {(nonEmpty(vitals.bp) ||
-              (nonEmpty(vitals.bpSys) && nonEmpty(vitals.bpDia))) && (
-              <KV
-                k="Blood Pressure"
-                v={
-                  nonEmpty(vitals.bp)
-                    ? `${safe(vitals.bp)} mmHg`
-                    : `${safe(vitals.bpSys)}/${safe(vitals.bpDia)} mmHg`
-                }
-              />
-            )}
-            {nonEmpty(vitals.spo2) && (
-              <KV k="SpO₂" v={`${safe(vitals.spo2)} %`} />
-            )}
-            {nonEmpty(vitals.pulse) && (
-              <KV k="Pulse" v={`${safe(vitals.pulse)} bpm`} />
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* 🧾 Clinical Summary */}
-      {showClinical && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Clinical Summary</h3>
-          <div className="space-y-2 text-sm">
-            {nonEmpty(chiefComplaintRows) && (
-              <Block
-                k="Chief Complaints"
-                v={safe(
-                  chiefComplaintRows
-                    .map((r) => r.symptom)
-                    .filter(Boolean)
-                    .join(", ")
-                )}
-              />
-            )}
-
-            {nonEmpty(allergies) && <Block k="Allergies" v={safe(allergies)} />}
-
-            {nonEmpty(medicalHistory) && (
-              <Block k="Medical History" v={safe(medicalHistory)} />
-            )}
-
-            {nonEmpty(investigationRows) && (
-              <Block
-                k="Investigations"
-                v={safe(
-                  investigationRows
-                    .map((r) => r.investigation)
-                    .filter(Boolean)
-                    .join(", ")
-                )}
-              />
-            )}
-
-            {nonEmpty(procedureRows) && (
-              <Block
-                k="Procedures"
-                v={safe(
-                  procedureRows
-                    .map((r) => r.procedure)
-                    .filter(Boolean)
-                    .join(", ")
-                )}
-              />
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* 💊 Prescription */}
-      {showRx && (
-        <section className="ui-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Medications</h3>
-          <div className="overflow-auto rounded border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-600">
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Medicine
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Frequency
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">Timings</th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Duration
-                  </th>
-                  <th className="px-2 py-1.5 text-left font-medium">Dosage</th>
-                  <th className="px-2 py-1.5 text-left font-medium">
-                    Instructions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(rxRows ?? []).length > 0 ? (
-                  rxRows.map((m, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-2 py-1.5 font-medium">
-                        {safe(m.medicine)}
-                      </td>
-                      <td className="px-2 py-1.5">{safe(m.frequency)}</td>
-                      <td className="px-2 py-1.5">{safe(m.timing)}</td>
-                      <td className="px-2 py-1.5">{safe(m.duration)}</td>
-                      <td className="px-2 py-1.5">{safe(m.dosage)}</td>
-                      <td className="px-2 py-1.5">{safe(m.instruction)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center text-gray-500 py-2 text-xs"
-                    >
-                      No medications added
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* 🩹 Follow-up & Attachments */}
-      <section className="ui-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Follow-Up & Advice</h3>
-        <div className="space-y-3 text-sm">
-          {nonEmpty(followUpText) && (
-            <Block k="Doctor’s Note / Advice" v={safe(followUpText)} />
-          )}
-          {nonEmpty(followUpDate) && (
-            <KV k="Next Follow-Up Date" v={safe(followUpDate)} />
           )}
         </div>
-      </section>
-    </div>
-  );
-}
-
-/* ----------------------------- Small preview UI ---------------------------- */
-function KV({ k, v }: { k: string; v?: string }) {
-  return (
-    <div className="flex gap-2">
-      <span className="text-gray-500">{k}:</span>
-      <span className="font-medium">{v}</span>
-    </div>
-  );
-}
-function Block({ k, v }: { k: string; v?: string }) {
-  return (
-    <div>
-      <div className="text-xs text-gray-500 mb-1">{k}</div>
-      <div className="whitespace-pre-wrap">{v}</div>
-    </div>
-  );
-}
-
-/* --------------------------------- UI bits -------------------------------- */
-
-function SectionCard({
-  ariaLabel,
-  children,
-}: {
-  ariaLabel?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="ui-card p-4" aria-label={ariaLabel}>
-        {children}
       </div>
     </div>
   );
 }
 
-function IconButton({
-  label,
-  disabled,
-  pressed,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  pressed?: boolean;
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
+/* -------------------------------------------------------------------------- */
+/*                     PAST RECORD (show first item canonical)                 */
+/* -------------------------------------------------------------------------- */
+
+function PastRecordDay({ day }: { day: DayRecords }) {
+  const first = day.items?.[0];
+  if (!first) {
+    return <div className="ui-card p-4 text-gray-500">No records</div>;
+  }
+
+  const canonical = first.canonical;
+
   return (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      aria-pressed={!!pressed}
-      className={[
-        "group relative inline-flex items-center justify-center w-9 h-9 rounded-full border",
-        disabled
-          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-          : pressed
-          ? "bg-green-600 text-black border-gray-900"
-          : "bg-white text-gray-900 hover:bg-gray-50 border-gray-300",
-      ].join(" ")}
-      title={label}
-      aria-label={label}
-      type="button"
-    >
-      {children}
-      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition text-[8px] bg-white-900 text-black px-2 py-0.5 rounded">
-        {label}
-      </span>
-    </button>
+    <div className="ui-card p-4">
+      <pre className="text-xs whitespace-pre-wrap">
+        {JSON.stringify(canonical, null, 2)}
+      </pre>
+    </div>
   );
 }
 
-type PillVariant = "green" | "pink" | "blue" | "gray";
-const VARIANT = {
-  green:
-    "border-green-500 text-green-700 hover:bg-green-50 focus-visible:ring-green-400",
-  pink: "border-pink-500 text-pink-700 hover:bg-pink-50 focus-visible:ring-pink-400",
-  blue: "border-blue-500 text-blue-700 hover:bg-blue-50 focus-visible:ring-blue-400",
-  amber:
-    "border-amber-500 text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400",
-  gray: "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
-} as const;
-
+/* -------------------------------------------------------------------------- */
+/*                                   ICONS                                    */
+/* -------------------------------------------------------------------------- */
 
 function TinyIcon({
   img,
@@ -1317,25 +853,16 @@ function TinyIcon({
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-300 hover:bg-gray-50"
+      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-300"
       title={label}
-      aria-label={label}
-      type="button"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={img} alt="" className="w-4 h-4" />
     </button>
   );
 }
 
-/* --------------------------------- Icons --------------------------------- */
-function FormIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M4 3h10l6 6v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm10 1v5h5" />
-    </svg>
-  );
-}
+/* ------------------------------ Icons ------------------------------ */
+
 function MicIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -1343,55 +870,11 @@ function MicIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function ScribeIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
       <path d="M4 4h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z" />
     </svg>
   );
-}
-function SummaryIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M4 5h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z" />
-    </svg>
-  );
-}
-
-/* ------------------------------- Scribe mock ------------------------------- */
-// function ScribePanel({
-//   onPayload,
-// }: {
-//   onPayload: (p: { doctorNote?: string }) => void;
-// }) {
-//   const [note, setNote] = useState("");
-//   return (
-//     <div className="space-y-2">
-//       <textarea
-//         value={note}
-//         onChange={(e) => setNote(e.target.value)}
-//         className="w-full h-40 rounded border p-2 text-sm"
-//         placeholder="Type scribe note here…"
-//       />
-//       <button
-//         className="px-3 py-1.5 bg-gray-900 text-white rounded text-sm"
-//         onClick={() => onPayload({ doctorNote: note })}
-//         type="button"
-//       >
-//         Analyze
-//       </button>
-//     </div>
-//   );
-// }
-function ddmmyyyy(now = new Date()) {
-  const dd = String(now.getDate()).padStart(2, "0");
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const yyyy = String(now.getFullYear());
-  return `${dd}-${mm}-${yyyy}`;
-}
-
-function cuidLike() {
-  return `rec_${Date.now().toString(36)}_${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
 }

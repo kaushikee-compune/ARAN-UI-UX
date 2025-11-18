@@ -16,10 +16,10 @@
   },
 
   {
-    "email": "kalam@example.com",
+    "email": "roy@example.com",
     "password": "Aran@123",
     "role": "doctor",
-    "name": "Dr. Abdul Kalam",
+    "name": "Dr. Kadambini Roy",
     "status": "active"
   },
 
