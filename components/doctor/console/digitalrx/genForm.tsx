@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DigitalRxFormState } from "./defaultForm";
+import { DigitalRxFormState } from "../digitalrx/defaultForm";
 
 type Props = {
   value: DigitalRxFormState;
