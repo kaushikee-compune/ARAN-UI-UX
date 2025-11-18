@@ -13,7 +13,7 @@ import UploadModal from "@/components/common/UploadModal";
 import InvoiceModal from "@/components/common/InvoiceModal";
 import { generateImmunizationPdf } from "@/lib/pdf/generateImmunizationPdf";
 import { RoundPill } from "@/components/common/RoundPill";
-import { getDigitalRxPlugin } from "@/components/doctor/digital-rx/plugin-loader";
+//import { getDigitalRxPlugin } from "@/components/doctor/digital-rx/plugin-loader";
 
 
 /* External forms */
