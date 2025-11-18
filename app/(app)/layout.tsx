@@ -69,12 +69,14 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       const raw = document.cookie
         .split("; ")
         .find((r) => r.startsWith("aran.session="));
+        console.log("The raw document cookie ", raw);
       if (raw) {
         const encoded = raw.split("=")[1];
         const decoded = atob(
           encoded.replace(/-/g, "+").replace(/_/g, "/")
         );
         setSession(JSON.parse(decoded));
+        console.log("Show Session:",decoded);
       }
     } catch (err) {
       console.error("Session decode error:", err);

@@ -2,8 +2,8 @@
   {
     "id": "u1",
     "name": "Dr. Vasanth Shetty",
-    "roles": ["Doctor"],
-    "departments": ["oph"], 
+    "roles": ["doctor"],
+    "departments": ["gen"], 
     "branches": ["B001", "B002"], 
     "email": "vasanth@sn.org",
     "phone": "9876543210",
@@ -12,8 +12,8 @@
   {
     "id": "u2",
     "name": "Dr. Kadambini Roy",
-    "roles": ["Doctor"],
-    "departments": ["oph"],
+    "roles": ["doctor"],
+    "departments": ["gyn"],
     "branches": ["B001"],
     "email": "kadambini.roy@clinic.org",
     "phone": "9876541111",
@@ -22,7 +22,7 @@
   {
     "id": "u3",
     "name": "Dr. Vikram Sarabhai",
-    "roles": ["Doctor","Admin"],
+    "roles": ["doctor","admin"],
     "departments": ["gen"],
     "branches": ["B001","B002","B003"],
     "email": "vikram.sara@clinic.org",
@@ -32,7 +32,7 @@
   {
     "id": "u4",
     "name": "Priya Nair",
-    "roles": ["Staff", "Nurse"],
+    "roles": ["staff", "nurse"],
     "departments": ["oph"], 
     "branches": ["B002"],
     "email": "priya.nair@sn.org",
@@ -42,7 +42,7 @@
   {
     "id": "u5",
     "name": "Rohit Kumar",
-    "roles": ["Staff", "Admin"],
+    "roles": ["staff", "admin"],
     "departments": ["general_admin"],
     "branches": ["B001", "B002","B003"],
     "email": "rohit.kumar@clinic.org",
@@ -52,7 +52,7 @@
   {
     "id": "u6",
     "name": "Admin System",
-    "roles": ["Admin"],
+    "roles": ["admin"],
     "departments": [],
     "branches": ["B001", "B002", "B003"],
     "email": "admin@aran.care",
