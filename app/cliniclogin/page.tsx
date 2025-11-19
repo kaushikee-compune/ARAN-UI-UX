@@ -63,7 +63,7 @@ export default function ClinicLoginPage() {
     document.cookie = `aran.activeBranch=${chosenBranch}; Path=/`;
 
     // Redirect based on role
-    if (chosenRole === "doctor") router.push("/doctor/console");
+    if (chosenRole === "doctor") router.push("/doctor");
     else if (chosenRole === "admin") router.push("/admin");
     else router.push("/staff");
   }

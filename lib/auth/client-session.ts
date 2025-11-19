@@ -29,7 +29,7 @@ export function readClientSession(): CurrentUser | null {
   try {
     const json = base64UrlDecode(raw);
     const parsed = JSON.parse(json);
-    if (!parsed?.id || !parsed?.role) return null;
+    if (!parsed?.id || !(parsed?.legacyRole || parsed?.role)) return null;
     return parsed as CurrentUser;
   } catch {
     return null;

@@ -6,10 +6,19 @@ export type { Role };
 
 export type CurrentUser = {
   id: string;
-  role: Role;
-  name?: string | null;
-};
+  name: string;
+  email: string;
+  clinicId?: string;
+  status?: string;
 
+  access: {
+    branchId: string;
+    role: "doctor" | "staff" | "admin";
+  }[];
+
+  legacyRole: "doctor" | "staff" | "admin";
+  legacyBranches: string[];
+};
 /** Safe base64url → JSON string decode for Node/Edge */
 function decodeBase64UrlToString(input: string): string {
   const norm = input.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((input.length + 3) % 4);
@@ -31,7 +40,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     const json = decodeBase64UrlToString(raw);
     const parsed = JSON.parse(json);
-    if (!parsed?.id || !parsed?.role) return null;
+    if (!parsed?.id || !(parsed?.legacyRole || parsed?.role)) return null;
     return parsed as CurrentUser;
   } catch {
     return null;

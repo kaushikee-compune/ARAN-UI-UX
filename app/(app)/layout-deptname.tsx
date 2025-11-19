@@ -3,15 +3,12 @@
 import type { ReactNode } from "react";
 import { getDepartmentName } from "@/lib/departmentMapper";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import NextImage from "next/image";
-import RoleAwareSidebar, { type Role } from "@/components/shell/RoleAwareSidebar";
+import RoleAwareSidebar, {
+  type Role,
+} from "@/components/shell/RoleAwareSidebar";
 import { logout } from "@/lib/auth/logout";
 import { Toaster } from "react-hot-toast";
 import "../globals.css";
@@ -34,6 +31,23 @@ function getActiveRoleFromCookie(): Role {
     : "doctor";
 }
 
+type StaffRecord = {
+  id: string;
+  name: string;
+  roles: string[];
+  departments: string[];
+  branches: string[];
+};
+
+/** Load staff.json from public /data directory */
+async function loadStaffJson(): Promise<StaffRecord[]> {
+  const res = await fetch("/data/staff.json", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error("staff.json not found");
+  }
+  return (await res.json()) as StaffRecord[];
+}
+
 /* ----------------------------------------------------------- */
 /*          MAIN EXPORTED WRAPPER (fixes refresh bug)          */
 /* ----------------------------------------------------------- */
@@ -52,8 +66,6 @@ export default function AppShellLayoutWrapper({
   );
 }
 
-
-
 /* ----------------------------------------------------------- */
 /*                     Actual Layout Component                 */
 /* ----------------------------------------------------------- */
@@ -63,6 +75,14 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role>("doctor");
   const [session, setSession] = useState<any>(null);
+  const [doctorDept, setDoctorDept] = useState<string | null>(null);
+  const userId = session?.id || "";
+  const roleFromSession = session?.legacyRole || "";
+  const activeBranch = session?.legacyBranches?.[0] || "";
+
+  const depUser = userId || "";
+  const depRole = roleFromSession || "";
+  const depBranch = activeBranch || "";
 
   const router = useRouter();
   const { branches, selectedBranch, setSelectedBranch, loading } = useBranch();
@@ -73,19 +93,47 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       const raw = document.cookie
         .split("; ")
         .find((r) => r.startsWith("aran.session="));
-        console.log("The raw document cookie ", raw);
+      console.log("The raw document cookie ", raw);
       if (raw) {
         const encoded = raw.split("=")[1];
-        const decoded = atob(
-          encoded.replace(/-/g, "+").replace(/_/g, "/")
-        );
+        const decoded = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
         setSession(JSON.parse(decoded));
-        console.log("Show Session:",decoded);
+        console.log("Show Session:", decoded);
       }
     } catch (err) {
       console.error("Session decode error:", err);
     }
   }, []);
+
+  useEffect(() => {
+    async function loadDept() {
+      try {
+        const staff = await loadStaffJson();
+
+        const me = staff.find(
+          (s: StaffRecord) =>
+            s.id === depUser &&
+            s.roles.includes(depRole) &&
+            s.branches.includes(depBranch)
+        );
+
+        if (!me) {
+          setDoctorDept(null);
+          return;
+        }
+
+        const deptCode = me.departments?.[0] || null;
+        const fullDept = await getDepartmentName(deptCode);
+
+        setDoctorDept(fullDept);
+      } catch (err) {
+        console.error("Department load error", err);
+        setDoctorDept(null);
+      }
+    }
+
+    loadDept();
+  }, [depUser, depRole, depBranch]);
 
   /* ---------- Initial mount ---------- */
   useEffect(() => {
@@ -110,11 +158,11 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
   /* ---------- Role dropdown options ---------- */
   const roleOptions = useMemo<string[]>(() => {
-  if (!session?.access) return [];
-  return Array.from(
-    new Set(session.access.map((a: any) => a.role))
-  ) as string[];
-}, [session]);
+    if (!session?.access) return [];
+    return Array.from(
+      new Set(session.access.map((a: any) => a.role))
+    ) as string[];
+  }, [session]);
   /* ---------- Handle role change ---------- */
   const handleRoleChange = (newRole: Role) => {
     document.cookie = `aran.activeRole=${newRole}; Path=/`;
@@ -138,71 +186,86 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ---------------- Header ---------------- */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 bg-white h-14 shadow-md">
-        <div className="flex items-center gap-2">
-          <NextImage
-            src="/icons/aranlogo.png"
-            alt="ARAN Logo"
-            width={28}
-            height={28}
-            className="w-8 h-8"
-          />
-          <div className="font-semibold">ARAN</div>
-          <div className="h-6 w-px bg-gray-300 mx-2" />
+      <header className=" top-0 z-50 bg-white h-14 shadow-md flex items-center px-4 relative">
 
-          <button
-            onClick={toggleSidebar}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
-            title={collapsed ? "Open sidebar" : "Close sidebar"}
-          >
-            <NextImage
-              src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
-              alt="Toggle Sidebar"
-              width={20}
-              height={20}
-            />
-          </button>
-        </div>
+  {/* LEFT SECTION */}
+  <div className="flex items-center gap-2 shrink-0">
+    <NextImage
+      src="/icons/aranlogo.png"
+      alt="ARAN Logo"
+      width={28}
+      height={28}
+      className="w-8 h-8"
+    />
 
-        {/* Role + Branch + Profile */}
-        <div className="flex items-center gap-3">
-          {/* ------------- ROLE DROPDOWN ------------- */}
-          {roleOptions.length > 1 ? (
-            <select
-              className="ui-input text-sm min-w-[120px]"
-              value={role}
-              onChange={(e) => handleRoleChange(e.target.value as Role)}
-            >
-              {roleOptions.map((r: string) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-sm font-medium text-gray-800 capitalize">
-              {role}
-            </span>
-          )}
+    <div className="font-semibold">ARAN</div>
 
-          {/* ------------- BRANCH DROPDOWN ------------- */}
-          {branches.length > 0 && (
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="ui-input text-sm min-w-[140px]"
-            >
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
+    <div className="h-6 w-px bg-gray-300 mx-2" />
 
-          <ProfileMenu role={role} session={session} />
-        </div>
-      </header>
+    <button
+      onClick={toggleSidebar}
+      className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-50"
+      title={collapsed ? "Open sidebar" : "Close sidebar"}
+    >
+      <NextImage
+        src={collapsed ? "/icons/Pushin.png" : "/icons/Pushout.png"}
+        alt="Toggle Sidebar"
+        width={20}
+        height={20}
+      />
+    </button>
+  </div>
+
+  {/* ⭐ CENTERED DEPARTMENT NAME ⭐ */}
+  {role === "doctor" && doctorDept && (
+    <div className="absolute left-1/2 -translate-x-1/2 text-sm font-medium text-purple-700">
+      {doctorDept}
+      
+    </div>
+  )}
+
+  {/* RIGHT SECTION */}
+  <div className="flex items-center gap-3 ml-auto shrink-0">
+
+    {/* ROLE DROPDOWN */}
+    {roleOptions.length > 1 ? (
+      <select
+        className="ui-input text-sm min-w-[120px]"
+        value={role}
+        onChange={(e) => handleRoleChange(e.target.value as Role)}
+      >
+        {roleOptions.map((r: string) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <span className="text-sm font-medium text-gray-800 capitalize">
+        {role}
+      </span>
+    )}
+
+    {/* BRANCH DROPDOWN */}
+    {branches.length > 0 && (
+      <select
+        value={selectedBranch}
+        onChange={(e) => setSelectedBranch(e.target.value)}
+        className="ui-input text-sm min-w-[140px]"
+      >
+        {branches.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
+      </select>
+    )}
+
+    <ProfileMenu role={role} session={session} />
+  </div>
+
+</header>
+
 
       {/* ---------------- Sidebar + Main ---------------- */}
       <div
@@ -321,10 +384,26 @@ function ProfileMenu({ role, session }: { role: Role; session: any }) {
           </div>
 
           {/* Menu Items */}
-          <MenuButton label="My Profile" icon="👤" onClick={() => alert("My Profile")} />
-          <MenuButton label="Edit Profile" icon="✏️" onClick={() => alert("Edit Profile")} />
-          <MenuButton label="Help & Support" icon="❓" onClick={() => alert("Help & Support")} />
-          <MenuButton label="Keyboard Shortcuts" icon="⌨️" onClick={() => alert("Shortcuts")} />
+          <MenuButton
+            label="My Profile"
+            icon="👤"
+            onClick={() => alert("My Profile")}
+          />
+          <MenuButton
+            label="Edit Profile"
+            icon="✏️"
+            onClick={() => alert("Edit Profile")}
+          />
+          <MenuButton
+            label="Help & Support"
+            icon="❓"
+            onClick={() => alert("Help & Support")}
+          />
+          <MenuButton
+            label="Keyboard Shortcuts"
+            icon="⌨️"
+            onClick={() => alert("Shortcuts")}
+          />
 
           {/* Logout */}
           <button
@@ -338,7 +417,6 @@ function ProfileMenu({ role, session }: { role: Role; session: any }) {
     </div>
   );
 }
-
 
 /* Small Clean Helper Component */
 function MenuButton({
@@ -359,4 +437,17 @@ function MenuButton({
     </button>
   );
 }
-
+function DepartmentBadge({ name }: { name: string | null }) {
+  if (!name) return null;
+  return (
+    <span
+      className="
+      ml-2 px-2 py-0.5 rounded-md 
+      text-xs font-medium 
+      bg-purple-100 text-purple-700 border border-purple-300
+    "
+    >
+      {name}
+    </span>
+  );
+}

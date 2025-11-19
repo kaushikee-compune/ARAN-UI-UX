@@ -1,13 +1,215 @@
 [
   {
-    "branchId": "B001",
-    "doctorId": "D001",
-    "slotDuration": 15,
-    "availability": [
-      { "day": "Mon", "slots": [{ "start": "08:00", "end": "14:00" }] },
-      { "day": "Tue", "slots": [{ "start": "08:00", "end": "14:00" }] },
-      { "day": "Wed", "slots": [{ "start": "08:00", "end": "14:00" }] },
-      { "day": "Thu", "slots": [{ "start": "08:00", "end": "14:00" }] }
+    "doctorId": "u1",
+    "doctorName": "Dr. Vasanth Shetty",
+    "department": "gen",
+    "branches": [
+      {
+        "branchId": "B001",
+        "weeklySchedule": [
+          {
+            "day": "Mon",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "08:00",
+                "end": "12:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "17:00",
+                "end": "20:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
+              }
+            ]
+          },
+          {
+            "day": "Tue",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "09:00",
+                "end": "13:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              }
+            ]
+          },
+          {
+            "day": "Wed",
+            "sessions": []
+          },
+          {
+          "day": "Thu",
+          "sessions": [
+            {
+              "sessionId": "s1",
+              "label": "Morning",
+              "start": "09:00",
+              "end": "12:00",
+              "slotDuration": 15,
+              "maxAppointments": 12
+            },
+            {
+              "sessionId": "s2",
+              "label": "Evening",
+              "start": "17:00",
+              "end": "19:00",
+              "slotDuration": 15,
+              "maxAppointments": 8
+            }
+          ]
+        },
+          {
+            "day": "Fri",
+            "sessions": []
+          },
+          {
+            "day": "Sat",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "10:00",
+                "end": "14:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              }
+            ]
+          },
+          {
+            "day": "Sun",
+            "sessions": []
+          }
+        ]
+      },
+      {
+        "branchId": "B002",
+        "weeklySchedule": [
+          {
+            "day": "Mon",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "10:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
+          },
+          {
+            "day": "Tue",
+            "sessions": []
+          },
+          {
+            "day": "Wed",
+            "sessions": []
+          },
+          {
+            "day": "Thu",
+            "sessions": []
+          },
+          {
+            "day": "Fri",
+            "sessions": []
+          },
+          {
+            "day": "Sat",
+            "sessions": []
+          },
+          {
+            "day": "Sun",
+            "sessions": []
+          }
+        ]
+      }
+    ]
+  },
+
+  {
+    "doctorId": "u2",
+    "doctorName": "Dr. Kadambini Roy",
+    "department": "gyn",
+    "branches": [
+      {
+        "branchId": "B001",
+        "weeklySchedule": [
+          {
+            "day": "Mon",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "09:00",
+                "end": "13:00",
+                "slotDuration": 20
+              }
+            ]
+          },
+          { "day": "Tue", "sessions": [] },
+          { "day": "Wed", "sessions": [] },
+          { "day": "Thu", "sessions": [] },
+          { "day": "Fri", "sessions": [] },
+          { "day": "Sat", "sessions": [] },
+          { "day": "Sun", "sessions": [] }
+        ],
+        "exceptions": {
+          "unavailable": [
+            {
+              "from": "2025-12-15",
+              "to": "2025-12-21",
+              "reason": "Vacation"
+            }
+          ]
+        }
+      }
+    ]
+  },
+
+  {
+    "doctorId": "u10",
+    "doctorName": "Dr. Radha Agrawal",
+    "department": "oph",
+    "branches": [
+      {
+        "branchId": "B001",
+        "weeklySchedule": [
+          {
+            "day": "Mon",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "For OPD",
+                "start": "09:00",
+                "end": "12:00",
+                "slotDuration": 5,
+                "slotType": "oph_opd"
+              }
+            ]
+          },
+          {
+            "day": "Tue",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Diagnostics",
+                "start": "14:00",
+                "end": "17:00",
+                "slotDuration": 10,
+                "slotType": "oph_scan"
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
 ]

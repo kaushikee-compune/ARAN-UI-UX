@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Paper, Box } from "@mui/material";
-import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { readClientSession } from "@/lib/auth/client-session";
-import FilterBar from "@/components/common/FilterBar";
-
+import React, { useEffect, useState } from "react";
+import { Paper } from "@mui/material";
+import { useAranSession } from "@/lib/auth/use-aran-session";
 
 /* =============================================================================
    Types
 ============================================================================= */
-type Role = "doctor" | "staff" | "admin";
-
 type Patient = {
   name: string;
   gender: string;
@@ -28,17 +22,16 @@ type Doctor = {
   id: string;
   name: string;
   specialty: string;
-  qualifications?: string;
-  bio?: string;
-  room?: string;
-  startTime: string;
-  endTime: string;
-  breakStart?: string;
-  breakEnd?: string;
+  branches: string[];
+  schedule: any | null;
   booked: string[];
 };
 
-type Slot = { time: string; available: boolean; withinWorking: boolean };
+type Slot = {
+  time: string;
+  available: boolean;
+  withinWorking: boolean;
+};
 
 type BookingDraft = {
   time: string;
@@ -51,7 +44,7 @@ type BookingDraft = {
 };
 
 /* =============================================================================
-   Utility helpers
+   Utilities
 ============================================================================= */
 function toMinutes(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -60,94 +53,180 @@ function toMinutes(hhmm: string) {
 function fromMinutes(min: number) {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-  return `${pad(h)}:${pad(m)}`;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
-function inRange(target: number, start: number, end: number) {
-  return target >= start && target < end;
-}
-function buildSlots(d: Doctor): Slot[] {
-  const st = toMinutes(d.startTime);
-  const et = toMinutes(d.endTime);
-  const brS = d.breakStart ? toMinutes(d.breakStart) : null;
-  const brE = d.breakEnd ? toMinutes(d.breakEnd) : null;
-  const bookedSet = new Set(d.booked || []);
-  const out: Slot[] = [];
-  for (let t = st; t < et; t += 30) {
-    const label = fromMinutes(t);
-    const insideBreak =
-      brS !== null && brE !== null ? inRange(t, brS, brE) : false;
-    const withinWorking = !insideBreak;
-    const available = withinWorking && !bookedSet.has(label);
-    out.push({ time: label, available, withinWorking });
+
+/* =============================================================================
+   Robust Slot Builder (supports multiple schedule shapes)
+============================================================================= */
+function buildSlots(doc: Doctor, session: any): Slot[] {
+  const sched = doc.schedule;
+  if (!sched) return [];
+
+  const today = new Date();
+  const dateISO = today.toISOString().slice(0, 10);
+  const dowShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][today.getDay()];
+  const dowLong = today.toLocaleDateString("en-GB", { weekday: "long" }); // e.g. "Monday"
+
+  const activeBranch =
+    session?.access?.[0]?.branchId ||
+    session?.legacyBranches?.[0] ||
+    doc.branches?.[0];
+
+  // ---- Normalize branch-level schedule ----
+  let branchSched: any = null;
+  console.log("Today:", dowShort, "(" + dowLong + ")");
+console.log("Matched dayBlock:", today);
+
+  if (Array.isArray(sched.branches)) {
+    branchSched =
+      sched.branches.find((b: any) => b.branchId === activeBranch) ??
+      sched.branches[0];
+  } else if (sched.branchId) {
+    // schedule with branchId at root
+    branchSched = sched;
+  } else {
+    // no explicit branch nesting – treat whole sched as branchSched
+    branchSched = sched;
   }
-  return out;
+
+  if (!branchSched) return [];
+
+  // ---- Exceptions / vacations ----
+  const unavailable =
+    branchSched.exceptions?.unavailable ??
+    sched.exceptions?.unavailable ??
+    [];
+
+  const onLeave = unavailable.some(
+    (v: any) => dateISO >= v.from && dateISO <= v.to
+  );
+
+  if (onLeave) {
+    return [
+      {
+        time: "Doctor On Leave",
+        available: false,
+        withinWorking: false,
+      },
+    ];
+  }
+
+  // ---- Find today's day block ----
+  // const dayList =
+  //   branchSched.weeklySchedule ||
+  //   branchSched.days ||
+  //   sched.weeklySchedule ||
+  //   sched.days ||
+  //   [];
+  const dayList = Array.isArray(branchSched.weeklySchedule)
+  ? branchSched.weeklySchedule
+  : [];
+
+  const todayBlock =
+  dayList.find((d: any) => d.day === dowShort) ||
+  dayList.find((d: any) => d.day === dowLong) ||
+  null;
+
+  if (!todayBlock || !Array.isArray(todayBlock.sessions) || todayBlock.sessions.length === 0) {
+    return [];
+  }
+
+  const slots: Slot[] = [];
+
+  for (const s of todayBlock.sessions) {
+    if (!s.start || !s.end) continue;
+    const start = toMinutes(s.start);
+    const end = toMinutes(s.end);
+    const step = s.slotDuration || 15;
+
+    for (let t = start; t < end; t += step) {
+      const label = fromMinutes(t);
+      const isBooked = doc.booked.includes(label);
+      slots.push({
+        time: label,
+        available: !isBooked,
+        withinWorking: true,
+      });
+    }
+  }
+
+  return slots;
 }
 
 /* =============================================================================
    Page
 ============================================================================= */
 export default function AppointmentsPage() {
+  const { session, isDoctor } = useAranSession();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedDept, setSelectedDept] = useState("All");
+
   const [patients, setPatients] = useState<Patient[]>([]);
   const [query, setQuery] = useState("");
-  const [session, setSession] = useState(() => readClientSession());
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
 
-  // Filter bar state for past records or section filter
-const [recordFilter, setRecordFilter] = useState("all");
-const [sortOrder, setSortOrder] = useState("desc");
-
-
-  // ---------- Detect role ----------
+  /* =============================================================================
+     Load data after session becomes available
+  ============================================================================= */
   useEffect(() => {
-    setSession(readClientSession());
-  }, []);
-  const role = session?.role ?? "doctor";
-  const doctorName = session?.name ?? "Dr. Vasanth Shetty";
+    if (!session) return;
 
-  const isDoctorLogin = role === "doctor";
-  // useEffect(() => {
-  //   setRole(readClientRoleFromCookie());
-  // }, []);
-
-  // ---------- Load data ----------
-  useEffect(() => {
     (async () => {
       try {
-        const [docRes, patRes] = await Promise.all([
-          fetch("/data/doctors.json", { cache: "no-store" }),
+        const [staffRes, schedRes, patRes] = await Promise.all([
+          fetch("/data/staff.json", { cache: "no-store" }),
+          fetch("/data/doctor-schedule.json", { cache: "no-store" }),
           fetch("/data/patients.json", { cache: "no-store" }),
         ]);
-        const docs = (await docRes.json()) as Doctor[];
-        const pats = (await patRes.json()) as Patient[];
-        setDoctors(docs);
+
+        const staff = await staffRes.json();
+        const schedules = await schedRes.json();
+        const pats = await patRes.json();
+
         setPatients(pats);
 
-        if (role === "doctor") {
-          // hardcoded doctor name for doctor login
-          const match = docs.find(
-            (d) => d.name.toLowerCase() === "dr. vasanth shetty"
-          );
-          if (match) {
-            setSelectedDoctor(match);
-            setSelectedDept(match.specialty);
-          }
-        } else {
-          setSelectedDoctor(null);
-        }
+        const doctorStaff = staff.filter((s: any) =>
+          s.roles.includes("doctor")
+        );
+
+        const merged: Doctor[] = doctorStaff.map((s: any) => {
+          const sched = schedules.find((x: any) => x.doctorId === s.id);
+
+          return {
+            id: s.id,
+            name: s.name,
+            specialty: s.departments?.[0] || "General",
+            branches: s.branches || [],
+            schedule: sched || null,
+            booked: [],
+          };
+        });
+
+        setDoctors(merged);
       } catch (err) {
-        console.error("Error loading doctors or patients", err);
+        console.error("Failed to load appointment data:", err);
       }
     })();
-  }, [role]);
+  }, [session]);
 
-  /* ---------- Slot actions ---------- */
-  function pickSlot(time: string) {
+  /* =============================================================================
+     Auto-select doctor AFTER doctors[] loads
+  ============================================================================= */
+  useEffect(() => {
+    if (isDoctor && session && doctors.length > 0) {
+      const match = doctors.find((d) => d.id === session.id);
+      if (match) setSelectedDoctor(match);
+    }
+  }, [isDoctor, session, doctors]);
+
+  /* =============================================================================
+     Slot actions
+  ============================================================================= */
+  function pickSlot(time: string, doc: Doctor) {
+    setSelectedDoctor(doc);
     setSelectedSlot(time);
     setDraft({
       time,
@@ -159,25 +238,29 @@ const [sortOrder, setSortOrder] = useState("desc");
       note: "",
     });
   }
+
   function clearSlot() {
     setSelectedSlot(null);
     setDraft(null);
   }
+
   function commitBooking() {
     if (!draft || !selectedDoctor) return;
     if (!draft.patientName.trim() || !draft.mobile.trim()) return;
+
     setDoctors((prev) =>
       prev.map((d) =>
         d.id === selectedDoctor.id
-          ? {
-              ...d,
-              booked: Array.from(new Set([...(d.booked || []), draft.time])),
-            }
+          ? { ...d, booked: [...d.booked, draft.time] }
           : d
       )
     );
-    setSelectedSlot(null);
-    setDraft(null);
+
+    clearSlot();
+  }
+
+  if (!session) {
+    return <div className="p-4">Loading session…</div>;
   }
 
   /* =============================================================================
@@ -193,7 +276,9 @@ const [sortOrder, setSortOrder] = useState("desc");
       }}
     >
       <div className="p-2 md:p-4 lg:p-6">
-        <div className="flex items-center justify-between gap-2 mb-2">
+
+        {/* Search Bar */}
+        <div className="flex items-center justify-between gap-2 mb-4">
           <input
             type="text"
             className="ui-input flex-1 max-w-md"
@@ -213,198 +298,114 @@ const [sortOrder, setSortOrder] = useState("desc");
             Quick Booking
           </button>
         </div>
-        {/* ---------- Header Filters ---------- */}
-        <Paper
-          sx={{
-            p: 2.5,
-            borderRadius: 3,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-            mb: 3,
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              backgroundColor: "#f9fafb",
-              borderRadius: 2,
-              px: 1.5,
-              py: 1.2,
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            }}
-          >
-            {!isDoctorLogin && (
-              <>
-                {/* Department filter */}
-                {typeof window !== "undefined" && (
-                  <select
-                    className="ui-input"
-                    value={selectedDept}
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                    style={{ minWidth: 180 }}
-                  >
-                    <option value="All">All</option>
-                    {[...new Set(doctors.map((d) => d.specialty))].map(
-                      (dep) => (
-                        <option key={dep} value={dep}>
-                          {dep}
-                        </option>
-                      )
-                    )}
-                  </select>
-                )}
-                {/* Doctor filter */}
-                {typeof window !== "undefined" && (
-                  <select
-                    className="ui-input"
-                    value={selectedDoctor?.id || "All"}
-                    onChange={(e) =>
-                      setSelectedDoctor(
-                        e.target.value === "All"
-                          ? null
-                          : doctors.find((d) => d.id === e.target.value) || null
-                      )
-                    }
-                    style={{ minWidth: 200 }}
-                  >
-                    <option value="All">All Doctors</option>
-                    {doctors
-                      .filter(
-                        (d) =>
-                          selectedDept === "All" || d.specialty === selectedDept
-                      )
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              </>
-            )}
-          </Box>
-        </Paper>
 
-        {/* ---------- Calendars ---------- */}
+        {/* Doctor calendars */}
         {(selectedDoctor ? [selectedDoctor] : doctors)
-          .filter((d) =>
-            isDoctorLogin
-              ? d.name.toLowerCase() === "dr. vasanth shetty"
-              : selectedDept === "All" || d.specialty === selectedDept
-          )
+          .filter((d) => (isDoctor ? d.id === session.id : true))
           .map((doc) => {
-            const slots = buildSlots(doc);
+            const slots = buildSlots(doc, session);
+
+            const noSlots = slots.length === 0;
+
             return (
               <div
                 key={doc.id}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
               >
-                {/* LEFT: Calendar */}
+                {/* ================= LEFT — CALENDAR ================= */}
                 <div className="ui-card p-4 flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold">{doc.name}</div>
-                      <div className="text-sm text-gray-700">
+                  {/* Doctor header */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-base">{doc.name}</div>
+                      <div className="text-sm text-gray-600">
                         {doc.specialty}
-                        {doc.qualifications ? ` • ${doc.qualifications}` : ""}
                       </div>
-                      {doc.bio && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          {doc.bio}
-                        </div>
-                      )}
-                      {doc.room && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Room: {doc.room}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Today</div>
-                      <div className="text-sm font-medium">
-                        {doc.startTime}–{doc.endTime}
-                      </div>
-                      {doc.breakStart && doc.breakEnd && (
-                        <div className="text-xs text-gray-500">
-                          Break {doc.breakStart}–{doc.breakEnd}
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   {/* Legend */}
                   <div className="flex items-center gap-3 text-xs text-gray-600">
                     <span className="inline-flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-500" />
+                      <span className="w-3 h-3 rounded bg-green-100 border border-green-500" />
                       Available
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded bg-red-100 border border-red-500" />
+                      <span className="w-3 h-3 rounded bg-red-100 border border-red-500" />
                       Booked
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-300" />
+                      <span className="w-3 h-3 rounded bg-gray-100 border border-gray-300" />
                       Unavailable
                     </span>
                   </div>
 
                   {/* Slots */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                    {slots.map((s) => {
-                      const base =
-                        "text-xs px-2 py-1.5 rounded border text-center select-none transition";
-                      if (!s.withinWorking)
+                  {noSlots ? (
+                    <div className="text-xs text-gray-500 border border-dashed border-gray-300 rounded-md p-4 text-center">
+                      No slots configured for today for this branch.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                      {slots.map((s) => {
+                        const base =
+                          "text-xs px-2 py-1.5 rounded border text-center select-none";
+
+                        if (!s.withinWorking) {
+                          return (
+                            <div
+                              key={s.time}
+                              className={`${base} bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed`}
+                            >
+                              {s.time}
+                            </div>
+                          );
+                        }
+
+                        const isBooked = !s.available;
+                        const isSelected =
+                          selectedSlot === s.time &&
+                          selectedDoctor?.id === doc.id;
+
+                        if (isBooked) {
+                          return (
+                            <div
+                              key={s.time}
+                              className={`${base} bg-red-50 text-red-900 border-red-500 cursor-not-allowed`}
+                            >
+                              {s.time}
+                            </div>
+                          );
+                        }
+
                         return (
-                          <div
+                          <button
                             key={s.time}
-                            className={`${base} cursor-not-allowed bg-gray-50 text-gray-400 border-gray-300`}
+                            onClick={() => pickSlot(s.time, doc)}
+                            className={[
+                              base,
+                              isSelected
+                                ? "bg-green-600 text-white border-green-700"
+                                : "bg-green-50 text-green-900 border-green-500 hover:bg-green-100",
+                            ].join(" ")}
                           >
                             {s.time}
-                          </div>
+                          </button>
                         );
-                      const isBooked = !s.available;
-                      const isSelected = selectedSlot === s.time;
-                      if (isBooked)
-                        return (
-                          <div
-                            key={s.time}
-                            className={`${base} bg-red-50 text-red-900 border-red-500 cursor-not-allowed`}
-                          >
-                            {s.time}
-                          </div>
-                        );
-                      return (
-                        <button
-                          key={s.time}
-                          type="button"
-                          onClick={() => {
-                            setSelectedDoctor(doc);
-                            pickSlot(s.time);
-                          }}
-                          className={[
-                            base,
-                            isSelected
-                              ? "bg-green-600 text-white border-green-700"
-                              : "bg-green-50 text-green-900 border-green-500 hover:bg-green-100",
-                          ].join(" ")}
-                        >
-                          {s.time}
-                        </button>
-                      );
-                    })}
-                  </div>
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* RIGHT: Booking Panel */}
+                {/* ================= RIGHT — BOOKING PANEL ================= */}
                 {selectedDoctor && selectedDoctor.id === doc.id && (
-                  <RightBookingPanel
+                  <BookingPanel
                     doctor={doc}
                     selectedSlot={selectedSlot}
                     draft={draft}
                     patients={patients}
-                    onDraftChange={setDraft}
-                    onClearSlot={clearSlot}
+                    clearSlot={clearSlot}
+                    setDraft={setDraft}
                     onConfirm={commitBooking}
                   />
                 )}
@@ -417,117 +418,111 @@ const [sortOrder, setSortOrder] = useState("desc");
 }
 
 /* =============================================================================
-   Booking panel + form rows
+   Booking Panel
 ============================================================================= */
-function RightBookingPanel({
+function BookingPanel({
   doctor,
   selectedSlot,
   draft,
   patients,
-  onDraftChange,
-  onClearSlot,
+  clearSlot,
+  setDraft,
   onConfirm,
-}: {
-  doctor: Doctor;
-  selectedSlot: string | null;
-  draft: BookingDraft | null;
-  patients: Patient[];
-  onDraftChange: (d: BookingDraft | null) => void;
-  onClearSlot: () => void;
-  onConfirm: () => void;
-}) {
-  const confirmDisabled =
-    !draft || !(draft.patientName?.trim() && draft.mobile?.trim());
+}: any) {
+  if (!selectedSlot) {
+    return (
+      <div className="ui-card p-4 text-center text-sm text-gray-600">
+        Select a slot to create booking.
+      </div>
+    );
+  }
+
+  const disabled =
+    !draft ||
+    !draft.patientName.trim() ||
+    !draft.mobile.trim();
 
   return (
+    
     <div className="ui-card p-4 sticky top-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex justify-between mb-3">
         <h2 className="font-semibold text-sm">New Appointment</h2>
-        {selectedSlot && (
-          <button onClick={onClearSlot} className="btn-accent">
-            Change Slot
-          </button>
-        )}
+        <button className="btn-accent" onClick={clearSlot}>
+          Change Slot
+        </button>
       </div>
 
-      {!selectedSlot && (
-        <div className="text-sm text-gray-600 py-10 text-center">
-          Select an available slot from the left to start booking.
-        </div>
-      )}
+      <div className="text-sm mb-3">
+  <div>
+    <strong>Doctor:</strong> {doctor.name}
+  </div>
+  <div>
+    <strong>Slot:</strong> {selectedSlot}
+  </div>
+</div>
 
-      {selectedSlot && draft && (
-        <>
-          <div className="text-sm text-gray-700 mb-3">
-            <div>
-              <span className="font-medium">Doctor:</span>{" "}
-              <span className="font-semibold">{doctor.name}</span>
-            </div>
-            <div>
-              <span className="font-medium">Slot:</span>{" "}
-              <span className="font-semibold">{selectedSlot}</span>
-            </div>
-          </div>
 
-          {/* Form */}
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <table className="min-w-full text-sm">
-              <tbody>
-                <FormRow
-                  label="Patient Name"
-                  value={draft.patientName}
-                  onChange={(v) => onDraftChange({ ...draft, patientName: v })}
-                />
-                <FormRow
-                  label="Mobile"
-                  value={draft.mobile}
-                  onChange={(v) => onDraftChange({ ...draft, mobile: v })}
-                />
-                <FormRow
-                  label="ABHA Number"
-                  value={draft.abhaNumber ?? ""}
-                  onChange={(v) => onDraftChange({ ...draft, abhaNumber: v })}
-                />
-                <FormRow
-                  label="ABHA Address"
-                  value={draft.abhaAddress ?? ""}
-                  onChange={(v) => onDraftChange({ ...draft, abhaAddress: v })}
-                />
-                <FormRow
-                  label="UHID"
-                  value={draft.uhid ?? ""}
-                  onChange={(v) => onDraftChange({ ...draft, uhid: v })}
-                />
-                <FormRow
-                  label="Note"
-                  textarea
-                  value={draft.note ?? ""}
-                  onChange={(v) => onDraftChange({ ...draft, note: v })}
-                />
-              </tbody>
-            </table>
-          </div>
+      <div className="border rounded-lg overflow-hidden">
+        <table className="min-w-full text-sm">
+          <tbody>
+            <FormRow
+              label="Patient Name"
+              value={draft.patientName}
+              onChange={(v: string) => setDraft({ ...draft, patientName: v })}
+            />
+            <FormRow
+              label="Mobile"
+              value={draft.mobile}
+              onChange={(v: string) => setDraft({ ...draft, mobile: v })}
+            />
+            <FormRow
+              label="ABHA Number"
+              value={draft.abhaNumber}
+              onChange={(v: string) => setDraft({ ...draft, abhaNumber: v })}
+            />
+            <FormRow
+              label="ABHA Address"
+              value={draft.abhaAddress}
+              onChange={(v: string) =>
+                setDraft({ ...draft, abhaAddress: v })
+              }
+            />
+            <FormRow
+              label="UHID"
+              value={draft.uhid}
+              onChange={(v: string) => setDraft({ ...draft, uhid: v })}
+            />
+            <FormRow
+              label="Note"
+              value={draft.note}
+              textarea
+              onChange={(v: string) => setDraft({ ...draft, note: v })}
+            />
+          </tbody>
+        </table>
+      </div>
 
-          <div className="mt-4 flex items-center justify-between">
-            <span />
-            <button
-              onClick={onConfirm}
-              disabled={confirmDisabled}
-              className={["btn-primary",
-                confirmDisabled
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-amber-600 text-grey hover:opacity-100",
-              ].join(" ")}
-            >
-              Confirm Booking
-            </button>
-          </div>
-        </>
-      )}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={onConfirm}
+          disabled={disabled}
+          className={[
+            "btn-primary",
+            disabled
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-amber-600 text-white",
+          ].join(" ")}
+        >
+          Confirm Booking
+        </button>
+      </div>
     </div>
   );
 }
 
+/* =============================================================================
+   Form Row
+============================================================================= */
 function FormRow({
   label,
   value,
@@ -541,18 +536,18 @@ function FormRow({
 }) {
   return (
     <tr className="hover:bg-gray-50">
-      <td className="px-3 py-2 text-gray-700 w-40 align-top">{label}</td>
+      <td className="px-3 py-2 text-gray-700 w-40">{label}</td>
       <td className="px-3 py-2">
         {textarea ? (
           <textarea
             rows={2}
-            value={value}
+            value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             className="ui-textarea w-full"
           />
         ) : (
           <input
-            value={value}
+            value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             className="ui-input w-full"
           />
