@@ -58,5 +58,35 @@
     "email": "admin@aran.care",
     "phone": "",
     "status": "active"
+  },
+  {
+    "id": "u7",
+    "name": "Dr. Sitarajan",
+    "roles": ["doctor"],
+    "departments": ["gyn"],
+    "branches": ["B001"],
+    "email": "gyn@example.com",
+    "phone": "9972826000",
+    "status": "active"
+  },
+  {
+    "id": "u8",
+    "name": "Dr. Prabir Patel",
+    "roles": ["doctor"],
+    "departments": ["gen"],
+    "branches": ["B002"],
+    "email": "gen@example.com",
+    "phone": "9972826000",
+    "status": "active"
+  },
+  {
+    "id": "u9",
+    "name": "Dr. Devi Shetty",
+    "roles": ["doctor"],
+    "departments": ["card"],
+    "branches": ["B001"],
+    "email": "card@example.com",
+    "phone": "9972826000",
+    "status": "active"
   }
 ]

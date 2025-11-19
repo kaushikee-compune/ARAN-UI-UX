@@ -6,7 +6,7 @@
     "name": "Dr. Vasanth Shetty",
     "status": "active"
   },
-  
+
   {
     "email": "vikram@example.com",
     "password": "Aran@123",
@@ -43,5 +43,26 @@
     "role": "staff",
     "name": "Blocked User",
     "status": "suspended"
+  },
+  {
+    "email": "gyn@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Sitarajan",
+    "status": "active"
+  },
+  {
+    "email": "gen@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Prabir Patel",
+    "status": "active"
+  },
+  {
+    "email": "card@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Devi Shetty",
+    "status": "active"
   }
 ]

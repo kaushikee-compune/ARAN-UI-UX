@@ -181,6 +181,9 @@ function getFormComponent(dept: string) {
     case "gyn":
       return require("@/components/doctor/console/digitalrx/gynForm").default;
 
+    case "card":
+      return require("@/components/doctor/console/digitalrx/cardForm").default;  
+
     default:
       return require("@/components/doctor/console/digitalrx/defaultForm")
         .default;
@@ -280,7 +283,7 @@ export default function DoctorConsolePage() {
   /* ------------------------------------------------------------ */
   /* 2. Department state (default → reset later after load)       */
   /* ------------------------------------------------------------ */
-  const [doctorDept, setDoctorDept] = useState<"gen" | "gyn" | "default">(
+  const [doctorDept, setDoctorDept] = useState<"gen" | "gyn" | "card" | "default">(
     "default"
   );
 
@@ -329,7 +332,7 @@ export default function DoctorConsolePage() {
         // Pick department
         const dept = me.departments?.[0] || "default";
 
-        if (dept === "gen" || dept === "gyn") {
+        if (dept === "gen" || dept === "gyn" || dept === "card") {
           setDoctorDept(dept);
         } else {
           setDoctorDept("default");
@@ -789,6 +792,18 @@ export default function DoctorConsolePage() {
                     if (doctorDept === "gyn") {
                       const GynForm =
                         require("@/components/doctor/console/digitalrx/gynForm").default;
+                      return (
+                        <GynForm
+                          value={rxForm}
+                          onChange={setRxForm}
+                          bpHistory={bpTrend}
+                        />
+                      );
+                    }
+
+                    if (doctorDept === "card") {
+                      const GynForm =
+                        require("@/components/doctor/console/digitalrx/cardForm").default;
                       return (
                         <GynForm
                           value={rxForm}

@@ -103,6 +103,50 @@
       "accessibleBranches": [],
 
       "access": []
+    },
+
+    {
+      "id": "u7",
+      "email": "gyn@example.com",
+      "name": "Dr. Sitarajan",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "doctor",
+      "accessibleBranches": ["B001"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" }       
+      ]
+    },
+
+    {
+      "id": "u8",
+      "email": "gen@example.com",
+      "name": "Dr. Prabir Patel",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "doctor",
+      "accessibleBranches": ["B002"],
+
+      "access": [
+        { "branchId": "B002", "role": "doctor" }       
+      ]
+    },
+    {
+      "id": "u9",
+      "email": "card@example.com",
+      "name": "Dr. Devi Shetty",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "doctor",
+      "accessibleBranches": ["B001"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" }       
+      ]
     }
   ]
 }

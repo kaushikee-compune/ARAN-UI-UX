@@ -463,4 +463,25 @@ body {
   color: var(--tertiary);           /* highlight when active */
 }
 
+/* ===============================
+   GLOBAL UI-CARD OVERRIDE (uniform look)
+   =============================== */
+
+.ui-card {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;  /* light gray border */
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-m) !important; /* medium shadow */
+  transition: box-shadow .2s ease, transform .1s ease;
+}
+
+/* Optional: stronger hover elevation */
+.ui-card:hover {
+  box-shadow: var(--shadow-l) !important;
+}
+
+/* Optional: slight tap feedback */
+.ui-card:active {
+  transform: scale(0.995);
+}
 

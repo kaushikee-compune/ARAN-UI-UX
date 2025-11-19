@@ -489,11 +489,11 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
             </div>
 
             {/* Lifestyle Factors */}
-            {/* <div className="space-y-2"> */}
-              {/* <span className="font-medium">Lifestyle Factors:</span> */}
+            <div className="space-y-2">
+              <span className="font-medium">Lifestyle Factors:</span>
 
               {/* Smoking */}
-              {/* <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="w-28 text-gray-600 text-sm">Smoking:</span>
                 <select
                   className="ui-input !w-[140px] !px-2 !py-1 text-sm"
@@ -511,10 +511,10 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
                   <option value="Daily Smoker">Daily Smoker</option>
                   <option value="Former Smoker">Former Smoker</option>
                 </select>
-              </div> */}
+              </div>
 
               {/* Alcohol */}
-              {/* <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="w-28 text-gray-600 text-sm">Alcohol:</span>
                 <select
                   className="ui-input !w-[140px] !px-2 !py-1 text-sm"
@@ -532,10 +532,10 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
                   <option value="Regular">Regular</option>
                   <option value="Heavy">Heavy</option>
                 </select>
-              </div> */}
+              </div>
 
               {/* Exercise */}
-              {/* <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="w-28 text-gray-600 text-sm">Exercise:</span>
                 <input
                   type="text"
@@ -549,10 +549,10 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
                     })
                   }
                 />
-              </div> */}
+              </div>
 
               {/* Diet */}
-              {/* <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="w-28 text-gray-600 text-sm">Diet:</span>
                 <input
                   type="text"
@@ -566,8 +566,8 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
                     })
                   }
                 />
-              </div> */}
-           {/* </div> */}
+              </div>
+            </div>
           </div>
         </div>
 

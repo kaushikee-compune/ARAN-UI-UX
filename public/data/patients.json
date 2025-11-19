@@ -411,7 +411,52 @@
         "registrationDate": "2025-09-10",
         "lastVisitDate": "2025-09-12",
         "lastVisitType": "Review"
+      },
+      {
+        "branchId": "B002",
+        "doctorId": "u8",
+        "registrationDate": "2025-09-10",
+        "lastVisitDate": "2025-09-12",
+        "lastVisitType": "Review"
+      }
+    ]
+  },
+   {
+    "patientId": "pat_018",
+    "demographics": {
+      "name": "Radha Mahato",
+      "phone": "984440453",
+      "dob": "1987-02-02",
+      "age": 38,
+      "gender": "Female",
+      "uhid": "CROSS_0045",
+      "abhaNumber": null,
+      "abhaAddress": null
+    },
+    "registrations": [
+      {
+        
+        "branchId": "B001",
+        "doctorId": "u7",
+        "registrationDate": "2025-03-10",
+        "lastVisitDate": "2025-03-15",
+        "lastVisitType": "OPD"
+      },
+      {
+        "branchId": "B002",
+        "doctorId": "u3",
+        "registrationDate": "2025-09-10",
+        "lastVisitDate": "2025-09-12",
+        "lastVisitType": "Review"
+      },
+      {
+        "branchId": "B002",
+        "doctorId": "u8",
+        "registrationDate": "2025-09-10",
+        "lastVisitDate": "2025-09-12",
+        "lastVisitType": "Review"
       }
     ]
   }
+  
 ]
