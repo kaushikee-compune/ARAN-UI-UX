@@ -64,5 +64,12 @@
     "role": "doctor",
     "name": "Dr. Devi Shetty",
     "status": "active"
+  },
+  {
+    "email": "oph@example.com",
+    "password": "Aran@123",
+    "role": "doctor",
+    "name": "Dr. Radha Agrawal",
+    "status": "active"
   }
 ]

@@ -79,6 +79,7 @@
     "phone": "9972826000",
     "status": "active"
   },
+  
   {
     "id": "u9",
     "name": "Dr. Devi Shetty",
@@ -86,6 +87,17 @@
     "departments": ["card"],
     "branches": ["B001"],
     "email": "card@example.com",
+    "phone": "9972826000",
+    "status": "active"
+  },
+
+  {
+    "id": "u10",
+    "name": "Dr. Radha Agrawal",
+    "roles": ["doctor"],
+    "departments": ["oph"],
+    "branches": ["B001"],
+    "email": "oph@example.com",
     "phone": "9972826000",
     "status": "active"
   }

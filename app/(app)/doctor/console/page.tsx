@@ -90,8 +90,6 @@ console.log("✔ userId:", userId);
 console.log("✔ role:", roleFromSession);
 console.log("✔ activeBranch:", activeBranch);
 
-
-
 function parseDDMMYYYY(s: string) {
   const [dd, mm, yyyy] = s.split("-").map((n) => parseInt(n, 10));
   return new Date(yyyy, (mm || 1) - 1, dd || 1).getTime();
@@ -182,7 +180,10 @@ function getFormComponent(dept: string) {
       return require("@/components/doctor/console/digitalrx/gynForm").default;
 
     case "card":
-      return require("@/components/doctor/console/digitalrx/cardForm").default;  
+      return require("@/components/doctor/console/digitalrx/cardForm").default;
+
+    case "oph":
+      return require("@/components/doctor/console/digitalrx/ophForm").default;
 
     default:
       return require("@/components/doctor/console/digitalrx/defaultForm")
@@ -201,7 +202,7 @@ export default function DoctorConsolePage() {
   const companionOn = companionMode !== "off";
 
   /* Right tools */
-  const [activeTool, setActiveTool] = useState<ActiveTool>("none");
+  const [activeTool, setActiveTool] = useState<ActiveTool>("digitalrx");
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
@@ -283,9 +284,9 @@ export default function DoctorConsolePage() {
   /* ------------------------------------------------------------ */
   /* 2. Department state (default → reset later after load)       */
   /* ------------------------------------------------------------ */
-  const [doctorDept, setDoctorDept] = useState<"gen" | "gyn" | "card" | "default">(
-    "default"
-  );
+  const [doctorDept, setDoctorDept] = useState<
+    "gen" | "gyn" | "card" | "oph" | "default"
+  >("default");
 
   /* ------------------------------------------------------------ */
   /* 3. Read cookie session (already decoded above)               */
@@ -317,7 +318,7 @@ export default function DoctorConsolePage() {
             s.roles.includes(depRole) &&
             s.branches.includes(depBranch)
         );
-        
+
         if (!me) {
           console.warn(
             "No matching staff record found for:",
@@ -332,7 +333,12 @@ export default function DoctorConsolePage() {
         // Pick department
         const dept = me.departments?.[0] || "default";
 
-        if (dept === "gen" || dept === "gyn" || dept === "card") {
+        if (
+          dept === "gen" ||
+          dept === "gyn" ||
+          dept === "card" ||
+          dept === "oph"
+        ) {
           setDoctorDept(dept);
         } else {
           setDoctorDept("default");
@@ -348,7 +354,6 @@ export default function DoctorConsolePage() {
     loadDept();
   }, [depUser, depRole, depBranch]);
 
-  
   /* Past records */
   const [pastDays, setPastDays] = useState<DayRecords[]>([]);
   const [loadingPast, setLoadingPast] = useState(false);
@@ -772,15 +777,15 @@ export default function DoctorConsolePage() {
 
           <PreviewPaper
             patient={patient}
+            doctorDept={doctorDept}
             bodyOverride={
               virtIdx === 0 && companionMode === "off" ? (
                 activeTool === "digitalrx" ? (
                   (() => {
-                    
                     if (doctorDept === "gen") {
                       const GenForm =
                         require("@/components/doctor/console/digitalrx/genForm").default;
-                      
+
                       return (
                         <GenForm
                           value={rxForm}
@@ -812,6 +817,19 @@ export default function DoctorConsolePage() {
                         />
                       );
                     }
+
+                    if (doctorDept === "oph") {
+                      const GynForm =
+                        require("@/components/doctor/console/digitalrx/ophForm").default;
+                      return (
+                        <GynForm
+                          value={rxForm}
+                          onChange={setRxForm}
+                          bpHistory={bpTrend}
+                        />
+                      );
+                    }
+
                     const DefaultForm =
                       require("@/components/doctor/console/digitalrx/defaultForm").default;
                     return (
@@ -997,11 +1015,28 @@ export default function DoctorConsolePage() {
     </div>
   );
 }
+
+function getDepartmentLabel(dept: string) {
+  switch (dept?.toLowerCase()) {
+    case "gen":
+      return "Department of General Medicine";
+    case "gyn":
+      return "Department of Gynecology & Obstetrics";
+    case "card":
+      return "Department of Cardiology";
+    case "oph":
+      return "Department of Opthalmology";
+    default:
+      return "";
+  }
+}
+
 /* -------------------------------- Preview -------------------------------- */
 function PreviewPaper({
   patient,
   payload,
   bodyOverride,
+  doctorDept,
   past,
 }: {
   patient: {
@@ -1013,6 +1048,7 @@ function PreviewPaper({
   };
   payload?: DigitalRxFormState;
   bodyOverride?: React.ReactNode;
+  doctorDept: string;
   past: {
     active: boolean;
     index: number;
@@ -1055,12 +1091,18 @@ function PreviewPaper({
                 </div>
               </div>
 
-              <Image
-                src="/icons/logo.png"
-                alt="Clinic Logo"
-                width={40}
-                height={40}
-              />
+              <div className="flex flex-col items-center">
+                <Image
+                  src="/icons/logo.png"
+                  alt="Clinic Logo"
+                  width={40}
+                  height={40}
+                />
+
+                <div className="text-[16px] font-bold text-gray-700 mt-1">
+                  {getDepartmentLabel(doctorDept)}
+                </div>
+              </div>
 
               <div className="flex items-start justify-end pl-3">
                 <div className="flex flex-col items-end gap-2">

@@ -147,6 +147,20 @@
       "access": [
         { "branchId": "B001", "role": "doctor" }       
       ]
+    },
+    {
+      "id": "u10",
+      "email": "oph@example.com",
+      "name": "Dr. Radha Agrawal",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "doctor",
+      "accessibleBranches": ["B001"],
+
+      "access": [
+        { "branchId": "B001", "role": "doctor" }       
+      ]
     }
   ]
 }

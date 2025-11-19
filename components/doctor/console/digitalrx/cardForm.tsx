@@ -180,394 +180,707 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
     return (
       <div className="ui-card p-6 bg-white rounded-xl shadow-sm  space-y-6 print:shadow-none">
         {/* ========================================================= */}
-        {/* GENERAL MEDICINE – THREE COLUMN CLINICAL LAYOUT   */}
+        {/* CARDIOLOGY – THREE COLUMN CLINICAL LAYOUT   */}
         {/* ========================================================= */}
 
-        {/* Heading */}
-        <h3 className="text-xl font-bold tracking-wide mb-6 text-gray-800">
-          Internal Medicine
-        </h3>
-
+         {/* Heading */}
+        <div className="flex items-center gap-2 mb-2">
+          <img
+            src="/icons/healthcare.png"
+            alt="Gynecology Icon"
+            className="w-8 h-8 object-contain"
+          />
+          <h3 className="text-sm font-semibold">Cardiac Risk Assessment</h3>
+        </div>
         {/* 3 Column Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-[30%_30%_40%] gap-6 text-sm">
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 1 — General Health Parameters                         */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">Vitals</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – VITALS SECTION (REPLACES OLD VITALS BLOCK)   */}
+            {/* ========================================================= */}
 
-            {/* Body Temperature (°C) */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Body Temperature (°C):</span>
-
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                min="30"
-                max="45"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.temperature || ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  // Allow only valid decimal numbers
-                  if (/^\d*\.?\d*$/.test(v)) {
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      temperature: v,
-                    });
-                  }
-                }}
-                placeholder="e.g., 36.8"
-              />
-            </div>
-
-            {/* Blood Pressure (mmHg) */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Blood Pressure (mmHg):</span>
-
-              <input
-                type="text"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                placeholder="120/80"
-                value={safeValue.vitals.bp || ""}
-                onChange={(e) => {
-                  let v = e.target.value;
-
-                  // Allow only digits and one slash
-                  v = v.replace(/[^\d/]/g, "");
-
-                  // Prevent more than one slash
-                  const parts = v.split("/");
-                  if (parts.length > 2) return;
-
-                  // Limit digits before/after slash
-                  if (parts[0].length > 3) return; // Max 3 digits for systolic
-                  if (parts[1] && parts[1].length > 3) return; // Max 3 digits for diastolic
-
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    bp: v,
-                  });
-                }}
-              />
-            </div>
-
-            {/* Heart Rate (Pulse) */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Heart Rate (bpm):</span>
-
-              <input
-                type="number"
-                inputMode="numeric"
-                min="30"
-                max="200"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                placeholder="e.g., 82"
-                value={safeValue.vitals.pulse || ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (/^\d*$/.test(v)) {
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      pulse: v,
-                    });
-                  }
-                }}
-              />
-            </div>
-
-            {/* Height & Weight */}
-            <div className="space-y-2">
-              {/* Height */}
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Height (cm):</span>
-
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  placeholder="e.g., 160"
-                  value={safeValue.vitals.height || ""}
-                  onChange={(e) => {
-                    const height = e.target.value;
-                    if (/^\d*$/.test(height)) {
-                      const weight = safeValue.vitals.weight || "";
-                      let bmi = "";
-                      if (height && weight) {
-                        bmi = (
-                          Number(weight) / Math.pow(Number(height) / 100, 2)
-                        ).toFixed(1);
-                      }
+            <CardioSection title="Vitals (Cardiology)">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Systolic BP */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Systolic BP (mmHg)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="50"
+                    max="300"
+                    placeholder="e.g., 120"
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.bpSystolic || ""}
+                    onChange={(e) =>
                       patch("vitals", {
                         ...safeValue.vitals,
-                        height,
-                        bmi,
-                      });
+                        bpSystolic: e.target.value,
+                      })
                     }
-                  }}
-                />
-              </div>
+                  />
+                </div>
 
-              {/* Weight */}
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Weight (kg):</span>
-
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  placeholder="e.g., 65"
-                  value={safeValue.vitals.weight || ""}
-                  onChange={(e) => {
-                    const weight = e.target.value;
-                    if (/^\d*$/.test(weight)) {
-                      const height = safeValue.vitals.height || "";
-                      let bmi = "";
-                      if (height && weight) {
-                        bmi = (
-                          Number(weight) / Math.pow(Number(height) / 100, 2)
-                        ).toFixed(1);
-                      }
+                {/* Diastolic BP */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Diastolic BP (mmHg)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="30"
+                    max="200"
+                    placeholder="e.g., 80"
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.bpDiastolic || ""}
+                    onChange={(e) =>
                       patch("vitals", {
                         ...safeValue.vitals,
-                        weight,
-                        bmi,
-                      });
+                        bpDiastolic: e.target.value,
+                      })
                     }
-                  }}
-                />
-              </div>
+                  />
+                </div>
 
-              {/* BMI */}
-              <div className="flex items-center gap-2">
-                <span className="font-medium">BMI:</span>
+                {/* Resting Heart Rate */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Resting Heart Rate (bpm)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="30"
+                    max="200"
+                    placeholder="e.g., 72"
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.heartRateResting || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        heartRateResting: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-                <input
-                  type="text"
-                  readOnly
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm bg-gray-50"
-                  value={safeValue.vitals.bmi || ""}
-                  placeholder="Auto"
-                />
+                {/* Active Heart Rate */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Active Heart Rate (bpm)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="40"
+                    max="220"
+                    placeholder="e.g., 120"
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.heartRateActive || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        heartRateActive: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            </CardioSection>
+
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – RISK ASSESSMENT & HISTORY                    */}
+            {/* ========================================================= */}
+
+            <CardioSection title="Risk Assessment & History">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cardiac Risk Assessment */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Cardiac Risk Assessment
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="e.g., Diabetes, Hypertension, Dyslipidemia"
+                    rows={2}
+                    value={safeValue.vitals.cardiacRiskAssessment || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        cardiacRiskAssessment: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* History of Heart Attack / Stroke */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    History of Heart Attack / Stroke
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., MI in 2018, Stroke in 2021"
+                    value={safeValue.vitals.cardiacEventHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        cardiacEventHistory: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Previous Surgeries (Bypass, Stents, Angioplasty) */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Previous Cardiac Surgeries
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., Angioplasty (2019), Stent x1, CABG (2020)"
+                    value={safeValue.vitals.pastSurgeries || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        pastSurgeries: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Pacemaker / ICD */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Pacemaker / ICD Details
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., ICD implanted 2022, Medtronic dual-chamber"
+                    value={safeValue.vitals.deviceImplantDetails || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        deviceImplantDetails: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Blood Clotting Risk */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Blood Clotting Risk (DVT / PE History)
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., DVT (2021), PE (2019)"
+                    value={safeValue.vitals.clottingRisk || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        clottingRisk: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Family History */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Family History of Heart Disease
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., Father: MI at 55"
+                    value={safeValue.vitals.familyHeartHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        familyHeartHistory: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Smoking History */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Smoking History
+                  </label>
+                  <select
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.smokingHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        smokingHistory: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="Non-Smoker">Non-Smoker</option>
+                    <option value="Former Smoker">Former Smoker</option>
+                    <option value="Occasional">Occasional</option>
+                    <option value="Daily Smoker">Daily Smoker</option>
+                  </select>
+                </div>
+
+                {/* Alcohol History */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Alcohol Consumption
+                  </label>
+                  <select
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.alcoholHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        alcoholHistory: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="None">None</option>
+                    <option value="Occasional">Occasional</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Heavy">Heavy</option>
+                  </select>
+                </div>
+
+                {/* Dietary Restrictions */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Dietary Restrictions
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., Low salt, fluid restriction"
+                    value={safeValue.vitals.dietaryRestrictions || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        dietaryRestrictions: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                    {/* Physical Activity Level */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Physical Activity Level
+                  </label>
+                  <select
+                    className="ui-input text-sm"
+                    value={safeValue.vitals.activityLevel || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        activityLevel: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="Sedentary">Sedentary</option>
+                    <option value="Light Activity">Light Activity</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Intense / Athlete">Intense / Athlete</option>
+                  </select>
+                </div>
+
+                {/* Exercise Schedule */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Exercise Routine
+                  </label>
+                  <input
+                    className="ui-input text-sm"
+                    placeholder="e.g., 30 mins, 4 days/week"
+                    value={safeValue.vitals.exerciseRoutine || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        exerciseRoutine: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                
+
+                {/* Sleep Duration */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Sleep (hours/night)
+                  </label>
+                  <input
+                    type="number"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 7"
+                    value={safeValue.vitals.sleepHours || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        sleepHours: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+              </div>
+            </CardioSection>
+
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – METABOLIC PROFILE                             */}
+            {/* ========================================================= */}
+
+            <CardioSection title="Metabolic Profile">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* LDL */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    LDL (mg/dL)
+                  </label>
+                  <input
+                    type="number"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 130"
+                    value={safeValue.vitals.ldl || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        ldl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* HDL */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    HDL (mg/dL)
+                  </label>
+                  <input
+                    type="number"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 45"
+                    value={safeValue.vitals.hdl || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        hdl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Triglycerides */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Triglycerides (mg/dL)
+                  </label>
+                  <input
+                    type="number"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 180"
+                    value={safeValue.vitals.triglycerides || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        triglycerides: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* FBS */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    Blood Sugar – Fasting (FBS)
+                  </label>
+                  <input
+                    type="number"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 95"
+                    value={safeValue.vitals.fbs || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        fbs: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* HbA1c */}
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-xs text-gray-600 font-medium mb-1">
+                    HbA1c (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="ui-input text-sm"
+                    placeholder="e.g., 5.8"
+                    value={safeValue.vitals.hba1c || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        hba1c: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </CardioSection>
           </div>
 
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 2 — Health History                         */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">
-              Health History & Risk Profile
-            </h4>
+          <div className="space-y-6">
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – SYMPTOMS                                      */}
+            {/* ========================================================= */}
 
-            {/* Allergies */}
-            <div className="space-y-1">
-              <span className="font-medium">
-                Allergies (Drug, Food, Environmental):
-              </span>
+            <CardioSection title="Symptoms">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Angina Symptoms */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Angina Symptoms (Chest Pain / Tightness)
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="Describe onset, duration, radiation, triggers..."
+                    rows={2}
+                    value={safeValue.vitals.anginaSymptoms || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        anginaSymptoms: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-              <textarea
-                rows={2}
-                className="ui-textarea resize-none w-[80%] !py-1 !min-h-[32px] leading-tight"
-                placeholder="e.g., Penicillin, Peanuts, Dust allergy"
-                value={safeValue.vitals.allergies || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    allergies: e.target.value,
-                  })
-                }
-              />
-            </div>
-            {/* Chronic Diseases */}
-            <div className="space-y-1">
-              <span className="font-medium">Chronic Diseases:</span>
+                {/* Shortness of Breath */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Shortness of Breath on Exertion
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="NYHA class, severity, triggers..."
+                    rows={2}
+                    value={safeValue.vitals.shortnessOfBreath || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        shortnessOfBreath: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-              <textarea
-                rows={2}
-                className="ui-textarea resize-none w-[80%] !py-1 !min-h-[32px] leading-tight"
-                placeholder="e.g., Diabetes, Hypertension, Hypothyroidism"
-                value={safeValue.vitals.chronicDiseases || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    chronicDiseases: e.target.value,
-                  })
-                }
-              />
-            </div>
-            {/* Past Medical History */}
-            <div className="space-y-1">
-              <span className="font-medium">
-                Past Medical History (Surgeries, Major Illnesses):
-              </span>
+                {/* Palpitations / Irregular Heartbeats */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Palpitations / Irregular Heartbeats
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="Frequency, duration, associated symptoms..."
+                    rows={2}
+                    value={safeValue.vitals.palpitations || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        palpitations: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-              <textarea
-                rows={2}
-                className="ui-textarea resize-none w-[80%] !py-1 !min-h-[32px] leading-tight"
-                placeholder="e.g., Appendectomy (2014), Dengue (2017)"
-                value={safeValue.vitals.pastMedicalHistory || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    pastMedicalHistory: e.target.value,
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 3 — GENERAL FIELDS (ALLERGIES + MEDICAL HISTORY) */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">
-              Medications & Lifestyle History
-            </h4>
-
-            {/* Current Medications */}
-            <div className="space-y-1">
-              <span className="font-medium">
-                Current Medications (Including OTC & Supplements):
-              </span>
-
-              <textarea
-                rows={1}
-                className="ui-textarea resize-none !w-[240px] !py-1 !min-h-[32px] leading-tight"
-                placeholder="Medicines"
-                value={safeValue.vitals.currentMedications || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    currentMedications: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            {/* Family Medical History */}
-            <div className="space-y-2 w-[200px]">
-              <span className="font-medium">Family Medical History:</span>
-
-              <div className="flex items-center gap-2">
-                <select
-                  className="ui-input !w-[120px] !px-2 !py-1 text-sm"
-                  value={tempRelation}
-                  onChange={(e) => setTempRelation(e.target.value)}
-                >
-                  <option value="">Relation</option>
-                  <option value="Father">Father</option>
-                  <option value="Mother">Mother</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Grandparent">Grandparent</option>
-                  <option value="Child">Child</option>
-                </select>
-
-                <input
-                  className="ui-input !w-[200px] !px-2 !py-1 text-sm"
-                  placeholder="e.g., Diabetes, Hypertension"
-                  value={tempCondition}
-                  onChange={(e) => setTempCondition(e.target.value)}
-                />
-
-                <button
-                  className="px-2 py-1 text-xs rounded bg-gray-900 text-white"
-                  onClick={() => {
-                    if (!tempRelation || !tempCondition) return;
-
-                    const entry = `${tempRelation}: ${tempCondition}`;
-
-                    setTempRelation("");
-                    setTempCondition("");
-                  }}
-                >
-                  Add
-                </button>
+                {/* Edema (Leg Swelling) */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Edema (Leg / Foot Swelling)
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="Pitting grade, duration, laterality..."
+                    rows={2}
+                    value={safeValue.vitals.edema || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        edema: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            </CardioSection>
 
-            {/* Lifestyle Factors */}
-            <div className="space-y-2">
-              <span className="font-medium">Lifestyle Factors:</span>
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – CARDIAC TESTS                                 */}
+            {/* ========================================================= */}
 
-              {/* Smoking */}
-              <div className="flex items-center gap-2">
-                <span className="w-28 text-gray-600 text-sm">Smoking:</span>
-                <select
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  value={safeValue.vitals.lifestyleSmoking || ""}
-                  onChange={(e) =>
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      lifestyleSmoking: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Select</option>
-                  <option value="Non-Smoker">Non-Smoker</option>
-                  <option value="Occasional">Occasional</option>
-                  <option value="Daily Smoker">Daily Smoker</option>
-                  <option value="Former Smoker">Former Smoker</option>
-                </select>
+            <CardioSection title="Cardiac Tests & Investigations">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* ECG Findings */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Electrocardiogram (ECG) Findings
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="e.g., ST depression in V5–V6, LVH, Arrhythmia..."
+                    rows={3}
+                    value={safeValue.vitals.ecgFindings || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        ecgFindings: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Echocardiography Results */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Echocardiography (ECHO) Results
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="e.g., EF 55%, mild MR, RVSP 28mmHg..."
+                    rows={3}
+                    value={safeValue.vitals.echoFindings || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        echoFindings: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Stress Test Results */}
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Exercise Stress Test Results
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    placeholder="e.g., Positive for ischemia after 6 minutes, HR 145 bpm..."
+                    rows={3}
+                    value={safeValue.vitals.stressTestResults || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        stressTestResults: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
+            </CardioSection>
 
-              {/* Alcohol */}
-              <div className="flex items-center gap-2">
-                <span className="w-28 text-gray-600 text-sm">Alcohol:</span>
-                <select
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  value={safeValue.vitals.lifestyleAlcohol || ""}
-                  onChange={(e) =>
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      lifestyleAlcohol: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Select</option>
-                  <option value="None">None</option>
-                  <option value="Occasional">Occasional</option>
-                  <option value="Regular">Regular</option>
-                  <option value="Heavy">Heavy</option>
-                </select>
-              </div>
+            {/* ========================================================= */}
+            {/* CARDIOLOGY – MEDICATION & TREATMENT HISTORY                */}
+            {/* ========================================================= */}
 
-              {/* Exercise */}
-              <div className="flex items-center gap-2">
-                <span className="w-28 text-gray-600 text-sm">Exercise:</span>
-                <input
-                  type="text"
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  placeholder="e.g., 3x/week"
-                  value={safeValue.vitals.lifestyleExercise || ""}
-                  onChange={(e) =>
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      lifestyleExercise: e.target.value,
-                    })
-                  }
-                />
-              </div>
+            <CardioSection title="Medication & Treatment History">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Current Heart Medications */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Current Heart Medications
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={3}
+                    placeholder="e.g., Metoprolol 25mg, Atorvastatin 20mg, Aspirin 75mg..."
+                    value={safeValue.vitals.currentHeartMedications || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        currentHeartMedications: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-              {/* Diet */}
-              <div className="flex items-center gap-2">
-                <span className="w-28 text-gray-600 text-sm">Diet:</span>
-                <input
-                  type="text"
-                  className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                  placeholder="e.g., Vegetarian"
-                  value={safeValue.vitals.lifestyleDiet || ""}
-                  onChange={(e) =>
-                    patch("vitals", {
-                      ...safeValue.vitals,
-                      lifestyleDiet: e.target.value,
-                    })
-                  }
-                />
+                {/* Previous Cardiac Medications */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Previous Cardiac Medications
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={3}
+                    placeholder="e.g., Previously on Clopidogrel, stopped in 2022"
+                    value={safeValue.vitals.pastCardiacMedications || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        pastCardiacMedications: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Anticoagulation / Blood Thinner History */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Anticoagulation / Blood Thinner History
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., On Warfarin since 2020, INR maintained 2.5"
+                    value={safeValue.vitals.anticoagulationHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        anticoagulationHistory: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Prior Treatments */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 font-semibold mb-1">
+                    Prior Treatment History
+                  </label>
+                  <textarea
+                    className="ui-textarea text-sm resize-none"
+                    rows={2}
+                    placeholder="e.g., Completed cardiac rehab phase 1, long-term statin therapy..."
+                    value={safeValue.vitals.treatmentHistory || ""}
+                    onChange={(e) =>
+                      patch("vitals", {
+                        ...safeValue.vitals,
+                        treatmentHistory: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            </CardioSection>
+
+            
           </div>
         </div>
 
@@ -661,6 +974,52 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
     );
   }
 );
+
+/* ========================================================= */
+/* CARDIOLOGY COLLAPSIBLE SECTION                            */
+/* ========================================================= */
+function CardioSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false); // << DEFAULT COLLAPSED
+
+  return (
+    <div className="ui-card rounded-xl shadow-sm border border-gray-200 bg-white">
+
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left"
+      >
+        <div className="flex items-center gap-2">
+          {/* Caret icon (Option A) */}
+          <svg
+            className={`w-4 h-4 text-gray-600 transition-transform ${
+              open ? "rotate-90" : ""
+            }`}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M7 5l6 5-6 5V5z" />
+          </svg>
+
+          <span className="text-sm font-semibold text-gray-600">{title}</span>
+        </div>
+      </button>
+
+      {/* Content */}
+      <div className={`${open ? "block" : "hidden"} px-3 pb-3`}>
+        {children}
+      </div>
+
+    </div>
+  );
+}
 
 export default DigitalRxForm;
 

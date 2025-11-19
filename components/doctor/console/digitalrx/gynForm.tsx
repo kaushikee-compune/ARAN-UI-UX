@@ -1,5 +1,6 @@
 "use client";
 import SnomedSearchBox from "@/components/common/SnomedSearchBox";
+import CollapsibleCard from "@/components/common/CollapsibleCard";
 
 import React, {
   forwardRef,
@@ -181,277 +182,236 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
         {/* ========================================================= */}
 
         {/* Heading */}
-        <h3 className="text-xl font-bold tracking-wide mb-6 text-gray-800">
-          Gynecology & Obstetrics
-        </h3>
+        <div className="flex items-center gap-2 mb-2">
+          <img
+            src="/icons/gynec.png"
+            alt="Gynecology Icon"
+            className="w-8 h-8 object-contain"
+          />
+          <h3 className="text-sm font-semibold">Gynecology & Obstetrics</h3>
+        </div>
 
         {/* 3 Column Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-[35%_35%_30%] gap-6 text-sm">
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 1 — MENSTRUAL HISTORY                           */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">
-              Menstrual History
-            </h4>
-
-            {/* LMP */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">LMP:</span>
-
-              <input
-                type="date"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.lmp || ""}
-                max={new Date().toISOString().split("T")[0]} // Prevents future dates
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    lmp: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            {/* Cycle Regularity */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Cycle Regularity:</span>
-
-              <select
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.cycleRegularity || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    cycleRegularity: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select</option>
-                <option value="Regular">Regular</option>
-                <option value="Irregular">Irregular</option>
-              </select>
-            </div>
-
-            {/* Flow */}
-            <div>
-              <span className="font-medium">Flow: </span>
-              <select
-                autoFocus
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.mensFlow || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    mensFlow: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select</option>
-                <option>Light</option>
-                <option>Normal</option>
-                <option>Heavy</option>
-              </select>
-            </div>
-
-            {/* Dysmenorrhea */}
-            <div>
-              <span className="font-medium">Dysmenorrhea: </span>
-              <select
-                autoFocus
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.dysmenorrhea || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    dysmenorrhea: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select</option>
-                <option>None</option>
-                <option>Mild</option>
-                <option>Moderate</option>
-                <option>Severe</option>
-              </select>
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 2 — OBSTETRIC HISTORY                           */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">
-              Obstetric History
-            </h4>
-
-            {/* Gravida */}
-            <div>
-              <span className="font-medium">Gravida (G): </span>
-              <input
-                autoFocus
-                type="number"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.gravida || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    gravida: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            {/* Parity */}
-            <div>
-              <span className="font-medium">Parity (P): </span>
-
-              <input
-                autoFocus
-                type="number"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.parity || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    parity: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            {/* Pregnancy Complications */}
-            <div>
-              <span className="font-medium">Complications: </span>
-
-              <textarea
-                autoFocus
-                rows={2}
-                className="ui-textarea edit-inline resize-none w-[70%]"
-                value={safeValue.vitals.complications || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    complications: e.target.value,
-                  })
-                }
-                onBlur={() => setEditingField(null)}
-              />
-            </div>
-
-            {/* Delivery Mode */}
-            <div>
-              <span className="font-medium">Delivery Mode: </span>
-
-              <select
-                autoFocus
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.deliveryMode || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    deliveryMode: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select</option>
-                <option>Normal</option>
-                <option>C-section</option>
-                <option>Instrumental</option>
-              </select>
-            </div>
-
-            {/* EDD */}
-            <div>
-              <span className="font-medium">EDD: </span>
-
-              <input
-                type="date"
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.edd || ""}
-                min={new Date().toISOString().split("T")[0]} // Prevent past dates
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    edd: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            {/* Trimester */}
-            <div>
-              <span className="font-medium">Trimester: </span>
-              <select
-                autoFocus
-                className="ui-input !w-[140px] !px-2 !py-1 text-sm"
-                value={safeValue.vitals.trimester || ""}
-                onChange={(e) =>
-                  patch("vitals", {
-                    ...safeValue.vitals,
-                    trimester: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select</option>
-                <option>First</option>
-                <option>Second</option>
-                <option>Third</option>
-              </select>
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------ */}
-          {/* COLUMN 3 — GENERAL FIELDS (ALLERGIES + MEDICAL HISTORY) */}
-          {/* ------------------------------------------------------ */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-purple-700 mb-1">
-              General & Risk Factors
-            </h4>
-
-            {/* Allergies */}
-            <div>
-              <span className="font-medium">Allergies: </span>
-              <span
-                className="value-inline"
-                onClick={() => setEditingField("allergies")}
-              >
-                {safeValue.allergies || "—"}
-              </span>
-
-              {editingField === "allergies" && (
+        {/* ----------------------- GYNECOLOGY COLLAPSIBLE CARDS ----------------------- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          {/* ------------------ Card 1 — Menstrual History ------------------ */}
+          <CollapsibleCard title="Menstrual History" defaultOpen={false}>
+            <div className="space-y-3">
+              {/* LMP */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">LMP</span>
                 <input
-                  autoFocus
-                  className="edit-inline w-[80%]"
+                  type="date"
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.lmp || ""}
+                  max={new Date().toISOString().split("T")[0]}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      lmp: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Cycle Regularity */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Cycle Regularity</span>
+                <select
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.cycleRegularity || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      cycleRegularity: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Irregular">Irregular</option>
+                </select>
+              </div>
+
+              {/* Flow */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Flow</span>
+                <select
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.mensFlow || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      mensFlow: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option>Light</option>
+                  <option>Normal</option>
+                  <option>Heavy</option>
+                </select>
+              </div>
+
+              {/* Dysmenorrhea */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Dysmenorrhea</span>
+                <select
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.dysmenorrhea || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      dysmenorrhea: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option>None</option>
+                  <option>Mild</option>
+                  <option>Moderate</option>
+                  <option>Severe</option>
+                </select>
+              </div>
+            </div>
+          </CollapsibleCard>
+
+          {/* ------------------ Card 2 — Obstetric History ------------------ */}
+          <CollapsibleCard title="Obstetric History" defaultOpen={false}>
+            <div className="space-y-3">
+              {/* Gravida */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Gravida (G)</span>
+                <input
+                  type="number"
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.gravida || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      gravida: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Parity */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Parity (P)</span>
+                <input
+                  type="number"
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.parity || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      parity: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Complications */}
+              <div className="space-y-1">
+                <span className="font-medium">Complications</span>
+                <textarea
+                  rows={2}
+                  className="ui-textarea resize-none w-full"
+                  value={safeValue.vitals.complications || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      complications: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Delivery Mode */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Delivery Mode</span>
+                <select
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.deliveryMode || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      deliveryMode: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option>Normal</option>
+                  <option>C-section</option>
+                  <option>Instrumental</option>
+                </select>
+              </div>
+
+              {/* EDD */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">EDD</span>
+                <input
+                  type="date"
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.edd || ""}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      edd: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Trimester */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Trimester</span>
+                <select
+                  className="ui-input !w-[140px]"
+                  value={safeValue.vitals.trimester || ""}
+                  onChange={(e) =>
+                    patch("vitals", {
+                      ...safeValue.vitals,
+                      trimester: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option>First</option>
+                  <option>Second</option>
+                  <option>Third</option>
+                </select>
+              </div>
+            </div>
+          </CollapsibleCard>
+
+          {/* ------------------ Card 3 — General & Risk Factors ------------------ */}
+          <CollapsibleCard title="General & Risk Factors" defaultOpen={false}>
+            <div className="space-y-3">
+              {/* Allergies */}
+              <div className="space-y-1">
+                <span className="font-medium">Allergies</span>
+                <textarea
+                  rows={2}
+                  className="ui-textarea resize-none w-full"
                   value={safeValue.allergies || ""}
                   onChange={(e) => patch("allergies", e.target.value)}
-                  onBlur={() => setEditingField(null)}
                 />
-              )}
-            </div>
+              </div>
 
-            {/* Medical History */}
-            <div>
-              <span className="font-medium">Medical History: </span>
-              <span
-                className="value-inline"
-                onClick={() => setEditingField("medicalHistory")}
-              >
-                {safeValue.medicalHistory || "—"}
-              </span>
-
-              {editingField === "medicalHistory" && (
+              {/* Medical History */}
+              <div className="space-y-1">
+                <span className="font-medium">Medical History</span>
                 <textarea
-                  autoFocus
                   rows={2}
-                  className="edit-inline resize-none w-[80%]"
+                  className="ui-textarea resize-none w-full"
                   value={safeValue.medicalHistory || ""}
                   onChange={(e) => patch("medicalHistory", e.target.value)}
-                  onBlur={() => setEditingField(null)}
                 />
-              )}
+              </div>
             </div>
-          </div>
+          </CollapsibleCard>
         </div>
 
         {/* Chief Complaints (with SNOMED Search) */}

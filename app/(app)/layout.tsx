@@ -261,6 +261,24 @@ function ProfileMenu({ role, session }: { role: Role; session: any }) {
       ? "/icons/administrator.png"
       : "/icons/doctor.png";
 
+  /* ----- Close menu when clicking outside ----- */
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        open &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        btnRef.current &&
+        !btnRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
   return (
     <div className="relative">
       {/* Profile Button */}
@@ -284,17 +302,15 @@ function ProfileMenu({ role, session }: { role: Role; session: any }) {
           ref={menuRef}
           className="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg z-50 border border-gray-200 py-1"
         >
-          {/* User Info Section */}
+          {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-200">
             <div className="font-semibold text-gray-800">
               {session?.name || "User"}
             </div>
             <div className="text-xs text-gray-600">{session?.email}</div>
-
             <div className="text-xs text-gray-500 mt-1">
               Role: <span className="capitalize">{role}</span>
             </div>
-
             <div className="text-xs text-gray-500">
               Branch: {selectedBranch}
             </div>
@@ -318,6 +334,7 @@ function ProfileMenu({ role, session }: { role: Role; session: any }) {
     </div>
   );
 }
+
 
 /* Small Clean Helper Component */
 function MenuButton({

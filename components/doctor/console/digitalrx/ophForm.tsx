@@ -181,283 +181,525 @@ const DigitalRxForm = forwardRef<DigitalRxFormHandle, DigitalRxFormProps>(
     return (
       <div className="ui-card p-6 bg-white rounded-xl shadow-sm  space-y-6 print:shadow-none">
         {/* ========================================================= */}
-        {/* GENERAL MEDICINE – THREE COLUMN CLINICAL LAYOUT   */}
+        {/* OPTHALMOOGY ONE CARD LAYOUT FOR PRE_CONSULTATION SCREENING  */}
         {/* ========================================================= */}
 
         {/* Heading */}
         <div className="flex items-center gap-2 mb-2">
           <img
-            src="/icons/healthcare.png"
+            src="/icons/eye.png"
             alt="Gynecology Icon"
             className="w-8 h-8 object-contain"
           />
-          <h3 className="text-sm font-semibold">General Assessment</h3>
+          <h3 className="text-sm font-semibold">General Eye Screening </h3>
         </div>
 
         {/* 3 Column Layout */}
         {/* ----------------------- GENERAL MEDICINE VITALS ----------------------- */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* ------------------ Card 1: General Vitals ------------------ */}
-            <CollapsibleCard
-              title="Vitals"
-              subtitle=""
-              defaultOpen={false}
-              className="shadow-sm"
-            >
-              <div className="space-y-4 text-sm">
-                {/* Body Temperature */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Body Temperature (°C)</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    min="30"
-                    max="45"
-                    className="ui-input !w-[140px]"
-                    value={safeValue.vitals.temperature || ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (/^\d*\.?\d*$/.test(v)) {
+        <CollapsibleCard
+          title="Ophthalmic Examination"
+          subtitle=""
+          defaultOpen={false}
+          className="shadow-sm"
+        >
+          <div className="space-y-6 text-sm">
+            {/* -------------------- VISUAL ACUITY -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Visual Acuity (VA)
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] border text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left w-20">Side</th>
+                      <th className="px-2 py-1.5 text-left">U/A</th>
+                      <th className="px-2 py-1.5 text-left">Pinhole</th>
+                      <th className="px-2 py-1.5 text-left">With Glass</th>
+                      <th className="px-2 py-1.5 text-left">BCVA</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {["RE", "LE"].map((side) => {
+                      // explicitly tell TypeScript these may be ANY object
+                      const eyeExam: any =
+                        safeValue.vitals.eyeExam &&
+                        typeof safeValue.vitals.eyeExam === "object"
+                          ? safeValue.vitals.eyeExam
+                          : {};
+
+                      const va: any =
+                        eyeExam.va && typeof eyeExam.va === "object"
+                          ? eyeExam.va
+                          : {};
+
+                      const sideObj: any =
+                        va[side] && typeof va[side] === "object"
+                          ? va[side]
+                          : {};
+
+                      return (
+                        <tr key={side} className="border-t">
+                          <td className="px-2 py-1.5 font-medium">{side}</td>
+
+                          {["unaided", "pinhole", "withGlass", "bcva"].map(
+                            (field) => (
+                              <td key={field} className="px-2 py-1.5">
+                                <input
+                                  className="ui-input w-full"
+                                  placeholder="6/9"
+                                  value={sideObj[field] || ""}
+                                  onChange={(e) =>
+                                    patch("vitals", {
+                                      ...safeValue.vitals,
+                                      eyeExam: {
+                                        ...eyeExam,
+                                        va: {
+                                          ...va,
+                                          [side]: {
+                                            ...sideObj,
+                                            [field]: e.target.value,
+                                          },
+                                        },
+                                      },
+                                    })
+                                  }
+                                />
+                              </td>
+                            )
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* -------------------- REFRACTION -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Refraction (Auto + Manual)
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] border text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-1.5 w-20">Eye</th>
+                      <th className="px-2 py-1.5">Sphere</th>
+                      <th className="px-2 py-1.5">Cylinder</th>
+                      <th className="px-2 py-1.5">Axis</th>
+                      <th className="px-2 py-1.5">Add</th>
+                      <th className="px-2 py-1.5">Method</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {["RE", "LE"].map((side) => {
+                      // Normalize eyeExam safely
+                      const eyeExam: any =
+                        safeValue.vitals.eyeExam &&
+                        typeof safeValue.vitals.eyeExam === "object"
+                          ? safeValue.vitals.eyeExam
+                          : {};
+
+                      const refraction: any =
+                        eyeExam.refraction &&
+                        typeof eyeExam.refraction === "object"
+                          ? eyeExam.refraction
+                          : {};
+
+                      const sideObj: any =
+                        refraction[side] && typeof refraction[side] === "object"
+                          ? refraction[side]
+                          : {};
+
+                      return (
+                        <tr key={side} className="border-t">
+                          <td className="px-2 py-1.5 font-medium">{side}</td>
+
+                          {["sphere", "cylinder", "axis", "add"].map(
+                            (field) => (
+                              <td key={field} className="px-2 py-1.5">
+                                <input
+                                  className="ui-input w-full"
+                                  placeholder={
+                                    field === "axis" ? "90°" : "-1.50"
+                                  }
+                                  value={sideObj[field] || ""}
+                                  onChange={(e) =>
+                                    patch("vitals", {
+                                      ...safeValue.vitals,
+                                      eyeExam: {
+                                        ...eyeExam,
+                                        refraction: {
+                                          ...refraction,
+                                          [side]: {
+                                            ...sideObj,
+                                            [field]: e.target.value,
+                                          },
+                                        },
+                                      },
+                                    })
+                                  }
+                                />
+                              </td>
+                            )
+                          )}
+
+                          {/* Refraction Method */}
+                          <td className="px-2 py-1.5">
+                            <select
+                              className="ui-input w-full"
+                              value={refraction.method || ""}
+                              onChange={(e) =>
+                                patch("vitals", {
+                                  ...safeValue.vitals,
+                                  eyeExam: {
+                                    ...eyeExam,
+                                    refraction: {
+                                      ...refraction,
+                                      method: e.target.value,
+                                    },
+                                  },
+                                })
+                              }
+                            >
+                              <option value="">Select</option>
+                              <option>Auto</option>
+                              <option>Manual</option>
+                              <option>Auto + Subjective</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* -------------------- IOP -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Intraocular Pressure (IOP)
+              </div>
+
+              {/* -------------------- IOP -------------------- */}
+              <div>
+                
+
+                {(() => {
+                  // ⭐ Normalize eyeExam and iop safely (TS-safe)
+                  const eyeExam: any =
+                    safeValue.vitals.eyeExam &&
+                    typeof safeValue.vitals.eyeExam === "object"
+                      ? safeValue.vitals.eyeExam
+                      : {};
+
+                  const iop: any =
+                    eyeExam.iop && typeof eyeExam.iop === "object"
+                      ? eyeExam.iop
+                      : {};
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-[25%_25%_50%] gap-3">
+                      {/* RE input */}
+                      <input
+                        className="ui-input"
+                        placeholder="RE (mmHg)"
+                        value={iop.right || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              iop: {
+                                ...iop,
+                                right: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      />
+
+                      {/* LE input */}
+                      <input
+                        className="ui-input"
+                        placeholder="LE (mmHg)"
+                        value={iop.left || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              iop: {
+                                ...iop,
+                                left: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      />
+
+                      {/* Method select */}
+                      <select
+                        className="ui-input"
+                        value={iop.method || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              iop: {
+                                ...iop,
+                                method: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      >
+                        <option value="">Method</option>
+                        <option>NCT</option>
+                        <option>Goldmann Applanation</option>
+                        <option>Tonopen</option>
+                      </select>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* -------------------- SLIT LAMP -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Slit Lamp – Anterior Segment
+              </div>
+
+              {/* -------------------- SLIT LAMP -------------------- */}
+              <div>
+                
+
+                {(() => {
+                  // ⭐ Normalize safely for TypeScript
+                  const eyeExam: any =
+                    safeValue.vitals.eyeExam &&
+                    typeof safeValue.vitals.eyeExam === "object"
+                      ? safeValue.vitals.eyeExam
+                      : {};
+
+                  const slitLamp: any =
+                    eyeExam.slitLamp && typeof eyeExam.slitLamp === "object"
+                      ? eyeExam.slitLamp
+                      : {};
+
+                  return (
+                    <div className="grid md:grid-cols-3 gap-3">
+                      {[
+                        "lids",
+                        "conjunctiva",
+                        "cornea",
+                        "anteriorChamber",
+                        "iris",
+                        "lens",
+                      ].map((part) => (
+                        <div key={part}>
+                          <label className="text-[11px] text-gray-600 capitalize">
+                            {part}
+                          </label>
+
+                          <textarea
+                            className="ui-textarea w-full min-h-[60px]"
+                            value={slitLamp[part] || ""}
+                            onChange={(e) =>
+                              patch("vitals", {
+                                ...safeValue.vitals,
+                                eyeExam: {
+                                  ...eyeExam,
+                                  slitLamp: {
+                                    ...slitLamp,
+                                    [part]: e.target.value,
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* -------------------- COLOUR VISION -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Colour Vision
+              </div>
+
+              {/* -------------------- COLOUR VISION -------------------- */}
+              <div>
+                
+
+                {(() => {
+                  // ⭐ Normalize safely
+                  const eyeExam: any =
+                    safeValue.vitals.eyeExam &&
+                    typeof safeValue.vitals.eyeExam === "object"
+                      ? safeValue.vitals.eyeExam
+                      : {};
+
+                  const colorVision: any =
+                    typeof eyeExam.colorVision === "string"
+                      ? eyeExam.colorVision
+                      : "";
+
+                  return (
+                    <input
+                      className="ui-input w-full max-w-sm"
+                      placeholder="Ishihara – Normal / Defective"
+                      value={colorVision}
+                      onChange={(e) =>
                         patch("vitals", {
                           ...safeValue.vitals,
-                          temperature: v,
-                        });
+                          eyeExam: {
+                            ...eyeExam,
+                            colorVision: e.target.value,
+                          },
+                        })
                       }
-                    }}
-                    placeholder="36.8"
-                  />
-                </div>
-
-                {/* BP */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Blood Pressure (mmHg)</span>
-                  <input
-                    type="text"
-                    className="ui-input !w-[140px]"
-                    placeholder="120/80"
-                    value={safeValue.vitals.bp || ""}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^\d/]/g, "");
-                      const parts = v.split("/");
-                      if (parts.length > 2) return;
-                      if (parts[0].length > 3) return;
-                      if (parts[1] && parts[1].length > 3) return;
-                      patch("vitals", { ...safeValue.vitals, bp: v });
-                    }}
-                  />
-                </div>
-
-                {/* Heart Rate */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Heart Rate (bpm)</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="30"
-                    max="200"
-                    className="ui-input !w-[140px]"
-                    placeholder="82"
-                    value={safeValue.vitals.pulse || ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (/^\d*$/.test(v)) {
-                        patch("vitals", { ...safeValue.vitals, pulse: v });
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Height */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Height (cm)</span>
-                  <input
-                    type="number"
-                    className="ui-input !w-[140px]"
-                    placeholder="160"
-                    value={safeValue.vitals.height || ""}
-                    onChange={(e) => {
-                      const height = e.target.value;
-                      if (/^\d*$/.test(height)) {
-                        const weight = safeValue.vitals.weight || "";
-                        let bmi = "";
-                        if (height && weight) {
-                          bmi = (
-                            Number(weight) / Math.pow(Number(height) / 100, 2)
-                          ).toFixed(1);
-                        }
-                        patch("vitals", { ...safeValue.vitals, height, bmi });
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Weight */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Weight (kg)</span>
-                  <input
-                    type="number"
-                    className="ui-input !w-[140px]"
-                    placeholder="65"
-                    value={safeValue.vitals.weight || ""}
-                    onChange={(e) => {
-                      const weight = e.target.value;
-                      if (/^\d*$/.test(weight)) {
-                        const height = safeValue.vitals.height || "";
-                        let bmi = "";
-                        if (height && weight) {
-                          bmi = (
-                            Number(weight) / Math.pow(Number(height) / 100, 2)
-                          ).toFixed(1);
-                        }
-                        patch("vitals", { ...safeValue.vitals, weight, bmi });
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* BMI (Auto) */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">BMI</span>
-                  <input
-                    type="text"
-                    readOnly
-                    className="ui-input !w-[140px] bg-gray-50"
-                    value={safeValue.vitals.bmi || ""}
-                    placeholder="Auto"
-                  />
-                </div>
-              </div>
-            </CollapsibleCard>
-
-            {/* ------------------ Card 2: History & Risk Profile ------------------ */}
-            <CollapsibleCard
-              title="Health History & Risk Profile"
-              defaultOpen={false}
-              className="shadow-sm"
-            >
-              <div className="space-y-3 text-sm">
-                {/* Allergies */}
-                <div className="space-y-1">
-                  <span className="font-medium">Allergies:</span>
-                  <textarea
-                    rows={2}
-                    className="ui-textarea resize-none w-full"
-                    placeholder="e.g., Penicillin, Peanuts"
-                    value={safeValue.vitals.allergies || ""}
-                    onChange={(e) =>
-                      patch("vitals", {
-                        ...safeValue.vitals,
-                        allergies: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                {/* Chronic Diseases */}
-                <div className="space-y-1">
-                  <span className="font-medium">Chronic Diseases:</span>
-                  <textarea
-                    rows={2}
-                    className="ui-textarea resize-none w-full"
-                    placeholder="Diabetes, Hypertension…"
-                    value={safeValue.vitals.chronicDiseases || ""}
-                    onChange={(e) =>
-                      patch("vitals", {
-                        ...safeValue.vitals,
-                        chronicDiseases: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                {/* Past Medical History */}
-                <div className="space-y-1">
-                  <span className="font-medium">Past Medical History:</span>
-                  <textarea
-                    rows={2}
-                    className="ui-textarea resize-none w-full"
-                    placeholder="Surgeries, major illnesses"
-                    value={safeValue.vitals.pastMedicalHistory || ""}
-                    onChange={(e) =>
-                      patch("vitals", {
-                        ...safeValue.vitals,
-                        pastMedicalHistory: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </CollapsibleCard>
-
-            {/* ------------------ Card 3: Medications & Lifestyle ------------------ */}
-            <CollapsibleCard
-              title="Medications & Lifestyle History"
-              defaultOpen={false}
-              className="shadow-sm"
-            >
-              <div className="space-y-3 text-sm">
-                {/* Medications */}
-                <div className="space-y-1">
-                  <span className="font-medium">Current Medications:</span>
-                  <textarea
-                    rows={1}
-                    className="ui-textarea resize-none w-full"
-                    placeholder="e.g., Metformin, Amlodipine…"
-                    value={safeValue.vitals.currentMedications || ""}
-                    onChange={(e) =>
-                      patch("vitals", {
-                        ...safeValue.vitals,
-                        currentMedications: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                {/* Family Medical History */}
-                <div className="space-y-1">
-                  <span className="font-medium">Family Medical History:</span>
-
-                  <div className="flex items-center gap-2">
-                    <select
-                      className="ui-input !w-[120px]"
-                      value={tempRelation}
-                      onChange={(e) => setTempRelation(e.target.value)}
-                    >
-                      <option value="">Relation</option>
-                      <option>Father</option>
-                      <option>Mother</option>
-                      <option>Sibling</option>
-                      <option>Grandparent</option>
-                      <option>Child</option>
-                    </select>
-
-                    <input
-                      className="ui-input flex-1"
-                      placeholder="e.g., Diabetes, Hypertension"
-                      value={tempCondition}
-                      onChange={(e) => setTempCondition(e.target.value)}
                     />
+                  );
+                })()}
+              </div>
+            </div>
 
-                    <button
-                      className="px-2 py-1 text-xs rounded bg-gray-900 text-white"
-                      onClick={() => {
-                        if (!tempRelation || !tempCondition) return;
-                        const entry = `${tempRelation}: ${tempCondition}`;
-                        // Add to list (implement state hook outside)
-                        setTempRelation("");
-                        setTempCondition("");
-                      }}
-                    >
-                      Add
-                    </button>
-                  </div>
+            {/* -------------------- GLAUCOMA SCREENING -------------------- */}
+            <div>
+              <div className="font-semibold text-purple-700 mb-2">
+                Glaucoma Screening
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] text-gray-600">C/D Ratio</label>
+                  {(() => {
+                    // ⭐ Normalize safely
+                    const eyeExam: any =
+                      safeValue.vitals.eyeExam &&
+                      typeof safeValue.vitals.eyeExam === "object"
+                        ? safeValue.vitals.eyeExam
+                        : {};
+
+                    const glaucoma: any =
+                      eyeExam.glaucoma && typeof eyeExam.glaucoma === "object"
+                        ? eyeExam.glaucoma
+                        : {};
+
+                    return (
+                      <input
+                        className="ui-input w-full"
+                        value={glaucoma.cdr || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              glaucoma: {
+                                ...glaucoma,
+                                cdr: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      />
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-gray-600">
+                    RNFL / OCT
+                  </label>
+                  {(() => {
+                    // ⭐ Normalize safely
+                    const eyeExam: any =
+                      safeValue.vitals.eyeExam &&
+                      typeof safeValue.vitals.eyeExam === "object"
+                        ? safeValue.vitals.eyeExam
+                        : {};
+
+                    const glaucoma: any =
+                      eyeExam.glaucoma && typeof eyeExam.glaucoma === "object"
+                        ? eyeExam.glaucoma
+                        : {};
+
+                    return (
+                      <input
+                        className="ui-input w-full"
+                        value={glaucoma.oct || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              glaucoma: {
+                                ...glaucoma,
+                                oct: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      />
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-gray-600">
+                    Field Test
+                  </label>
+                  {(() => {
+                    // ⭐ Normalize safely
+                    const eyeExam: any =
+                      safeValue.vitals.eyeExam &&
+                      typeof safeValue.vitals.eyeExam === "object"
+                        ? safeValue.vitals.eyeExam
+                        : {};
+
+                    const glaucoma: any =
+                      eyeExam.glaucoma && typeof eyeExam.glaucoma === "object"
+                        ? eyeExam.glaucoma
+                        : {};
+
+                    return (
+                      <input
+                        className="ui-input w-full"
+                        value={glaucoma.fields || ""}
+                        onChange={(e) =>
+                          patch("vitals", {
+                            ...safeValue.vitals,
+                            eyeExam: {
+                              ...eyeExam,
+                              glaucoma: {
+                                ...glaucoma,
+                                fields: e.target.value,
+                              },
+                            },
+                          })
+                        }
+                      />
+                    );
+                  })()}
                 </div>
               </div>
-            </CollapsibleCard>
+            </div>
           </div>
-        </div>
+        </CollapsibleCard>
 
         {/* Chief Complaints (with SNOMED Search) */}
         {/* Chief Complaints */}
