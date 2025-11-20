@@ -1,0 +1,182 @@
+[
+  {
+    "id": "pat_001",
+    "pid": "CH-B001-000001",
+    "name": "Arjun Rao",
+    "phone": "9876500010",
+    "uhid": "U1B001_0001",
+    "abha": "91-1122-3344-5566",
+    "branchIds": ["B001"],
+    "doctorIds": ["u1"]
+  },
+  {
+    "id": "pat_002",
+    "pid": "CH-B001-000002",
+    "name": "Megha Jain",
+    "phone": "9876500020",
+    "uhid": "U1B001_0002",
+    "abha": null,
+    "branchIds": ["B001"],
+    "doctorIds": ["u1"]
+  },
+  {
+    "id": "pat_003",
+    "pid": "CH-B001-000003",
+    "name": "Sneha Dube",
+    "phone": "9876500030",
+    "uhid": "U1B002_0001",
+    "abha": "91-2211-3322-4433",
+    "branchIds": ["B001", "B002"],
+    "doctorIds": ["u1"]
+  },
+  {
+    "id": "pat_004",
+    "pid": "CH-B002-000001",
+    "name": "Sriram Hegde",
+    "phone": "9876500040",
+    "uhid": "U1B002_0002",
+    "abha": null,
+    "branchIds": ["B002"],
+    "doctorIds": ["u1"]
+  },
+  {
+    "id": "pat_005",
+    "pid": "CH-B001-000004",
+    "name": "Kavita Murthy",
+    "phone": "9876500050",
+    "uhid": "U1B001_0003",
+    "abha": "91-6677-8899-0011",
+    "branchIds": ["B001"],
+    "doctorIds": ["u1"]
+  },
+  {
+    "id": "pat_006",
+    "pid": "CH-B001-000005",
+    "name": "Rohan Sinha",
+    "phone": "9866600010",
+    "uhid": "U2B001_1001",
+    "abha": null,
+    "branchIds": ["B001"],
+    "doctorIds": ["u2"]
+  },
+  {
+    "id": "pat_007",
+    "pid": "CH-B001-000006",
+    "name": "Nisha Pandey",
+    "phone": "9866600020",
+    "uhid": "U2B001_1002",
+    "abha": "91-9988-7766-5544",
+    "branchIds": ["B001"],
+    "doctorIds": ["u2"]
+  },
+  {
+    "id": "pat_008",
+    "pid": "CH-B001-000007",
+    "name": "Yogesh Patel",
+    "phone": "9866600030",
+    "uhid": "U2B001_1003",
+    "abha": null,
+    "branchIds": ["B001"],
+    "doctorIds": ["u2"]
+  },
+  {
+    "id": "pat_009",
+    "pid": "CH-B001-000008",
+    "name": "Harini Krishnan",
+    "phone": "9866600040",
+    "uhid": "U2B001_1004",
+    "abha": "91-1111-2222-3333",
+    "branchIds": ["B001"],
+    "doctorIds": ["u2"]
+  },
+  {
+    "id": "pat_010",
+    "pid": "CH-B001-000009",
+    "name": "Deepak Naik",
+    "phone": "9866600050",
+    "uhid": "U2B001_1005",
+    "abha": null,
+    "branchIds": ["B001"],
+    "doctorIds": ["u2"]
+  },
+  {
+    "id": "pat_011",
+    "pid": "CH-B001-000010",
+    "name": "Lakshmi Narayan",
+    "phone": "9855500010",
+    "uhid": "U3B001_2001",
+    "abha": "91-4343-5454-6565",
+    "branchIds": ["B001"],
+    "doctorIds": ["u3"]
+  },
+  {
+    "id": "pat_012",
+    "pid": "CH-B002-000002",
+    "name": "Gopal Menon",
+    "phone": "9855500020",
+    "uhid": "U3B002_2001",
+    "abha": null,
+    "branchIds": ["B002"],
+    "doctorIds": ["u3"]
+  },
+  {
+    "id": "pat_013",
+    "pid": "CH-B001-000011",
+    "name": "Shweta Kulkarni",
+    "phone": "9855500030",
+    "uhid": "U3B001_2002",
+    "abha": "91-7878-6767-5656",
+    "branchIds": ["B001"],
+    "doctorIds": ["u3"]
+  },
+  {
+    "id": "pat_014",
+    "pid": "CH-B002-000003",
+    "name": "Tarun Bhat",
+    "phone": "9855500040",
+    "uhid": "U3B002_2002",
+    "abha": null,
+    "branchIds": ["B002"],
+    "doctorIds": ["u3"]
+  },
+  {
+    "id": "pat_015",
+    "pid": "CH-B001-000012",
+    "name": "Ritika Kapoor",
+    "phone": "9855500050",
+    "uhid": "U3B001_2003",
+    "abha": "91-9090-8080-7070",
+    "branchIds": ["B001"],
+    "doctorIds": ["u3"]
+  },
+  {
+    "id": "pat_016",
+    "pid": "CH-B001-000013",
+    "name": "Sameer Kulkarni",
+    "phone": "9844400010",
+    "uhid": "CROSS_0001",
+    "abha": "91-4321-7654-9876",
+    "branchIds": ["B001"],
+    "doctorIds": ["u1", "u2"]
+  },
+  {
+    "id": "pat_017",
+    "pid": "CH-B002-000004",
+    "name": "Asha Shetty",
+    "phone": "9844400020",
+    "uhid": "CROSS_0002",
+    "abha": null,
+    "branchIds": ["B001", "B002"],
+    "doctorIds": ["u3", "u8"]
+  },
+  {
+    "id": "pat_018",
+    "pid": "CH-B001-000014",
+    "name": "Radha Mahato",
+    "phone": "984440453",
+    "uhid": "CROSS_0045",
+    "abha": null,
+    "branchIds": ["B001", "B002"],
+    "doctorIds": ["u7", "u3", "u8"]
+  }
+]

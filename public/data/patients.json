@@ -1,6 +1,6 @@
 [
   {
-    "patientId": "pat_001",
+    "patientId": "CH-B001-000001",
     "demographics": {
       "name": "Arjun Rao",
       "phone": "9876500010",
@@ -21,9 +21,8 @@
       }
     ]
   },
-
   {
-    "patientId": "pat_002",
+    "patientId": "CH-B001-000002",
     "demographics": {
       "name": "Megha Jain",
       "phone": "9876500020",
@@ -44,9 +43,8 @@
       }
     ]
   },
-
   {
-    "patientId": "pat_003",
+    "patientId": "CH-B001-000003",
     "demographics": {
       "name": "Sneha Dube",
       "phone": "9876500030",
@@ -59,7 +57,6 @@
     },
     "registrations": [
       {
-      
         "branchId": "B001",
         "doctorId": "u1",
         "registrationDate": "2025-09-05",
@@ -75,9 +72,8 @@
       }
     ]
   },
-
   {
-    "patientId": "pat_004",
+    "patientId": "CH-B002-000001",
     "demographics": {
       "name": "Sriram Hegde",
       "phone": "9876500040",
@@ -98,9 +94,8 @@
       }
     ]
   },
-
   {
-    "patientId": "pat_005",
+    "patientId": "CH-B001-000004",
     "demographics": {
       "name": "Kavita Murthy",
       "phone": "9876500050",
@@ -123,7 +118,7 @@
   },
 
   {
-    "patientId": "pat_006",
+    "patientId": "CH-B001-000005",
     "demographics": {
       "name": "Rohan Sinha",
       "phone": "9866600010",
@@ -146,7 +141,7 @@
   },
 
   {
-    "patientId": "pat_007",
+    "patientId": "CH-B001-000006",
     "demographics": {
       "name": "Nisha Pandey",
       "phone": "9866600020",
@@ -169,7 +164,7 @@
   },
 
   {
-    "patientId": "pat_008",
+    "patientId": "CH-B001-000007",
     "demographics": {
       "name": "Yogesh Patel",
       "phone": "9866600030",
@@ -192,7 +187,7 @@
   },
 
   {
-    "patientId": "pat_009",
+    "patientId": "CH-B001-000008",
     "demographics": {
       "name": "Harini Krishnan",
       "phone": "9866600040",
@@ -215,7 +210,7 @@
   },
 
   {
-    "patientId": "pat_010",
+    "patientId": "CH-B001-000009",
     "demographics": {
       "name": "Deepak Naik",
       "phone": "9866600050",
@@ -238,7 +233,7 @@
   },
 
   {
-    "patientId": "pat_011",
+    "patientId": "CH-B001-000010",
     "demographics": {
       "name": "Lakshmi Narayan",
       "phone": "9855500010",
@@ -261,7 +256,7 @@
   },
 
   {
-    "patientId": "pat_012",
+    "patientId": "CH-B002-000002",
     "demographics": {
       "name": "Gopal Menon",
       "phone": "9855500020",
@@ -284,7 +279,7 @@
   },
 
   {
-    "patientId": "pat_013",
+    "patientId": "CH-B001-000011",
     "demographics": {
       "name": "Shweta Kulkarni",
       "phone": "9855500030",
@@ -307,7 +302,7 @@
   },
 
   {
-    "patientId": "pat_014",
+    "patientId": "CH-B002-000003",
     "demographics": {
       "name": "Tarun Bhat",
       "phone": "9855500040",
@@ -330,7 +325,7 @@
   },
 
   {
-    "patientId": "pat_015",
+    "patientId": "CH-B001-000012",
     "demographics": {
       "name": "Ritika Kapoor",
       "phone": "9855500050",
@@ -352,9 +347,8 @@
     ]
   },
 
-  
   {
-    "patientId": "pat_016",
+    "patientId": "CH-B001-000013",
     "demographics": {
       "name": "Sameer Kulkarni",
       "phone": "9844400010",
@@ -367,7 +361,6 @@
     },
     "registrations": [
       {
-      
         "branchId": "B001",
         "doctorId": "u1",
         "registrationDate": "2025-07-10",
@@ -385,7 +378,7 @@
   },
 
   {
-    "patientId": "pat_017",
+    "patientId": "CH-B002-000004",
     "demographics": {
       "name": "Asha Shetty",
       "phone": "9844400020",
@@ -398,7 +391,6 @@
     },
     "registrations": [
       {
-        
         "branchId": "B001",
         "doctorId": "u3",
         "registrationDate": "2025-03-10",
@@ -421,8 +413,9 @@
       }
     ]
   },
-   {
-    "patientId": "pat_018",
+
+  {
+    "patientId": "CH-B001-000014",
     "demographics": {
       "name": "Radha Mahato",
       "phone": "984440453",
@@ -435,7 +428,6 @@
     },
     "registrations": [
       {
-        
         "branchId": "B001",
         "doctorId": "u7",
         "registrationDate": "2025-03-10",
@@ -458,5 +450,4 @@
       }
     ]
   }
-  
 ]
