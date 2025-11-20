@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,22 +13,38 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-theme="t1">
       <body>
-        <BranchProvider> {/* ✅ global provider lives here */}
+        <BranchProvider>
+          {" "}
+          {/* ✅ global provider lives here */}
           <ThemeProvider>
             {children}
+
             <Toaster
-              position="top-center"
+              position="bottom-center"
+              gutter={8}
               toastOptions={{
+                duration: 3000,
                 style: {
-                  background: "green",
-                  color: "#111",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                },
-                success: {
-                  iconTheme: { primary: "#10b981", secondary: "#fff" },
+                  width: "420px",
+                  maxWidth: "95vw",
+                  padding: "14px 18px",
+                  fontSize: "15px",
+                  fontWeight: 500,
+                  borderRadius: "10px",
+                  background: "var(--secondary)",
+                  color: "var(--on-secondary)",
+                  border: "1px solid var(--secondary)",
+                  boxShadow: "0px -4px 18px rgba(0,0,0,0.18)",
+
+                  // 🔥 START POSITION (slide up)
+                  transform: "translateY(30px)",
+                  opacity: 0,
                 },
               }}
+              containerStyle={{
+                bottom: 24, // distance from bottom
+              }}
+              // 🔥 SLIDE-UP ANIMATION PATCH
             />
           </ThemeProvider>
         </BranchProvider>

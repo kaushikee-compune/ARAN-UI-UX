@@ -484,4 +484,19 @@ body {
 .ui-card:active {
   transform: scale(0.995);
 }
+/* ---- Toast Slide-Up Animation ---- */
+[data-sonner-toast] {
+  animation: slideUp 0.35s ease forwards !important;
+}
+
+@keyframes slideUp {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
 

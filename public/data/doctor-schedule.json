@@ -13,16 +13,16 @@
               {
                 "sessionId": "s1",
                 "label": "Morning",
-                "start": "08:00",
-                "end": "12:00",
+                "start": "07:00",
+                "end": "10:00",
                 "slotDuration": 15,
                 "maxAppointments": 16
               },
               {
                 "sessionId": "s2",
                 "label": "Evening",
-                "start": "17:00",
-                "end": "20:00",
+                "start": "16:00",
+                "end": "18:00",
                 "slotDuration": 15,
                 "maxAppointments": 12
               }
@@ -34,41 +34,83 @@
               {
                 "sessionId": "s1",
                 "label": "Morning",
-                "start": "09:00",
-                "end": "13:00",
+                "start": "07:00",
+                "end": "10:00",
                 "slotDuration": 15,
                 "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
               }
             ]
           },
           {
             "day": "Wed",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "07:00",
+                "end": "10:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
+              }
+            ]
           },
           {
           "day": "Thu",
           "sessions": [
             {
-              "sessionId": "s1",
-              "label": "Morning",
-              "start": "09:00",
-              "end": "12:00",
-              "slotDuration": 15,
-              "maxAppointments": 12
-            },
-            {
-              "sessionId": "s2",
-              "label": "Evening",
-              "start": "17:00",
-              "end": "19:00",
-              "slotDuration": 15,
-              "maxAppointments": 8
-            }
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "07:00",
+                "end": "10:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
+              }
           ]
         },
           {
             "day": "Fri",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "07:00",
+                "end": "10:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
+              }
+            ]
           },
           {
             "day": "Sat",
@@ -76,19 +118,45 @@
               {
                 "sessionId": "s1",
                 "label": "Morning",
-                "start": "10:00",
-                "end": "14:00",
+                "start": "07:00",
+                "end": "10:00",
                 "slotDuration": 15,
                 "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
               }
             ]
           },
           {
             "day": "Sun",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "07:00",
+                "end": "10:00",
+                "slotDuration": 15,
+                "maxAppointments": 16
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "16:00",
+                "end": "18:00",
+                "slotDuration": 15,
+                "maxAppointments": 12
+              }
+            ]
           }
         ]
       },
+      
       {
         "branchId": "B002",
         "weeklySchedule": [
@@ -98,8 +166,16 @@
               {
                 "sessionId": "s1",
                 "label": "Morning",
-                "start": "10:00",
+                "start": "11:00",
                 "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
                 "slotDuration": 10,
                 "maxAppointments": 18
               }
@@ -107,29 +183,132 @@
           },
           {
             "day": "Tue",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           },
           {
             "day": "Wed",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           },
           {
             "day": "Thu",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           },
           {
             "day": "Fri",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           },
           {
             "day": "Sat",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           },
           {
             "day": "Sun",
-            "sessions": []
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "11:00",
+                "end": "13:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              },
+              {
+                "sessionId": "s2",
+                "label": "Evening",
+                "start": "19:00",
+                "end": "22:00",
+                "slotDuration": 10,
+                "maxAppointments": 18
+              }
+            ]
           }
         ]
+        
       }
     ]
   },

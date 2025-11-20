@@ -150,8 +150,8 @@ export default function AppointmentsPage() {
   const [searchMatches, setSearchMatches] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [deptMap, setDeptMap] = useState<Record<string, string>>({});
-
-  const { selectedBranch } = useBranch();
+  
+   const { selectedBranch } = useBranch();
 
   /* =============================================================================
      Load data after session becomes available
@@ -215,30 +215,11 @@ export default function AppointmentsPage() {
       }
     })();
   }, [session]);
-  
-  // Change for branch-wise calendar
-
   const doctorId = selectedDoctor?.id || session?.id;
-  // Get schedule object for the active branch
-  const activeBranchSchedule = React.useMemo(() => {
-    if (!selectedDoctor || !selectedDoctor.schedule || !selectedBranch) {
-      return null;
-    }
 
-    // selectedDoctor.schedule.branches is an array
-    const branchBlock = selectedDoctor.schedule.branches.find(
-      (b: any) => b.branchId === selectedBranch
-    );
-
-    return branchBlock || null; // BranchSchedule or null
-  }, [selectedDoctor, selectedBranch]);
-
-  // Always work with an array to simplify rendering
-const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
-
-
-  console.log("The docID is :", doctorId);
-  console.log("The br id is", selectedBranch);
+  
+  console.log("The docID is :", doctorId)
+  console.log("The br id is",selectedBranch)
 
   /* =============================================================================
      Auto-select doctor AFTER doctors[] loads
@@ -250,117 +231,135 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
     }
   }, [isDoctor, session, doctors]);
 
+  const activeBranchSchedule = React.useMemo(() => {
+  if (!selectedDoctor || !selectedDoctor.schedule || !selectedBranch) {
+    return null;
+  }
   
+  const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
+  // selectedDoctor.schedule.branches is BranchSchedule[]
+  const branch = selectedDoctor.schedule.branches.find(
+    (b: any) => b.branchId === selectedBranch
+  );
+
+  return branch || null; // BranchSchedule | null
+}, [selectedDoctor, selectedBranch]);
+
+
   /* =============================================================================
      Slot actions
   ============================================================================= */
   function pickSlot(time: string, doc: Doctor) {
-    setSelectedDoctor(doc);
-    setSelectedSlot(time);
+  setSelectedDoctor(doc);
+  setSelectedSlot(time);
 
-    setDraft((prev: any) => ({
-      // keep previous patient data (if any)
-      patientName: prev?.patientName || "",
-      mobile: prev?.mobile || "",
-      abhaNumber: prev?.abhaNumber || "",
-      abhaAddress: prev?.abhaAddress || "",
-      uhid: prev?.uhid || "",
-      note: prev?.note || "",
+  setDraft((prev: any) => ({
+    // keep previous patient data (if any)
+    patientName: prev?.patientName || "",
+    mobile: prev?.mobile || "",
+    abhaNumber: prev?.abhaNumber || "",
+    abhaAddress: prev?.abhaAddress || "",
+    uhid: prev?.uhid || "",
+    note: prev?.note || "",
 
-      // always update slot time
-      time,
-    }));
-  }
+    // always update slot time
+    time,
+  }));
+}
 
-  function clearSlot() {
-    setSelectedSlot(null);
+function clearSlot() {
+  setSelectedSlot(null);
 
-    setDraft((prev: any) => {
-      if (!prev) return null; // nothing to preserve
+  setDraft((prev: any) => {
+    if (!prev) return null; // nothing to preserve
 
-      return {
-        ...prev,
-        time: "", // only clear slot
-      };
-    });
-  }
-
-  // ---------------------------------------------
-  // CREATE THE API-READY COMMIT BOOKING
-  // ---------------------------------------------
-
-  function commitBooking() {
-    if (!draft || !selectedDoctor) return;
-    if (!draft.patientName.trim() || !draft.mobile.trim()) return;
-
-    // ---------------------------------------------
-    // 1️⃣ DERIVED FIELDS FOR APPOINTMENT ID
-    // ---------------------------------------------
-    const branchId =
-      session?.access?.[0]?.branchId ||
-      session?.legacyBranches?.[0] ||
-      selectedDoctor.branches?.[0] ||
-      "BRANCH";
-
-    const now = new Date();
-    const dd = now.getDate().toString().padStart(2, "0");
-    const mm = (now.getMonth() + 1).toString().padStart(2, "0");
-    const hh = now.getHours().toString().padStart(2, "0");
-    const min = now.getMinutes().toString().padStart(2, "0");
-
-    // take last 4 chars of UHID OR fallback to last 4 of mobile
-    const rawUhid = draft.uhid || draft.mobile || "";
-    const truncated = rawUhid.slice(-4) || "0000";
-
-    const readableAppointmentId = `APT-${branchId}-${truncated}-${dd}${mm}-${hh}${min}`;
-
-    // ---------------------------------------------
-    // 2️⃣ CREATE THE API-READY PAYLOAD
-    // ---------------------------------------------
-    const appointmentPayload = {
-      appointmentId: readableAppointmentId,
-
-      doctorId: selectedDoctor.id,
-      doctorName: selectedDoctor.name,
-
-      // specialty should be code like "gen", "oph", "gyn"
-      specialty: selectedDoctor.specialty,
-
-      branchId: branchId,
-      slotTime: draft.time,
-      dateISO: now.toISOString().slice(0, 10),
-
-      patient: {
-        name: draft.patientName,
-        mobile: draft.mobile,
-        uhid: draft.uhid || "",
-        abhaNumber: draft.abhaNumber || "",
-        abhaAddress: draft.abhaAddress || "",
-      },
-
-      note: draft.note || "",
-      createdAt: now.toISOString(),
-      createdBy: session?.id || "system",
+    return {
+      ...prev,
+      time: "",   // only clear slot
     };
+  });
+}
 
-    // ---------------------------------------------
-    // 3️⃣ LOG FOR BACKEND API
-    // ---------------------------------------------
-    console.log("NEW APPOINTMENT (API Ready):", appointmentPayload);
 
+ // ---------------------------------------------
+    // CREATE THE API-READY COMMIT BOOKING
     // ---------------------------------------------
-    // 4️⃣ UPDATE UI
-    // ---------------------------------------------
-    setDoctors((prev) =>
-      prev.map((d) =>
-        d.id === selectedDoctor.id
-          ? { ...d, booked: [...d.booked, draft.time] }
-          : d
-      )
-    );
-    toast.success("Booking confirmed");
-    clearSlot();
-  }
+
+ function commitBooking() {
+  if (!draft || !selectedDoctor) return;
+  if (!draft.patientName.trim() || !draft.mobile.trim()) return;
+
+  // ---------------------------------------------
+  // 1️⃣ DERIVED FIELDS FOR APPOINTMENT ID
+  // ---------------------------------------------
+  const branchId =
+    session?.access?.[0]?.branchId ||
+    session?.legacyBranches?.[0] ||
+    selectedDoctor.branches?.[0] ||
+    "BRANCH";
+
+  const now = new Date();
+  const dd = now.getDate().toString().padStart(2, "0");
+  const mm = (now.getMonth() + 1).toString().padStart(2, "0");
+  const hh = now.getHours().toString().padStart(2, "0");
+  const min = now.getMinutes().toString().padStart(2, "0");
+
+  // take last 4 chars of UHID OR fallback to last 4 of mobile
+  const rawUhid = draft.uhid || draft.mobile || "";
+  const truncated = rawUhid.slice(-4) || "0000";
+
+  const readableAppointmentId = `APT-${branchId}-${truncated}-${dd}${mm}-${hh}${min}`;
+
+  // ---------------------------------------------
+  // 2️⃣ CREATE THE API-READY PAYLOAD
+  // ---------------------------------------------
+  const appointmentPayload = {
+    appointmentId: readableAppointmentId,
+
+    doctorId: selectedDoctor.id,
+    doctorName: selectedDoctor.name,
+
+    // specialty should be code like "gen", "oph", "gyn"
+    specialty: selectedDoctor.specialty,
+
+    branchId: branchId,
+    slotTime: draft.time,
+    dateISO: now.toISOString().slice(0, 10),
+
+    patient: {
+      name: draft.patientName,
+      mobile: draft.mobile,
+      uhid: draft.uhid || "",
+      abhaNumber: draft.abhaNumber || "",
+      abhaAddress: draft.abhaAddress || "",
+    },
+
+    note: draft.note || "",
+    createdAt: now.toISOString(),
+    createdBy: session?.id || "system",
+  };
+
+  // ---------------------------------------------
+  // 3️⃣ LOG FOR BACKEND API
+  // ---------------------------------------------
+  console.log("NEW APPOINTMENT (API Ready):", appointmentPayload);
+   
+
+
+  // ---------------------------------------------
+  // 4️⃣ UPDATE UI
+  // ---------------------------------------------
+  setDoctors((prev) =>
+    prev.map((d) =>
+      d.id === selectedDoctor.id
+        ? { ...d, booked: [...d.booked, draft.time] }
+        : d
+    )
+  );
+   toast.success("Booking confirmed");
+  clearSlot();
+}
+
 
   // --------------------------------------------------
   // 3. ALL HANDLER FUNCTIONS GO HERE
@@ -378,77 +377,45 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
     const lower = q.toLowerCase();
 
     const rawMatches = searchIndex.filter(
-      (p: any) =>
-        p.name.toLowerCase().includes(lower) ||
-        p.phone.includes(lower) ||
-        (p.uhid && p.uhid.toLowerCase().includes(lower)) ||
-        (p.pid && p.pid.toLowerCase().includes(lower)) ||
-        (p.abha && p.abha.toLowerCase().includes(lower))
-    );
+  (p: any) =>
+    p.name.toLowerCase().includes(lower) ||
+    p.phone.includes(lower) ||
+    (p.uhid && p.uhid.toLowerCase().includes(lower)) ||
+    (p.pid && p.pid.toLowerCase().includes(lower)) ||
+    (p.abha && p.abha.toLowerCase().includes(lower))
+);
 
-    const branchFiltered = rawMatches.filter((m: any) => {
-      // find the full patient using pid → patientId
-      const patient = (patients as any[]).find(
-        (p: any) => p.patientId === m.pid
-      );
-      if (!patient) return false;
+const branchFiltered = rawMatches.filter((m: any) => {
+  // find the full patient using pid → patientId
+  const patient = (patients as any[]).find(
+    (p: any) => p.patientId === m.pid
+  );
+  if (!patient) return false;
 
-      // check if this patient is registered with this doctor in this branch
-      return patient.registrations?.some(
-        (reg: any) =>
-          reg.branchId === selectedBranch && reg.doctorId === doctorId
-      );
-    });
+  // check if this patient is registered with this doctor in this branch
+  return patient.registrations?.some(
+    (reg: any) =>
+      reg.branchId === selectedBranch && reg.doctorId === doctorId
+  );
+});
 
-    setSearchMatches(branchFiltered);
+   setSearchMatches(branchFiltered);
 
-    if (branchFiltered.length === 1) {
-      setSearchResult(branchFiltered[0]);
-      setShowDropdown(false);
-    } else if (branchFiltered.length > 1) {
-      setSearchResult(null);
-      setShowDropdown(true);
-    } else {
-      setSearchResult(null);
-      setShowDropdown(false);
-    }
+if (branchFiltered.length === 1) {
+  setSearchResult(branchFiltered[0]);
+  setShowDropdown(false);
+} else if (branchFiltered.length > 1) {
+  setSearchResult(null);
+  setShowDropdown(true);
+} else {
+  setSearchResult(null);
+  setShowDropdown(false);
+}
   }
 
   if (!session) {
     return <div className="p-4">Loading session…</div>;
   }
-
-  function buildBranchSessionGroups(weeklySchedule: any[]) {
-  const groups: any[] = [];
-
-  weeklySchedule.forEach((day: any) => {
-    day.sessions.forEach((session: any) => {
-      // Generate time slots
-      const slots = [];
-      let current = new Date(`2025-01-01T${session.start}:00`);
-      const end = new Date(`2025-01-01T${session.end}:00`);
-
-      while (current < end) {
-        const timeLabel = current.toTimeString().slice(0, 5);
-        slots.push({
-          time: timeLabel,
-          withinWorking: true,
-          available: true, // booked logic can be added later
-        });
-
-        current = new Date(current.getTime() + session.slotDuration * 60000);
-      }
-
-      groups.push({
-        label: `${day.day} • ${session.label}`,
-        slots,
-      });
-    });
-  });
-
-  return groups;
-}
-
 
   /* =============================================================================
      Render
@@ -521,7 +488,7 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
         {(selectedDoctor ? [selectedDoctor] : doctors)
           .filter((d) => (isDoctor ? d.id === session.id : true))
           .map((doc) => {
-            const sessionGroups = buildBranchSessionGroups(weeklySchedule);
+            const sessionGroups = buildSessionGroups(doc, session);
             const noSlots = sessionGroups.length === 0;
 
             return (
@@ -576,7 +543,7 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
 
                           {/* Session slots grid */}
                           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                            {group.slots.map((s: any) => {
+                            {group.slots.map((s) => {
                               const base =
                                 "text-xs px-2 py-1.5 rounded border text-center select-none transition";
 
