@@ -147,6 +147,7 @@ export default function AppointmentsPage() {
   const [searchIndex, setSearchIndex] = useState<any[]>([]);
   const [searchMatches, setSearchMatches] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [deptMap, setDeptMap] = useState<Record<string, string>>({});
 
   /* =============================================================================
      Load data after session becomes available
@@ -164,6 +165,9 @@ export default function AppointmentsPage() {
             cache: "no-store",
           }),
         ]);
+        const deptRes = await fetch("/data/department-mapper.json");
+        const deptJson = await deptRes.json();
+        setDeptMap(deptJson);
 
         const staff = await staffRes.json();
         const schedules = await schedRes.json();
@@ -222,38 +226,114 @@ export default function AppointmentsPage() {
      Slot actions
   ============================================================================= */
   function pickSlot(time: string, doc: Doctor) {
-    setSelectedDoctor(doc);
-    setSelectedSlot(time);
-    setDraft({
-      time,
-      patientName: "",
-      mobile: "",
-      abhaNumber: "",
-      abhaAddress: "",
-      uhid: "",
-      note: "",
-    });
-  }
+  setSelectedDoctor(doc);
+  setSelectedSlot(time);
 
-  function clearSlot() {
-    setSelectedSlot(null);
-    setDraft(null);
-  }
+  setDraft((prev: any) => ({
+    // keep previous patient data (if any)
+    patientName: prev?.patientName || "",
+    mobile: prev?.mobile || "",
+    abhaNumber: prev?.abhaNumber || "",
+    abhaAddress: prev?.abhaAddress || "",
+    uhid: prev?.uhid || "",
+    note: prev?.note || "",
 
-  function commitBooking() {
-    if (!draft || !selectedDoctor) return;
-    if (!draft.patientName.trim() || !draft.mobile.trim()) return;
+    // always update slot time
+    time,
+  }));
+}
 
-    setDoctors((prev) =>
-      prev.map((d) =>
-        d.id === selectedDoctor.id
-          ? { ...d, booked: [...d.booked, draft.time] }
-          : d
-      )
-    );
+function clearSlot() {
+  setSelectedSlot(null);
 
-    clearSlot();
-  }
+  setDraft((prev: any) => {
+    if (!prev) return null; // nothing to preserve
+
+    return {
+      ...prev,
+      time: "",   // only clear slot
+    };
+  });
+}
+
+
+ // ---------------------------------------------
+    // CREATE THE API-READY COMMIT BOOKING
+    // ---------------------------------------------
+
+ function commitBooking() {
+  if (!draft || !selectedDoctor) return;
+  if (!draft.patientName.trim() || !draft.mobile.trim()) return;
+
+  // ---------------------------------------------
+  // 1️⃣ DERIVED FIELDS FOR APPOINTMENT ID
+  // ---------------------------------------------
+  const branchId =
+    session?.access?.[0]?.branchId ||
+    session?.legacyBranches?.[0] ||
+    selectedDoctor.branches?.[0] ||
+    "BRANCH";
+
+  const now = new Date();
+  const dd = now.getDate().toString().padStart(2, "0");
+  const mm = (now.getMonth() + 1).toString().padStart(2, "0");
+  const hh = now.getHours().toString().padStart(2, "0");
+  const min = now.getMinutes().toString().padStart(2, "0");
+
+  // take last 4 chars of UHID OR fallback to last 4 of mobile
+  const rawUhid = draft.uhid || draft.mobile || "";
+  const truncated = rawUhid.slice(-4) || "0000";
+
+  const readableAppointmentId = `APT-${branchId}-${truncated}-${dd}${mm}-${hh}${min}`;
+
+  // ---------------------------------------------
+  // 2️⃣ CREATE THE API-READY PAYLOAD
+  // ---------------------------------------------
+  const appointmentPayload = {
+    appointmentId: readableAppointmentId,
+
+    doctorId: selectedDoctor.id,
+    doctorName: selectedDoctor.name,
+
+    // specialty should be code like "gen", "oph", "gyn"
+    specialty: selectedDoctor.specialty,
+
+    branchId: branchId,
+    slotTime: draft.time,
+    dateISO: now.toISOString().slice(0, 10),
+
+    patient: {
+      name: draft.patientName,
+      mobile: draft.mobile,
+      uhid: draft.uhid || "",
+      abhaNumber: draft.abhaNumber || "",
+      abhaAddress: draft.abhaAddress || "",
+    },
+
+    note: draft.note || "",
+    createdAt: now.toISOString(),
+    createdBy: session?.id || "system",
+  };
+
+  // ---------------------------------------------
+  // 3️⃣ LOG FOR BACKEND API
+  // ---------------------------------------------
+  console.log("NEW APPOINTMENT (API Ready):", appointmentPayload);
+
+  // ---------------------------------------------
+  // 4️⃣ UPDATE UI
+  // ---------------------------------------------
+  setDoctors((prev) =>
+    prev.map((d) =>
+      d.id === selectedDoctor.id
+        ? { ...d, booked: [...d.booked, draft.time] }
+        : d
+    )
+  );
+
+  clearSlot();
+}
+
 
   // --------------------------------------------------
   // 3. ALL HANDLER FUNCTIONS GO HERE
@@ -311,57 +391,58 @@ export default function AppointmentsPage() {
     >
       <div className="p-2 md:p-4 lg:p-6">
         {/* Search Bar */}
-       <div className="flex items-center justify-between gap-2 mb-4 relative">
-  {/* LEFT — Search Input */}
-  <div className="relative flex-1 max-w-md">
-    <input
-      type="text"
-      className="ui-input w-full"
-      placeholder="Search (name, UHID, phone, ABHA no/address)…"
-      value={searchQuery}
-      onChange={(e) => handlePatientSearch(e.target.value)}
-    />
+        <div className="flex items-center justify-between gap-2 mb-4 relative">
+          {/* LEFT — Search Input */}
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              className="ui-input w-full"
+              placeholder="Search (name, UHID, phone, ABHA no/address)…"
+              value={searchQuery}
+              onChange={(e) => handlePatientSearch(e.target.value)}
+            />
 
-    {/* DROPDOWN FIXED BELOW INPUT */}
-    {showDropdown && searchMatches.length > 1 && (
-      <div className="
+            {/* DROPDOWN FIXED BELOW INPUT */}
+            {showDropdown && searchMatches.length > 1 && (
+              <div
+                className="
         absolute left-0 right-0 
         mt-1 bg-white border border-gray-200 rounded-md shadow-lg
         max-h-60 overflow-auto z-50
-      ">
-        {searchMatches.map((p) => (
-          <button
-            key={p.pid}
-            className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b last:border-b-0"
-            onClick={() => {
-              setSearchResult(p);
-              setShowDropdown(false);
-            }}
+      "
+              >
+                {searchMatches.map((p) => (
+                  <button
+                    key={p.pid}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50  last:border-b-0"
+                    onClick={() => {
+                      setSearchResult(p);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <div className="font-medium">{p.name}</div>
+                    <div className="text-xs text-gray-600">
+                      {p.phone} • UHID: {p.uhid || "N/A"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT — Quick Booking - commented temporarily*/}
+          {/* <button
+            className="btn-primary whitespace-nowrap"
+            onClick={() =>
+              window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: "smooth",
+              })
+            }
           >
-            <div className="font-medium">{p.name}</div>
-            <div className="text-xs text-gray-600">
-              {p.phone} • UHID: {p.uhid || "N/A"}
-            </div>
-          </button>
-        ))}
-      </div>
-    )}
-  </div>
-
-  {/* RIGHT — Quick Booking */}
-  <button
-    className="btn-primary whitespace-nowrap"
-    onClick={() =>
-      window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: "smooth",
-      })
-    }
-  >
-    Quick Booking
-  </button>
-</div>
-
+            Quick Booking
+          </button> */}
+        </div>
 
         {/* Doctor calendars */}
         {(selectedDoctor ? [selectedDoctor] : doctors)
@@ -382,7 +463,7 @@ export default function AppointmentsPage() {
                     <div>
                       <div className="font-semibold text-base">{doc.name}</div>
                       <div className="text-sm text-gray-600">
-                        {doc.specialty}
+                        {deptMap[doc.specialty] ?? doc.specialty}
                       </div>
                     </div>
                   </div>
@@ -584,7 +665,7 @@ function BookingPanel({
             </div>
           )}
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full text-sm">
               <tbody>
                 <FormRow
