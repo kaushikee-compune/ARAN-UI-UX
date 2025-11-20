@@ -419,35 +419,39 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
   }
 
   function buildBranchSessionGroups(weeklySchedule: any[]) {
+  const today = new Date();
+  const dowShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][today.getDay()];
+
+  // Find today's block only
+  const dayBlock = weeklySchedule.find((d: any) => d.day === dowShort);
+  if (!dayBlock || !Array.isArray(dayBlock.sessions)) return [];
+
   const groups: any[] = [];
 
-  weeklySchedule.forEach((day: any) => {
-    day.sessions.forEach((session: any) => {
-      // Generate time slots
-      const slots = [];
-      let current = new Date(`2025-01-01T${session.start}:00`);
-      const end = new Date(`2025-01-01T${session.end}:00`);
+  dayBlock.sessions.forEach((session: any) => {
+    const slots = [];
+    let current = new Date(`2025-01-01T${session.start}:00`);
+    const end = new Date(`2025-01-01T${session.end}:00`);
 
-      while (current < end) {
-        const timeLabel = current.toTimeString().slice(0, 5);
-        slots.push({
-          time: timeLabel,
-          withinWorking: true,
-          available: true, // booked logic can be added later
-        });
-
-        current = new Date(current.getTime() + session.slotDuration * 60000);
-      }
-
-      groups.push({
-        label: `${day.day} • ${session.label}`,
-        slots,
+    while (current < end) {
+      const timeLabel = current.toTimeString().slice(0, 5);
+      slots.push({
+        time: timeLabel,
+        withinWorking: true,
+        available: true,
       });
+      current = new Date(current.getTime() + session.slotDuration * 60000);
+    }
+
+    groups.push({
+      label: session.label || `${dowShort} Session`,
+      slots,
     });
   });
 
   return groups;
 }
+
 
 
   /* =============================================================================
