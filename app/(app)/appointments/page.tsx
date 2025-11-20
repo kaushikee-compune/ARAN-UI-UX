@@ -153,6 +153,12 @@ export default function AppointmentsPage() {
 
   const { selectedBranch } = useBranch();
 
+  // Step 1 for calendar
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().slice(0, 10); // yyyy-mm-dd
+  });
+
   /* =============================================================================
      Load data after session becomes available
   ============================================================================= */
@@ -215,7 +221,7 @@ export default function AppointmentsPage() {
       }
     })();
   }, [session]);
-  
+
   // Change for branch-wise calendar
 
   const doctorId = selectedDoctor?.id || session?.id;
@@ -234,8 +240,7 @@ export default function AppointmentsPage() {
   }, [selectedDoctor, selectedBranch]);
 
   // Always work with an array to simplify rendering
-const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
-
+  const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
 
   console.log("The docID is :", doctorId);
   console.log("The br id is", selectedBranch);
@@ -250,7 +255,6 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
     }
   }, [isDoctor, session, doctors]);
 
-  
   /* =============================================================================
      Slot actions
   ============================================================================= */
@@ -303,8 +307,10 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
       "BRANCH";
 
     const now = new Date();
-    const dd = now.getDate().toString().padStart(2, "0");
-    const mm = (now.getMonth() + 1).toString().padStart(2, "0");
+    const apptDate = selectedDate ? new Date(selectedDate + "T00:00:00") : now;
+
+    const dd = apptDate.getDate().toString().padStart(2, "0");
+    const mm = (apptDate.getMonth() + 1).toString().padStart(2, "0");
     const hh = now.getHours().toString().padStart(2, "0");
     const min = now.getMinutes().toString().padStart(2, "0");
 
@@ -418,40 +424,81 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
     return <div className="p-4">Loading session…</div>;
   }
 
-  function buildBranchSessionGroups(weeklySchedule: any[]) {
-  const today = new Date();
-  const dowShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][today.getDay()];
+  function buildBranchSessionGroups(
+  branchSchedule: any | null,
+  doc: Doctor,
+  selectedDate: string
+): { label: string; slots: Slot[] }[] {
+  if (!branchSchedule) return [];
 
-  // Find today's block only
-  const dayBlock = weeklySchedule.find((d: any) => d.day === dowShort);
+  const weekly = branchSchedule.weeklySchedule || [];
+
+  // Derive date & weekday
+  const baseDate = selectedDate ? new Date(selectedDate) : new Date();
+  if (Number.isNaN(baseDate.getTime())) return [];
+
+  const dateISO = selectedDate || baseDate.toISOString().slice(0, 10);
+
+  const dowShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][
+    baseDate.getDay()
+  ];
+
+  // Handle exceptions/leave
+  const unavailable = branchSchedule.exceptions?.unavailable || [];
+  const onLeave = unavailable.some(
+    (v: any) => dateISO >= v.from && dateISO <= v.to
+  );
+
+  if (onLeave) {
+    return [
+      {
+        label: "Unavailable",
+        slots: [
+          {
+            time: "Doctor On Leave",
+            available: false,
+            withinWorking: false,
+          },
+        ],
+      },
+    ];
+  }
+
+  // Find the selected weekday's schedule
+  const dayBlock = weekly.find((d: any) => d.day === dowShort);
   if (!dayBlock || !Array.isArray(dayBlock.sessions)) return [];
 
-  const groups: any[] = [];
+  const groups: { label: string; slots: Slot[] }[] = [];
 
-  dayBlock.sessions.forEach((session: any) => {
-    const slots = [];
-    let current = new Date(`2025-01-01T${session.start}:00`);
-    const end = new Date(`2025-01-01T${session.end}:00`);
+  for (const sess of dayBlock.sessions as any[]) {
+    if (!sess.start || !sess.end) continue;
 
-    while (current < end) {
-      const timeLabel = current.toTimeString().slice(0, 5);
-      slots.push({
-        time: timeLabel,
+    const startMin = toMinutes(sess.start);
+    const endMin = toMinutes(sess.end);
+    const step = sess.slotDuration || 15;
+
+    const sessionSlots: Slot[] = [];
+
+    for (let t = startMin; t < endMin; t += step) {
+      const label = fromMinutes(t);
+
+      const isBooked = doc.booked.includes(label);
+
+      sessionSlots.push({
+        time: label,
+        available: !isBooked, // 🔴 booked = red
         withinWorking: true,
-        available: true,
       });
-      current = new Date(current.getTime() + session.slotDuration * 60000);
     }
 
     groups.push({
-      label: session.label || `${dowShort} Session`,
-      slots,
+      label: sess.label || `${dowShort} Session`,
+      slots: sessionSlots,
     });
-  });
+  }
 
   return groups;
 }
-
 
 
   /* =============================================================================
@@ -525,7 +572,11 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
         {(selectedDoctor ? [selectedDoctor] : doctors)
           .filter((d) => (isDoctor ? d.id === session.id : true))
           .map((doc) => {
-            const sessionGroups = buildBranchSessionGroups(weeklySchedule);
+            const sessionGroups = buildBranchSessionGroups(
+              activeBranchSchedule,
+              doc,
+              selectedDate
+            );
             const noSlots = sessionGroups.length === 0;
 
             return (
@@ -544,6 +595,17 @@ const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
                       </div>
                     </div>
                   </div>
+                  {/* DATE PICKER */}
+                  <div className="mb-4">
+                    <input
+                      type="date"
+                      className="ui-input"
+                      value={selectedDate}
+                      min={new Date().toISOString().slice(0, 10)} // prevent past
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                    />
+                  </div>
+
                   {/* Legend */}
                   <div className="flex items-center gap-3 text-xs text-gray-600">
                     <span className="inline-flex items-center gap-1">
@@ -852,32 +914,29 @@ type SessionGroup = {
   slots: Slot[];
 };
 
-function buildSessionGroups(doc: Doctor, session: any): SessionGroup[] {
-  const sched = doc.schedule;
-  if (!sched) return [];
+function buildBranchSessionGroups(
+  branchSchedule: any | null,
+  doc: Doctor,
+  selectedDate: string
+): SessionGroup[] {
+  if (!branchSchedule) return [];
 
-  const today = new Date();
-  const dateISO = today.toISOString().slice(0, 10);
+  const weekly = branchSchedule.weeklySchedule || [];
+
+  // Use selected date (fallback to today if somehow empty)
+  const baseDate = selectedDate ? new Date(selectedDate) : new Date();
+  if (Number.isNaN(baseDate.getTime())) return [];
+
+  const dateISO = selectedDate || baseDate.toISOString().slice(0, 10);
   const dowShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-    today.getDay()
+    baseDate.getDay()
   ];
 
-  // determine active branch
-  const activeBranch =
-    session?.access?.[0]?.branchId ||
-    session?.legacyBranches?.[0] ||
-    doc.branches?.[0];
-
-  const branch = sched.branches?.find((b: any) => b.branchId === activeBranch);
-
-  if (!branch) return [];
-
-  // check vacations
-  const unavailable = branch.exceptions?.unavailable || [];
+  // Exceptions / leave
+  const unavailable = branchSchedule.exceptions?.unavailable || [];
   const onLeave = unavailable.some(
     (v: any) => dateISO >= v.from && dateISO <= v.to
   );
-
   if (onLeave) {
     return [
       {
@@ -893,20 +952,17 @@ function buildSessionGroups(doc: Doctor, session: any): SessionGroup[] {
     ];
   }
 
-  // find correct weekday
-  const dayBlock = branch.weeklySchedule?.find((d: any) => d.day === dowShort);
-
+  // Find only the selected weekday block
+  const dayBlock = weekly.find((d: any) => d.day === dowShort);
   if (!dayBlock || !Array.isArray(dayBlock.sessions)) return [];
 
   const grouped: SessionGroup[] = [];
 
   for (const sess of dayBlock.sessions as any[]) {
-    const start = sess.start;
-    const end = sess.end;
-    if (!start || !end) continue;
+    if (!sess.start || !sess.end) continue;
 
-    const startMin = toMinutes(start);
-    const endMin = toMinutes(end);
+    const startMin = toMinutes(sess.start);
+    const endMin = toMinutes(sess.end);
     const step = sess.slotDuration || 15;
 
     const sessionSlots: Slot[] = [];
@@ -917,13 +973,13 @@ function buildSessionGroups(doc: Doctor, session: any): SessionGroup[] {
 
       sessionSlots.push({
         time: label,
-        available: !isBooked,
+        available: !isBooked, // 🔴 this drives red vs green
         withinWorking: true,
       });
     }
 
     grouped.push({
-      label: sess.label || "Session",
+      label: sess.label || `${dowShort} Session`,
       slots: sessionSlots,
     });
   }
