@@ -74,7 +74,23 @@ export default function PatientListPage() {
     }
   }, []);
 
-  const doctorId = session?.id; // doctorId from session
+  /* ---------------------- Role + DoctorId ---------------------- */
+  // role MUST be computed *after* session loads
+  const role = useMemo(() => {
+    if (!session) return null;
+
+    return (
+      session?.access?.[0]?.role || // new model
+      session?.legacyRole || // fallback
+      "doctor" // default
+    );
+  }, [session]);
+
+  // doctorId is only meaningful for doctors
+  const doctorId = useMemo(() => {
+    if (role === "doctor") return session?.id;
+    return null;
+  }, [session, role]);
 
   /* ---------------------- Load patients.json ---------------------- */
   useEffect(() => {
@@ -95,26 +111,41 @@ export default function PatientListPage() {
 
   /* ---------------------- Filter patients ---------------------- */
   const filtered = useMemo(() => {
-    if (!doctorId) return [];
+    if (!session || !role) return [];
 
     const q = query.toLowerCase();
+    let list: any[] = [];
 
-    // STEP 1: Filter by doctor + branch
-    let list = patients
-      .filter((p) =>
-        p.registrations.some(
-          (r) => r.branchId === selectedBranch && r.doctorId === doctorId
+    // 🔥 STAFF → see all branch patients
+    if (role === "staff" || role === "admin") {
+      list = patients
+        .filter((p) =>
+          p.registrations.some((r) => r.branchId === selectedBranch)
         )
-      )
-      .map((p) => {
-        const reg = p.registrations.find(
-          (r) => r.branchId === selectedBranch && r.doctorId === doctorId
-        );
-        return { ...p, reg };
-      });
+        .map((p) => ({
+          ...p,
+          reg: p.registrations.find((r) => r.branchId === selectedBranch),
+        }));
+    }
 
-    // STEP 2: Apply search + ABHA + gender filters
-    list = list.filter(({ demographics, reg }) => {
+    // 🔥 DOCTOR → see only your mapped patients
+    else if (role === "doctor" && doctorId) {
+      list = patients
+        .filter((p) =>
+          p.registrations.some(
+            (r) => r.branchId === selectedBranch && r.doctorId === doctorId
+          )
+        )
+        .map((p) => ({
+          ...p,
+          reg: p.registrations.find(
+            (r) => r.branchId === selectedBranch && r.doctorId === doctorId
+          ),
+        }));
+    }
+
+    // ---------- Apply search + ABHA + gender ----------
+    list = list.filter(({ demographics }) => {
       const matchesQuery =
         !q ||
         demographics.name.toLowerCase().includes(q) ||
@@ -138,24 +169,33 @@ export default function PatientListPage() {
       return matchesQuery && matchesAbha && matchesGender;
     });
 
-    // STEP 3: Sorting
-
+    // ---------- Sorting ----------
     if (sortBy === "registrationDate") {
       list.sort(
         (a, b) =>
-          new Date(b.reg!.registrationDate).getTime() -
-          new Date(a.reg!.registrationDate).getTime()
+          new Date(b.reg?.registrationDate || 0).getTime() -
+          new Date(a.reg?.registrationDate || 0).getTime()
       );
     } else if (sortBy === "lastVisitDate") {
       list.sort(
         (a, b) =>
-          new Date(b.reg!.lastVisitDate || 0).getTime() -
-          new Date(a.reg!.lastVisitDate || 0).getTime()
+          new Date(b.reg?.lastVisitDate || 0).getTime() -
+          new Date(a.reg?.lastVisitDate || 0).getTime()
       );
     }
 
     return list;
-  }, [patients, query, filterType, gender, sortBy, selectedBranch, doctorId]);
+  }, [
+    patients,
+    session,
+    role,
+    doctorId,
+    query,
+    filterType,
+    gender,
+    sortBy,
+    selectedBranch,
+  ]);
 
   /* ---------------------- Menu actions ---------------------- */
   const openMenu = (e: React.MouseEvent<HTMLButtonElement>, p: Patient) => {
@@ -339,9 +379,13 @@ export default function PatientListPage() {
 
                     <td className="p-2">{reg.registrationDate}</td>
 
-                    <td className="p-2 text-center">
+                    <td className="p-2 text-center relative">
                       <button
-                        onClick={(e) => openMenu(e, p)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAnchorEl(p.patientId); // store patientId instead of DOM element
+                          setSelectedPatient(p);
+                        }}
                         className="p-1 rounded hover:bg-gray-100"
                       >
                         <svg
@@ -359,6 +403,37 @@ export default function PatientListPage() {
                           />
                         </svg>
                       </button>
+
+                      {/* Render the menu INSIDE the td so position is always correct */}
+                      {anchorEl === p.patientId && (
+                        <div className="absolute right-0 top-8 w-36 bg-white border border-gray-200 rounded-md shadow-md z-50">
+                          {["Details", "Upload", "ABHA", "Appointment"].map(
+                            (label) => (
+                              <button
+                                key={label}
+                                onClick={() => {
+                                  closeMenu();
+
+                                  if (label === "Details" && selectedPatient) {
+                                    router.push(`/patient/patientlist/${selectedPatient.patientId}`);
+                                  } else if (label === "Upload") {
+                                    setShowUpload(true);
+                                  } else if (label === "Appointment") {
+                                    router.push(`/appointments/`);
+                                  } else if (label === "ABHA") {
+                                    router.push (`/patient/abhaverification/`)
+                                  } else {
+                                    alert(`${label} clicked`);
+                                  }
+                                }}
+                                className="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50"
+                              >
+                                {label}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -367,39 +442,6 @@ export default function PatientListPage() {
           </tbody>
         </table>
       </div>
-
-      {/* ---------- Action Menu ---------- */}
-      {anchorEl && (
-        <div
-          className="absolute z-50 bg-white border border-gray-200 rounded-md shadow-md w-36"
-          style={{
-            top: anchorEl.getBoundingClientRect().bottom + 8,
-            left: anchorEl.getBoundingClientRect().left,
-          }}
-        >
-          {["Details", "Upload", "ABHA", "Appointment"].map((label) => (
-            <button
-              key={label}
-              onClick={() => {
-                closeMenu();
-
-                if (label === "Details" && selectedPatient) {
-                  router.push(
-                    `/patient/patientlist/${selectedPatient.patientId}`
-                  );
-                } else if (label === "Upload") {
-                  setShowUpload(true);
-                } else {
-                  alert(`${label} clicked`);
-                }
-              }}
-              className="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* ---------- QR Overlay ---------- */}
       {showQR && (

@@ -71,5 +71,19 @@
     "role": "doctor",
     "name": "Dr. Radha Agrawal",
     "status": "active"
+  },
+  {
+    "email": "nurse.kor@example.com",
+    "password": "Aran@123",
+    "role": "staff",
+    "name": "Ms. Priya Nair",
+    "status": "active"
+  },
+   {
+    "email": "nurse.jp@example.com",
+    "password": "Aran@123",
+    "role": "staff",
+    "name": "Ms. Mary Mathew",
+    "status": "active"
   }
 ]

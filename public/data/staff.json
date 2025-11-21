@@ -33,9 +33,9 @@
     "id": "u4",
     "name": "Priya Nair",
     "roles": ["staff", "nurse"],
-    "departments": ["oph"], 
-    "branches": ["B002"],
-    "email": "priya.nair@sn.org",
+    "departments": ["oph","card","gen","gyn"], 
+    "branches": ["B001"],
+    "email": "nurse.kor@example.com",
     "phone": "9876000001",
     "status": "active"
   },
@@ -98,6 +98,16 @@
     "departments": ["oph"],
     "branches": ["B001"],
     "email": "oph@example.com",
+    "phone": "9972826000",
+    "status": "active"
+  },
+  {
+    "id": "u11",
+    "name": "Ms. Mary Mathew",
+    "roles": ["staff"],
+    "departments": ["oph","gen"],
+    "branches": ["B002"],
+    "email": "nurse.jp@example.com",
     "phone": "9972826000",
     "status": "active"
   }

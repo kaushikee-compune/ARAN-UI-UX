@@ -62,16 +62,16 @@
 
     {
       "id": "u4",
-      "email": "staff@example.com",
-      "name": "Staff User",
+      "email": "nurse.kor@example.com",
+      "name": "Nurse Koromangla",
       "status": "active",
       "clinicId": "clinic001",
 
       "role": "staff",
-      "accessibleBranches": ["B002"],
+      "accessibleBranches": ["B001"],
 
       "access": [
-        { "branchId": "B002", "role": "staff" }
+        { "branchId": "B001", "role": "staff" }
       ]
     },
 
@@ -148,6 +148,7 @@
         { "branchId": "B001", "role": "doctor" }       
       ]
     },
+    
     {
       "id": "u10",
       "email": "oph@example.com",
@@ -161,6 +162,21 @@
       "access": [
         { "branchId": "B001", "role": "doctor" }       
       ]
+    },
+    {
+      "id": "u11",
+      "email": "nurse.jp@example.com",
+      "name": "Nurse JP Nagar",
+      "status": "active",
+      "clinicId": "clinic001",
+
+      "role": "staff",
+      "accessibleBranches": ["B002"],
+
+      "access": [
+        { "branchId": "B001", "role": "staff" }
+      ]
     }
+
   ]
 }
