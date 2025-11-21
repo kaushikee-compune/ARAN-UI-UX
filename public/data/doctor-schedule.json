@@ -161,7 +161,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -169,7 +169,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]
@@ -182,7 +182,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -190,7 +190,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]
@@ -203,7 +203,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -211,7 +211,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]
@@ -224,7 +224,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -232,7 +232,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]
@@ -245,7 +245,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -253,7 +253,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]
@@ -266,7 +266,7 @@
                 "label": "Morning",
                 "start": "11:00",
                 "end": "13:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               },
               {
@@ -274,7 +274,7 @@
                 "label": "Evening",
                 "start": "19:00",
                 "end": "22:00",
-                "slotDuration": 10,
+                "slotDuration": 30,
                 "maxAppointments": 18
               }
             ]

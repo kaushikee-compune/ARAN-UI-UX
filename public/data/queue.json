@@ -7,15 +7,15 @@
       "doctorId": "u1",
       "doctor": "Dr. Vasanth Shetty",
       "sessionName": "Morning",
-      "startTime": "09:00",
-      "endTime": "12:00",
+      "startTime": "07:00",
+      "endTime": "10:00",
       "slotDuration": 15,
       "slots": [
         {
-          "slotStart": "09:00",
-          "slotEnd": "09:15",
+          "slotStart": "07:00",
+          "slotEnd": "07:15",
           "tokenNum": "001",
-          "status": "waiting",
+          "status": "completed",
           "type": "appointment",
           "paymentStatus": "paid",
           "patient": {
@@ -26,16 +26,53 @@
           }
         },
         {
-          "slotStart": "09:15",
-          "slotEnd": "09:30",
+          "slotStart": "07:15",
+          "slotEnd": "07:30",
           "tokenNum": "",
           "status": "empty",
           "type": null,
           "patient": null
         },
         {
-          "slotStart": "09:30",
-          "slotEnd": "09:45",
+          "slotStart": "07:30",
+          "slotEnd": "07:45",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "07:45",
+          "slotEnd": "08:00",
+          "tokenNum": "",
+          "status": "waiting",
+          "type": null,
+          "patient": {
+            "name": "Sharad Kukar",
+            "phone": "98728264321",
+            "abha": "sharad@sbx",
+            "gender": "Male"
+          }
+        },
+        {
+          "slotStart": "08:00",
+          "slotEnd": "08:15",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "08:15",
+          "slotEnd": "08:30",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "08:30",
+          "slotEnd": "08:45",
           "tokenNum": "",
           "status": "waiting",
           "type": null,
@@ -46,9 +83,11 @@
             "gender": "Female"
           }
         },
+
+
         {
-          "slotStart": "09:45",
-          "slotEnd": "10:00",
+          "slotStart": "08:45",
+          "slotEnd": "09:00",
           "tokenNum": "002",
           "status": "waiting",
           "type": "walkin",
@@ -59,6 +98,44 @@
             "abha": "rajesh@sbx",
             "gender": "Male"
           }
+        },
+         {
+          "slotStart": "09:00",
+          "slotEnd": "09:15",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "09:15",
+          "slotEnd": "09:30",
+          "tokenNum": "002",
+          "status": "waiting",
+          "type": "walkin",
+          "paymentStatus": "unpaid",
+          "patient": {
+            "name": "Sabita Kumari",
+            "phone": "9867852345",
+            "abha": "sabita@sbx",
+            "gender": "Female"
+          }
+        },
+        {
+          "slotStart": "09:30",
+          "slotEnd": "09:45",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "09:45",
+          "slotEnd": "10:00",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
         }
       ]
     },
@@ -70,11 +147,11 @@
       "sessionName": "Evening",
       "startTime": "17:00",
       "endTime": "20:00",
-      "slotDuration": 15,
+      "slotDuration": 30,
       "slots": [
         {
-          "slotStart": "17:00",
-          "slotEnd": "17:15",
+          "slotStart": "11:00",
+          "slotEnd": "11:30",
           "tokenNum": "010",
           "status": "waiting",
           "type": "appointment",
@@ -87,16 +164,16 @@
           }
         },
         {
-          "slotStart": "17:15",
-          "slotEnd": "17:30",
+          "slotStart": "11:30",
+          "slotEnd": "12:00",
           "tokenNum": "",
           "status": "empty",
           "type": null,
           "patient": null
         },
         {
-          "slotStart": "17:30",
-          "slotEnd": "17:45",
+          "slotStart": "12:00",
+          "slotEnd": "12:30",
           "tokenNum": "011",
           "status": "waiting",
           "type": "walkin",

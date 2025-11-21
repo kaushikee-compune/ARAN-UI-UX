@@ -101,6 +101,10 @@ export default function QueuePage() {
 
   const [patients, setPatients] = useState<PatientLookup[]>([]);
   const [patientMatches, setPatientMatches] = useState<PatientLookup[]>([]);
+  const [activeTab, setActiveTab] = useState<"opd" | "completed" | "noshow">(
+    "opd"
+  );
+
   // ------------------------------------------------------------------------------------------//
   // This piece of code extracts - Role, UserId, Name, Branch from cookie and session id
   // ------------------------------------------------------------------------------------------//
@@ -159,19 +163,19 @@ export default function QueuePage() {
       .then(setData)
       .catch((e) => console.error("Failed to load OPD data", e));
     fetch("/data/patlookup/patients-search-list.json")
-    .then((r) => r.json())
-    .then((data) => {
-      if (Array.isArray(data)) {
-        setPatients(data);
-      } else {
-        console.error("patients-search-list.json is not an array", data);
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPatients(data);
+        } else {
+          console.error("patients-search-list.json is not an array", data);
+          setPatients([]);
+        }
+      })
+      .catch((e) => {
+        console.error("Failed to load patients", e);
         setPatients([]);
-      }
-    })
-    .catch((e) => {
-      console.error("Failed to load patients", e);
-      setPatients([]);
-    });
+      });
   }, []);
 
   useEffect(() => {
@@ -337,13 +341,25 @@ export default function QueuePage() {
 
         {/* ---------- Header Row ---------- */}
         <div className="flex items-center justify-between">
-          <button
-            className="btn-primary flex items-center gap-2 text-sm font-semibold whitespace-nowrap"
-            onClick={() => setShowModal(true)}
-          >
-            <img src="/icons/UserPlus.png" alt="" className="w-4 h-4" />
-            Add Walk-in
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Add Walk-in */}
+            <button
+              className="btn-primary flex items-center text-sm font-semibold "
+              onClick={() => setShowModal(true)}
+            >
+              <img src="/icons/UserPlus.png" alt="" className="w-4 h-4" />
+              Add Walk-in
+            </button>
+
+            {/* Book Appointment */}
+            <button
+              className="btn-accent flex items-center text-sm font-semibold whitespace-nowrap"
+              onClick={() => (window.location.href = "/appointments")}
+            >
+              <img src="/icons/CalendarAdd.png" alt="" className="w-4 h-4" />
+              Book Appointment
+            </button>
+          </div>
 
           {/* Filter Bar */}
           {userRole === "staff" && (
@@ -390,283 +406,382 @@ export default function QueuePage() {
         </div>
 
         {/* ---------- OPD + Completed Panels ---------- */}
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {/* LEFT — OPD Queue */}
-          <div>
-            {sessions.map((session, sIdx) => (
-              <div
-                key={sIdx}
-                className="rounded-lg border border-gray-200 shadow-sm bg-white mb-3 overflow-hidden"
+          {/* LEFT — Tabs + Content */}
+          <div className="flex flex-col gap-3">
+            {/* Tabs */}
+            <div className="flex gap-3 border-b pb-2">
+              <button
+                onClick={() => setActiveTab("opd")}
+                className={`text-sm font-semibold ${
+                  activeTab === "opd"
+                    ? "text-blue-300 border-b-2 border-blue-300"
+                    : "text-gray-300"
+                }`}
               >
-                <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
-                  {session.doctor} — {session.sessionName} Session
+                OPD Queue
+              </button>
+
+              <button
+                onClick={() => setActiveTab("completed")}
+                className={`text-sm font-semibold ${
+                  activeTab === "completed"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600"
+                }`}
+              >
+                Completed
+              </button>
+
+              <button
+                onClick={() => setActiveTab("noshow")}
+                className={`text-sm font-semibold ${
+                  activeTab === "noshow"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600"
+                }`}
+              >
+                No-Show
+              </button>
+            </div>
+
+            {/* TAB CONTENTS */}
+            {activeTab === "opd" && (
+              <div>
+                {/* ----------  OPD LEFT PANEL CODE (UNCHANGED) ---------- */}
+                <div>
+                  {sessions.map((session, sIdx) => (
+                    <div
+                      key={sIdx}
+                      className="rounded-lg border border-gray-200 shadow-sm bg-white mb-3 overflow-hidden"
+                    >
+                      <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
+                        {session.doctor} — {session.sessionName} Session
+                      </div>
+
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100 text-gray-700">
+                          <tr>
+                            <th className="p-2 text-left w-[110px]">Slot</th>
+                            <th className="p-2 text-left">Patient</th>
+                            <th className="p-2 text-center w-[80px]">
+                              No-Show
+                            </th>
+                            <th className="p-2 text-center w-[80px]">Vitals</th>
+                            <th className="p-2 text-left w-[140px]">
+                              Start / Pause
+                            </th>
+                            <th className="p-2 text-left w-[90px]">Type</th>
+                            <th className="p-2 text-left w-[140px]">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {session.slots
+                            .filter(
+                              (sl) =>
+                                sl.status !== "completed" &&
+                                sl.status !== "noshow"
+                            )
+                            .map((slot, idx) => (
+                              <tr
+                                key={idx}
+                                className={`border-t border-gray-200 hover:bg-gray-50 ${
+                                  slot.status === "inconsult"
+                                    ? "bg-white"
+                                    : slot.status === "waiting"
+                                    ? "bg-white"
+                                    : "bg-green-50"
+                                }`}
+                              >
+                                {/* SLOT */}
+                                <td className="p-2 text-gray-700">
+                                  <div>
+                                    {slot.slotStart} – {slot.slotEnd}
+                                  </div>
+                                  {slot.tokenNum && (
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      Token #{slot.tokenNum}
+                                    </div>
+                                  )}
+                                </td>
+                                {/* PATIENT */}
+                                <td className="p-2">
+                                  {slot.patient ? (
+                                    <>
+                                      <div className="font-semibold text-sm text-[--text-highlight]">
+                                        {slot.patient.name}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {slot.patient.phone} |{" "}
+                                        {slot.patient.abha} |{" "}
+                                        {slot.patient.gender}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-xs text-gray-400 italic">
+                                      (empty slot)
+                                    </div>
+                                  )}
+                                </td>
+                                {/* NO SHOW COLUMN */}
+                                <td className="p-2 text-center">
+                                  {slot.patient && (
+                                    <button
+                                      className="inline-flex items-center justify-center w-4 h-4 rounded-md bg-red-300 hover:bg-red-400"
+                                      title="Mark No-Show"
+                                      onClick={() =>
+                                        updateSlotStatus(sIdx, idx, "noshow")
+                                      }
+                                    >
+                                      <img
+                                        src="/icons/noshow.png"
+                                        className="w-4 h-4"
+                                      />
+                                    </button>
+                                  )}
+                                </td>
+
+                                {/* VITALS COLUMN */}
+                                <td className="p-2 text-center">
+                                  {slot.patient && (
+                                    <button
+                                      className="inline-flex items-center justify-center w-4 h-4 rounded-md bg-emerald-100 hover:bg-emerald-200"
+                                      title="Vitals"
+                                      onClick={() =>
+                                        alert(
+                                          `Open vitals for ${slot.patient?.name}`
+                                        )
+                                      }
+                                    >
+                                      <img
+                                        src="/icons/vitals.png"
+                                        className="w-4 h-4"
+                                      />
+                                    </button>
+                                  )}
+                                </td>
+
+                                {/* START / PAUSE */}
+                                <td className="p-2">
+                                  {slot.patient && (
+                                    <>
+                                      {slot.status === "waiting" && (
+                                        <div
+                                          className="inline-flex items-center gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
+                                          onClick={() =>
+                                            updateSlotStatus(
+                                              sIdx,
+                                              idx,
+                                              "inconsult"
+                                            )
+                                          }
+                                        >
+                                          <span>Start</span>
+                                          <img
+                                            src="/icons/Start.png"
+                                            alt=""
+                                            className="w-4 h-4"
+                                          />
+                                        </div>
+                                      )}
+                                      {slot.status === "inconsult" && (
+                                        <div
+                                          className="inline-flex items-center gap-2 cursor-pointer text-amber-600 font-semibold hover:opacity-90"
+                                          onClick={() =>
+                                            updateSlotStatus(
+                                              sIdx,
+                                              idx,
+                                              "waiting"
+                                            )
+                                          }
+                                        >
+                                          <span>Pause</span>
+                                          <img
+                                            src="/icons/pause.png"
+                                            alt=""
+                                            className="w-4 h-4"
+                                          />
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </td>
+
+                                {/* TYPE */}
+                                <td className="p-2 text-gray-700">
+                                  {slot.type === "walkin"
+                                    ? "Walk-in"
+                                    : slot.type === "appointment"
+                                    ? "Appt."
+                                    : ""}
+                                </td>
+                                {/* ACTION MENU */}
+                                <td className="p-2">
+                                  {slot.patient && (
+                                    <div className="absolute inline-block text-left">
+                                      <ActionMenu
+                                        items={[
+                                          {
+                                            label: "Payment",
+                                            onClick: () => {
+                                              setSelectedPatient(slot.patient);
+                                              setShowInvoiceModal(true);
+                                            },
+                                          },
+                                          {
+                                            label: "Upload",
+                                            onClick: () =>
+                                              alert(
+                                                `Upload report for ${slot.patient?.name}`
+                                              ),
+                                          },
+                                          {
+                                            label: "Move Up",
+                                            onClick: () =>
+                                              alert(
+                                                `Move up ${slot.patient?.name}`
+                                              ),
+                                          },
+                                        ]}
+                                      />
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
                 </div>
+                {/* ---------- END OF YOUR EXISTING OPD LEFT PANEL CODE ---------- */}
+              </div>
+            )}
+
+            {activeTab === "completed" && (
+              <div className="ui-card p-3">
+                <h3 className="font-semibold text-sm mb-2">
+                  Completed Consultations
+                </h3>
 
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100 text-gray-700">
                     <tr>
-                      <th className="p-2 text-left w-[110px]">Slot</th>
+                      <th className="p-2 text-left w-[100px]">Slot</th>
                       <th className="p-2 text-left">Patient</th>
-                      <th className="p-2 text-left w-[140px]">Start / Pause</th>
-                      <th className="p-2 text-left w-[110px]">Type</th>
-                      <th className="p-2 text-left w-[150px]">Actions</th>
+                      <th className="p-2 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {session.slots
-                      .filter((sl) => sl.status !== "completed")
+                    {sessions
+                      .flatMap((s) =>
+                        s.slots
+                          .filter((sl) => sl.status === "completed")
+                          .map((sl) => ({ ...sl, session: s.sessionName }))
+                      )
                       .map((slot, idx) => (
                         <tr
                           key={idx}
-                          className={`border-t border-gray-200 hover:bg-gray-50 ${
-                            slot.status === "inconsult"
-                              ? "bg-white"
-                              : slot.status === "waiting"
-                              ? "bg-white"
-                              : "bg-green-50"
-                          }`}
+                          className="border-t border-gray-200 hover:bg-gray-50"
                         >
                           <td className="p-2 text-gray-700">
-                            <div>
-                              {slot.slotStart} – {slot.slotEnd}
+                            {slot.slotStart} – {slot.slotEnd}
+                          </td>
+                          <td className="p-2">
+                            <div className="font-semibold text-sm text-[--text-highlight]">
+                              {slot.patient?.name}
                             </div>
-                            {slot.tokenNum && (
-                              <div className="text-xs text-gray-500 mt-0.5">
-                                Token #{slot.tokenNum}
-                              </div>
-                            )}
+                            <div className="text-xs text-gray-500">
+                              {slot.patient?.phone} | {slot.patient?.abha}
+                            </div>
                           </td>
                           <td className="p-2">
-                            {slot.patient ? (
-                              <>
-                                <div className="font-semibold text-sm text-[--text-highlight]">
-                                  {slot.patient.name}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {slot.patient.phone} | {slot.patient.abha} |{" "}
-                                  {slot.patient.gender}
-                                </div>
-                              </>
-                            ) : (
-                              <div className="text-xs text-gray-400 italic">
-                                (empty slot)
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-2">
-                            {slot.patient && (
-                              <>
-                                {slot.status === "waiting" && (
-                                  <div
-                                    className="inline-flex items-center gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
-                                    onClick={() =>
-                                      updateSlotStatus(sIdx, idx, "inconsult")
-                                    }
-                                  >
-                                    <span>Start</span>
-                                    <img
-                                      src="/icons/Start.png"
-                                      alt=""
-                                      className="w-4 h-4"
-                                    />
-                                  </div>
-                                )}
-                                {slot.status === "inconsult" && (
-                                  <div
-                                    className="inline-flex items-center gap-2 cursor-pointer text-amber-600 font-semibold hover:opacity-90"
-                                    onClick={() =>
-                                      updateSlotStatus(sIdx, idx, "waiting")
-                                    }
-                                  >
-                                    <span>Pause</span>
-                                    <img
-                                      src="/icons/pause.png"
-                                      alt=""
-                                      className="w-4 h-4"
-                                    />
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </td>
-                          <td className="p-2 text-gray-700">
-                            {slot.type === "walkin"
-                              ? "Walk-in"
-                              : slot.type === "appointment"
-                              ? "Appt."
-                              : ""}
-                          </td>
-                          <td className="p-2">
-                            {slot.patient && (
-                              <div className="absolute inline-block text-left">
-                                <ActionMenu
-                                  items={[
-                                    {
-                                      label: "No-Show",
-                                      onClick: () =>
-                                        updateSlotStatus(sIdx, idx, "noshow"),
+                            <div className="absolute inline-block text-left">
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: "Payment",
+                                    onClick: () => {
+                                      setSelectedPatient(slot.patient);
+                                      setShowInvoiceModal(true);
                                     },
-                                    {
-                                      label: "Payment",
-                                      onClick: () => {
-                                        setSelectedPatient(slot.patient);
-                                        setShowInvoiceModal(true);
-                                      },
-                                    },
-                                    {
-                                      label: "Vitals",
-                                      onClick: () =>
-                                        alert(
-                                          `Open vitals for ${slot.patient?.name}`
-                                        ),
-                                    },
-                                    {
-                                      label: "Upload",
-                                      onClick: () =>
-                                        alert(
-                                          `Upload report for ${slot.patient?.name}`
-                                        ),
-                                    },
-                                    {
-                                      label: "Move Up",
-                                      onClick: () =>
-                                        alert(`Move up ${slot.patient?.name}`),
-                                    },
-                                  ]}
-                                />
-                              </div>
-                            )}
+                                  },
+                                  {
+                                    label: "Details",
+                                    onClick: () =>
+                                      alert(
+                                        `Show consultation details ${slot.patient?.name}`
+                                      ),
+                                  },
+                                  {
+                                    label: "Upload",
+                                    onClick: () =>
+                                      alert(
+                                        `Upload report for ${slot.patient?.name}`
+                                      ),
+                                  },
+                                ]}
+                              />
+                            </div>
                           </td>
                         </tr>
                       ))}
                   </tbody>
                 </table>
               </div>
-            ))}
-          </div>
+            )}
 
-          {/* RIGHT — Completed & No-Show */}
-          <div>
-            {/* Completed Consultations */}
-            <div className="rounded-lg border border-gray-200 shadow-sm bg-white mb-3 overflow-hidden">
-              <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
-                Completed Consultations
-              </div>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 text-gray-700">
-                  <tr>
-                    <th className="p-2 text-left w-[100px]">Slot</th>
-                    <th className="p-2 text-left">Patient</th>
-                    <th className="p-2 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions
-                    .flatMap((s) =>
-                      s.slots
-                        .filter((sl) => sl.status === "completed")
-                        .map((sl) => ({ ...sl, session: s.sessionName }))
-                    )
-                    .map((slot, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-t border-gray-200 hover:bg-gray-50"
-                      >
-                        <td className="p-2 text-gray-700">
-                          {slot.slotStart} – {slot.slotEnd}
-                        </td>
-                        <td className="p-2">
-                          <div className="font-semibold text-sm text-[--text-highlight]">
-                            {slot.patient?.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {slot.patient?.phone} | {slot.patient?.abha}
-                          </div>
-                        </td>
-                        <td className="p-2">
-                          <div className="absolute inline-block text-left">
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Payment",
-                                  onClick: () => {
-                                    setSelectedPatient(slot.patient);
-                                    setShowInvoiceModal(true);
-                                  },
-                                },
-                                {
-                                  label: "Details",
-                                  onClick: () =>
-                                    alert(
-                                      `Show consultation details ${slot.patient?.name}`
-                                    ),
-                                },
+            {activeTab === "noshow" && (
+              <div className="ui-card p-3">
+                <h3 className="font-semibold text-sm mb-2">No-Show Queue</h3>
 
-                                {
-                                  label: "Upload",
-                                  onClick: () =>
-                                    alert(
-                                      `Upload report for ${slot.patient?.name}`
-                                    ),
-                                },
-                              ]}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* No-Show Queue */}
-            <div className="rounded-lg border border-gray-200 shadow-sm bg-white overflow-hidden">
-              <div className="px-3 py-2 border-b bg-gray-50 font-semibold text-sm">
-                No-Show Queue
-              </div>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 text-gray-700">
-                  <tr>
-                    <th className="p-2 text-left w-[100px]">Slot</th>
-                    <th className="p-2 text-left">Patient</th>
-                    <th className="p-2 text-left">Session</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {noShowSlots.length === 0 ? (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-100 text-gray-700">
                     <tr>
-                      <td
-                        colSpan={3}
-                        className="text-center text-gray-500 py-2"
-                      >
-                        No patients marked as no-show
-                      </td>
+                      <th className="p-2 text-left w-[100px]">Slot</th>
+                      <th className="p-2 text-left">Patient</th>
+                      <th className="p-2 text-left">Session</th>
                     </tr>
-                  ) : (
-                    noShowSlots.map((slot, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-t border-gray-200 hover:bg-gray-50"
-                      >
-                        <td className="p-2 text-gray-700">
-                          {slot.slotStart} – {slot.slotEnd}
+                  </thead>
+                  <tbody>
+                    {noShowSlots.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="text-center text-gray-500 py-2"
+                        >
+                          No patients marked as no-show
                         </td>
-                        <td className="p-2">
-                          <div className="font-semibold text-sm text-[--text-highlight]">
-                            {slot.patient?.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {slot.patient?.phone} | {slot.patient?.abha}
-                          </div>
-                        </td>
-                        <td className="p-2 text-gray-700">{slot.session}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      noShowSlots.map((slot, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-t border-gray-200 hover:bg-gray-50"
+                        >
+                          <td className="p-2 text-gray-700">
+                            {slot.slotStart} – {slot.slotEnd}
+                          </td>
+                          <td className="p-2">
+                            <div className="font-semibold text-sm text-[--text-highlight]">
+                              {slot.patient?.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {slot.patient?.phone} | {slot.patient?.abha}
+                            </div>
+                          </td>
+                          <td className="p-2 text-gray-700">{slot.session}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
+
+          <div></div>
         </div>
       </div>
 
