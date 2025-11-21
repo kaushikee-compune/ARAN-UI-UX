@@ -1,12 +1,15 @@
 {
   "date": "2025-10-28",
   "sessions": [
+    
     {
+      "branchId": "B001",
+      "doctorId": "u1",
+      "doctor": "Dr. Vasanth Shetty",
       "sessionName": "Morning",
       "startTime": "09:00",
       "endTime": "12:00",
       "slotDuration": 15,
-      "doctor": "Dr. Hira Mardi",
       "slots": [
         {
           "slotStart": "09:00",
@@ -18,10 +21,9 @@
           "patient": {
             "name": "Ananya Sharma",
             "phone": "9876543210",
-            "abha": "anita@sbx",
+            "abha": "ananya@sbx",
             "gender": "Female"
-          },
-          "doctor": "Dr. Hira Mardi"
+          }
         },
         {
           "slotStart": "09:15",
@@ -29,8 +31,7 @@
           "tokenNum": "",
           "status": "empty",
           "type": null,
-          "patient": null,
-          "doctor": "Dr. Hira Mardi"
+          "patient": null
         },
         {
           "slotStart": "09:30",
@@ -39,12 +40,11 @@
           "status": "waiting",
           "type": null,
           "patient": {
-            "name": "Sonal Trivedi",
-            "phone": "987 28262345",
-            "abha": "rajesh@sbx",
-            "gender": "Male"
-          },
-          "doctor": "Dr. Hira Mardi"
+            "name": "Megha Jain",
+            "phone": "98728262345",
+            "abha": "sonal@sbx",
+            "gender": "Female"
+          }
         },
         {
           "slotStart": "09:45",
@@ -58,91 +58,71 @@
             "phone": "9811112345",
             "abha": "rajesh@sbx",
             "gender": "Male"
-          },
-          "doctor": "Dr. Hira Mardi"
-        },
-        {
-          "slotStart": "10:00",
-          "slotEnd": "10:15",
-          "tokenNum": "003",
-          "status": "waiting",
-          "type": "appointment",
-          "paymentStatus": "paid",
-          "patient": {
-            "name": "Priya Verma",
-            "phone": "9822002200",
-            "abha": "priya@sbx",
-            "gender": "Female"
-          },
-          "doctor": "Dr. Hira Mardi"
-        },
-        {
-          "slotStart": "10:15",
-          "slotEnd": "10:30",
-          "tokenNum": "005",
-          "status": "waiting",
-          "type": "appointment",
-          "paymentStatus": "paid",
-          "patient": {
-            "name": "Sourav Ghosh",
-            "phone": "9898989898",
-            "abha": "sourav@sbx",
-            "gender": "Male"
-          },
-          "doctor": "Dr. Hira Mardi"
-        },
-        {
-          "slotStart": "10:30",
-          "slotEnd": "10:45",
-          "tokenNum": "006",
-          "status": "empty",
-          "type": null,
-          "patient": null,
-          "doctor": "Dr. Hira Mardi"
-        },
-        {
-          "slotStart": "10:45",
-          "slotEnd": "11:00",
-          "tokenNum": "010",
-          "status": "completed",
-          "type": "appointment",
-          "paymentStatus": "unpaid",
-          "patient": {
-            "name": "Suman Das",
-            "phone": "9888899999",
-            "abha": "suman@sbx",
-            "gender": "Female"
-          },
-          "doctor": "Dr. Hira Mardi"
-        },
-        {
-          "slotStart": "11:00",
-          "slotEnd": "11:15",
-          "tokenNum": "014",
-          "status": "completed",
-          "type": "walkin",
-          "paymentStatus": "paid",
-          "patient": {
-            "name": "Kiran Patel",
-            "phone": "9812312312",
-            "abha": "kiran@sbx",
-            "gender": "Male"
-          },
-          "doctor": "Dr. Hira Mardi"
+          }
         }
       ]
     },
+
     {
+      "branchId": "B002",
+      "doctorId": "u1",
+      "doctor": "Dr. Vasanth Shetty",
+      "sessionName": "Evening",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "slotDuration": 15,
+      "slots": [
+        {
+          "slotStart": "17:00",
+          "slotEnd": "17:15",
+          "tokenNum": "010",
+          "status": "waiting",
+          "type": "appointment",
+          "paymentStatus": "paid",
+          "patient": {
+            "name": "Kavita Murthy",
+            "phone": "9876541230",
+            "abha": "kavita@sbx",
+            "gender": "Female"
+          }
+        },
+        {
+          "slotStart": "17:15",
+          "slotEnd": "17:30",
+          "tokenNum": "",
+          "status": "empty",
+          "type": null,
+          "patient": null
+        },
+        {
+          "slotStart": "17:30",
+          "slotEnd": "17:45",
+          "tokenNum": "011",
+          "status": "waiting",
+          "type": "walkin",
+          "patient": {
+            "name": "Sandeep Reddy",
+            "phone": "9988776655",
+            "abha": "sandeep@sbx",
+            "gender": "Male"
+          }
+        }
+      ]
+    },
+
+    {
+      "branchId": "B001",
+      "doctorId": "u2",
+      "doctor": "Dr. Kadambini Roy",
       "sessionName": "Morning",
       "startTime": "09:00",
-      "tokenNum": "001",
       "endTime": "12:00",
       "slotDuration": 15,
-      "doctor": "Dr. A. Banerjee",
       "slots": [
         {
           "slotStart": "09:00",
           "slotEnd": "09:15",
+          "tokenNum": "001",
           "status": "waiting",
           "type": "appointment",
           "paymentStatus": "paid",
@@ -151,21 +131,20 @@
             "phone": "9823456789",
             "abha": "rohit@sbx",
             "gender": "Male"
-          },
-          "doctor": "Dr. A. Banerjee"
+          }
         },
         {
           "slotStart": "09:15",
           "slotEnd": "09:30",
-          "tokenNum": "002",
+          "tokenNum": "",
           "status": "empty",
           "type": null,
-          "patient": null,
-          "doctor": "Dr. A. Banerjee"
+          "patient": null
         },
         {
           "slotStart": "09:30",
           "slotEnd": "09:45",
+          "tokenNum": "",
           "status": "waiting",
           "type": "appointment",
           "patient": {
@@ -173,71 +152,7 @@
             "phone": "9811223344",
             "abha": "sita@sbx",
             "gender": "Female"
-          },
-          "doctor": "Dr. A. Banerjee"
-        },
-        {
-          "slotStart": "09:45",
-          "slotEnd": "10:00",
-          "tokenNum": "",
-          "status": "empty",
-          "type": null,
-          "patient": null,
-          "doctor": "Dr. A. Banerjee"
-        }
-      ]
-    },
-    {
-      "sessionName": "Evening",
-      "startTime": "17:00",
-      "tokenNum": "002",
-      "endTime": "20:00",
-      "slotDuration": 15,
-      "doctor": "Dr. Vasanth Shetty",
-      "slots": [
-        {
-          "slotStart": "17:00",
-          "slotEnd": "17:15",
-          "status": "waiting",
-          "type": "appointment",
-          "patient": {
-            "name": "Tanya Rao",
-            "phone": "9876541230",
-            "abha": "tanya@sbx",
-            "gender": "Female"
-          },
-          "doctor": "Dr. Vasanth Shetty"
-        },
-        {
-          "slotStart": "17:15",
-          "slotEnd": "17:30",
-          "tokenNum": "",
-          "status": "empty",
-          "type": null,
-          "patient": null,
-          "doctor": "Dr. Vasanth Shetty"
-        },
-        {
-          "slotStart": "17:30",
-          "slotEnd": "17:45",
-          "tokenNum": "005",
-          "status": "waiting",
-          "type": "walkin",
-          "patient": {
-            "name": "Sandeep Reddy",
-            "phone": "9988776655",
-            "abha": "sandeep@sbx",
-            "gender": "Male"
-          },
-          "doctor": "Dr. Vasanth Shetty"
-        },
-        {
-          "slotStart": "17:45",
-          "slotEnd": "18:00",
-          "status": "empty",
-          "type": null,
-          "patient": null,
-          "doctor": "Dr. Vasanth Shetty"
+          }
         }
       ]
     }

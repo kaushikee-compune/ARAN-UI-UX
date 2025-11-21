@@ -6,6 +6,7 @@ import { useAranSession } from "@/lib/auth/use-aran-session";
 import { toast } from "react-hot-toast";
 import { useBranch } from "@/context/BranchContext";
 
+
 /* =============================================================================
    Types
 ============================================================================= */
@@ -242,8 +243,7 @@ export default function AppointmentsPage() {
   // Always work with an array to simplify rendering
   const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
 
-  console.log("The docID is :", doctorId);
-  console.log("The br id is", selectedBranch);
+  
 
   /* =============================================================================
      Auto-select doctor AFTER doctors[] loads

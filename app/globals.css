@@ -464,39 +464,34 @@ body {
 }
 
 /* ===============================
-   GLOBAL UI-CARD OVERRIDE (uniform look)
+   GLOBAL UI-CARD (Stable, No-Bounce)
    =============================== */
 
 .ui-card {
   background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;  /* light gray border */
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow-m) !important; /* medium shadow */
-  transition: box-shadow .2s ease, transform .1s ease;
+  border: 1px solid #e5e7eb !important; /* light border */
+  border-radius: 0.75rem !important; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important; /* soft shadow */
+
+  /* 🔒 Stabilizers — prevent bounce */
+  will-change: auto !important;
+  transform: translateZ(0); /* promotes to GPU for stability */
+  transition: box-shadow 0.2s ease !important;
 }
 
-/* Optional: stronger hover elevation */
+/* Hover: subtle, non-bouncy */
 .ui-card:hover {
-  box-shadow: var(--shadow-l) !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important;
 }
 
-/* Optional: slight tap feedback */
+/* Active: NO scaling — prevents jitter */
 .ui-card:active {
-  transform: scale(0.995);
-}
-/* ---- Toast Slide-Up Animation ---- */
-[data-sonner-toast] {
-  animation: slideUp 0.35s ease forwards !important;
+  transform: none !important;
 }
 
-@keyframes slideUp {
-  0% {
-    transform: translateY(30px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0px);
-    opacity: 1;
-  }
+/* Ensure inner fields don't shift vertically */
+.ui-card * {
+  line-height: 1.35 !important;
 }
+
 

@@ -2,14 +2,14 @@
   {
     "patientId": "CH-B001-000001",
     "demographics": {
-      "name": "Arjun Rao",
+      "name": "Ananya Sharma",
       "phone": "9876500010",
       "dob": "1992-03-10",
       "age": 33,
-      "gender": "Male",
+      "gender": "Female",
       "uhid": "U1B001_0001",
       "abhaNumber": "91-1122-3344-5566",
-      "abhaAddress": "arjunrao@sbx"
+      "abhaAddress": "ananyarao@sbx"
     },
     "registrations": [
       {
@@ -102,13 +102,13 @@
       "dob": "1990-01-01",
       "age": 35,
       "gender": "Female",
-      "uhid": "U1B001_0003",
+      "uhid": "U1B002_0003",
       "abhaNumber": "91-6677-8899-0011",
       "abhaAddress": "kavitam@sbx"
     },
     "registrations": [
       {
-        "branchId": "B001",
+        "branchId": "B002",
         "doctorId": "u1",
         "registrationDate": "2025-07-10",
         "lastVisitDate": "2025-07-25",

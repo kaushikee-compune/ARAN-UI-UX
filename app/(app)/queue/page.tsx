@@ -5,6 +5,7 @@ import FilterBar, { FilterOption } from "@/components/common/FilterBar";
 import { Typography } from "@mui/material";
 import ActionMenu from "@/components/common/ActionMenu";
 import InvoiceModal from "@/components/common/InvoiceModal";
+import { useBranch } from "@/context/BranchContext";
 
 type Patient = {
   name: string;
@@ -25,11 +26,15 @@ type Slot = {
 };
 
 type Session = {
+  branchId: string;
+  doctorId: string;
+  doctor: string;
+
   sessionName: string;
   startTime: string;
   endTime: string;
   slotDuration: number;
-  doctor: string;
+
   slots: Slot[];
 };
 
@@ -83,9 +88,59 @@ export default function QueuePage() {
     gender: "Female",
     doctor: "",
   });
-  const [userRole] = useState<"staff" | "doctor">("staff");
-  const [doctorName] = useState("Dr. Hira Mardi");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  // ------------------------------------------------------------------------------------------//
+  // This piece of code extracts - Role, UserId, Name, Branch from cookie and session id
+  // ------------------------------------------------------------------------------------------//
+
+  function getCookieValue(name: string): string | null {
+    if (typeof document === "undefined") return null;
+    const found = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(name + "="));
+    if (!found) return null;
+    return decodeURIComponent(found.split("=")[1]);
+  }
+
+  // Base64 decode helper (handles missing padding)
+  function decodeBase64(data: string) {
+    try {
+      const pad = data.length % 4;
+      if (pad) data = data + "=".repeat(4 - pad);
+      return JSON.parse(atob(data));
+    } catch (e) {
+      console.error("Session decode error", e);
+      return null;
+    }
+  }
+
+  // ----------------------
+  // Role from cookie
+  // ----------------------
+  const userRole =
+    (getCookieValue("aran.activeRole") as "doctor" | "staff") || "staff";
+
+  // ----------------------
+  // Branch from BranchContext
+  // ----------------------
+  const { selectedBranch } = useBranch();
+
+  // ----------------------
+  // Doctor details from session cookie
+  // ----------------------
+  const sessionRaw = getCookieValue("aran.session");
+  const sessionData = sessionRaw ? decodeBase64(sessionRaw) : null;
+
+  const doctorId = sessionData?.id || null;
+  const doctorName = sessionData?.name || null;
+
+  console.log("Doctor Role", userRole);
+  console.log("User id ", doctorId);
+  console.log("doctor name", doctorName);
+  console.log("Branch", selectedBranch);
+
+  // ------------------------------------------------------------------------------------------//
 
   useEffect(() => {
     fetch("/data/queue.json")
@@ -96,22 +151,48 @@ export default function QueuePage() {
 
   if (!data) return <Typography>Loading OPD queue…</Typography>;
 
-  const sessions = data.sessions.filter((s) => {
-    const matchDoctor = selectedDoctor === "All" || s.doctor === selectedDoctor;
+let sessions: Session[] = data.sessions;
+
+ // ------------------------------------------------------------
+// 1) DOCTOR ROLE → Strict filtering by doctorId + branch
+// ------------------------------------------------------------
+if (userRole === "doctor") {
+  sessions = sessions.filter(
+    (s) =>
+      s.doctorId === doctorId &&      // ensure doctor matches
+      s.branchId === selectedBranch   // ensure branch matches
+  );
+}
+
+// ------------------------------------------------------------
+// 2) STAFF ROLE → Keep existing filters with no changes
+// ------------------------------------------------------------
+if (userRole === "staff") {
+  sessions = sessions.filter((s) => {
+    const matchDoctor =
+      selectedDoctor === "All" || s.doctor === selectedDoctor;
+
     const matchDept =
       selectedDept === "All" ||
       s.doctor.toLowerCase().includes(selectedDept.toLowerCase());
+
     const matchSearch =
       search.trim() === "" ||
       s.slots.some(
         (slot) =>
           slot.patient &&
-          (slot.patient.name.toLowerCase().includes(search.toLowerCase()) ||
+          (slot.patient.name
+            .toLowerCase()
+            .includes(search.toLowerCase()) ||
             slot.patient.phone.includes(search) ||
-            slot.patient.abha.toLowerCase().includes(search.toLowerCase()))
+            slot.patient.abha
+              .toLowerCase()
+              .includes(search.toLowerCase()))
       );
+
     return matchDoctor && matchDept && matchSearch;
   });
+}
 
   /* ---------- Statistics ---------- */
   const waitingCount = sessions.reduce(
@@ -201,45 +282,47 @@ export default function QueuePage() {
         </button>
 
         {/* Filter Bar */}
-        <div className="flex-1 ml-4">
-          <FilterBar
-            fields={[
-              {
-                type: "select",
-                key: "doctor",
-                label: "Doctor",
-                options: [
-                  { label: "All Doctors", value: "All" },
-                  ...Array.from(
-                    new Set(data.sessions.map((s) => s.doctor))
-                  ).map((d) => ({ label: d, value: d })),
-                ],
-                value: selectedDoctor,
-                onChange: setSelectedDoctor,
-              },
-              {
-                type: "select",
-                key: "department",
-                label: "Department",
-                options: [
-                  { label: "All Departments", value: "All" },
-                  { label: "Gynecology", value: "Gynecology" },
-                  { label: "General Medicine", value: "General" },
-                  { label: "Orthopedics", value: "Orthopedics" },
-                ],
-                value: selectedDept,
-                onChange: setSelectedDept,
-              },
-              {
-                type: "search",
-                key: "search",
-                placeholder: "Search patient (name / phone / ABHA)…",
-                value: search,
-                onChange: setSearch,
-              },
-            ]}
-          />
-        </div>
+        {userRole === "staff" && (
+          <div className="flex-1 ml-4">
+            <FilterBar
+              fields={[
+                {
+                  type: "select",
+                  key: "doctor",
+                  label: "Doctor",
+                  options: [
+                    { label: "All Doctors", value: "All" },
+                    ...Array.from(
+                      new Set(data.sessions.map((s) => s.doctor))
+                    ).map((d) => ({ label: d, value: d })),
+                  ],
+                  value: selectedDoctor,
+                  onChange: setSelectedDoctor,
+                },
+                {
+                  type: "select",
+                  key: "department",
+                  label: "Department",
+                  options: [
+                    { label: "All Departments", value: "All" },
+                    { label: "Gynecology", value: "Gynecology" },
+                    { label: "General Medicine", value: "General" },
+                    { label: "Orthopedics", value: "Orthopedics" },
+                  ],
+                  value: selectedDept,
+                  onChange: setSelectedDept,
+                },
+                {
+                  type: "search",
+                  key: "search",
+                  placeholder: "Search patient (name / phone / ABHA)…",
+                  value: search,
+                  onChange: setSearch,
+                },
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {/* ---------- OPD + Completed Panels ---------- */}
