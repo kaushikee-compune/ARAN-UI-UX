@@ -10,6 +10,7 @@
       "startTime": "07:00",
       "endTime": "10:00",
       "slotDuration": 15,
+      "activeQ":true,
       "slots": [
         {
           "slotStart": "07:00",
@@ -148,6 +149,7 @@
       "startTime": "17:00",
       "endTime": "20:00",
       "slotDuration": 30,
+      "activeQ":false,
       "slots": [
         {
           "slotStart": "11:00",
@@ -195,6 +197,7 @@
       "startTime": "09:00",
       "endTime": "12:00",
       "slotDuration": 15,
+      "activeQ":true,
       "slots": [
         {
           "slotStart": "09:00",

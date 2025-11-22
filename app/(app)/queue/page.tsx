@@ -38,12 +38,11 @@ type Session = {
   branchId: string;
   doctorId: string;
   doctor: string;
-
   sessionName: string;
   startTime: string;
   endTime: string;
   slotDuration: number;
-
+  activeQ: boolean;
   slots: Slot[];
 };
 
@@ -206,20 +205,14 @@ export default function QueuePage() {
 
   let sessions: Session[] = data.sessions;
 
-  // ------------------------------------------------------------
-  // 1) DOCTOR ROLE → Strict filtering by doctorId + branch
-  // ------------------------------------------------------------
+  // DOCTOR ROLE
   if (userRole === "doctor") {
     sessions = sessions.filter(
-      (s) =>
-        s.doctorId === doctorId && // ensure doctor matches
-        s.branchId === selectedBranch // ensure branch matches
+      (s) => s.doctorId === doctorId && s.branchId === selectedBranch
     );
   }
 
-  // ------------------------------------------------------------
-  // 2) STAFF ROLE → Keep existing filters with no changes
-  // ------------------------------------------------------------
+  // STAFF ROLE
   if (userRole === "staff") {
     sessions = sessions.filter((s) => {
       const matchDoctor =
@@ -242,6 +235,7 @@ export default function QueuePage() {
       return matchDoctor && matchDept && matchSearch;
     });
   }
+  sessions = sessions.filter((s) => s.activeQ === true);
 
   /* ---------- Statistics ---------- */
   const waitingCount = sessions.reduce(

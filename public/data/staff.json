@@ -64,7 +64,7 @@
     "name": "Dr. Sitarajan",
     "roles": ["doctor"],
     "departments": ["gyn"],
-    "branches": ["B001"],
+    "branches": ["B002"],
     "email": "gyn@example.com",
     "phone": "9972826000",
     "status": "active"

@@ -1,147 +1,296 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
-import StaffVitalsForm from "@/components/staff/StaffVitalsForm";
+import { useEffect, useMemo, useState } from "react";
+import { useBranch } from "@/context/BranchContext";
 
-/**
- * STAFF CONSOLE LAYOUT
- * Layout only — mirrors doctor’s console UI (top bar, right toolbar, preview paper)
- * No form logic or hooks yet. We’ll add Digital Rx (Vitals only) later.
- */
+// Vitals Forms
+import GeneralVitalsForm from "@/components/vitals/forms/general-vitals-form";
+import GynVitalsForm from "@/components/vitals/forms/gyn-vitals-form";
+import EyeVitalsForm from "@/components/vitals/forms/eye-vitals-form";
 
-export default function StaffConsolePage() {
-  const [activeTop, setActiveTop] = useState<
-    "Vitals" | "consent" | "queue"
-  >("Vitals");
+/* -------------------------------------------------------
+   Types
+------------------------------------------------------- */
+type DepartmentMap = Record<string, string>;
 
-  const [vitals, setVitals] = useState({});
+type StaffDoctor = {
+  id: string;
+  name: string;
+  roles: string[];
+  departments: string[];
+  branches: string[];
+  status: string;
+};
 
-  const patient = {
-    name: "Ms Shampa Goswami",
-    age: "52 yrs",
-    gender: "Female",
-    abhaNumber: "91-5510-2061-4469",
-    abhaAddress: "shampa.go@sbx",
+type Slot = {
+  slotStart: string;
+  slotEnd: string;
+  tokenNum?: string;
+  status: string; // waiting | inconsult | ...
+  patient: null | {
+    name: string;
+    phone: string;
+    abha?: string;
+    gender: string;
   };
+};
 
+type Session = {
+  branchId: string;
+  doctorId: string;
+  doctor: string;
+  activeQ: boolean;
+  slots: Slot[];
+};
+
+type QueueData = {
+  date: string;
+  sessions: Session[];
+};
+
+type QueuePatient = {
+  id: string; // slot index key
+  token: string; // formatted token
+  name: string;
+  gender: string;
+  doctorId: string;
+  doctorName: string;
+  departmentCode: string;
+  departmentFullName: string;
+  status: string;
+};
+
+/* -------------------------------------------------------
+   Component
+------------------------------------------------------- */
+export default function StaffConsolePage() {
+  const { selectedBranch } = useBranch();
+
+  const [departmentsMap, setDepartmentsMap] = useState<DepartmentMap>({});
+  const [staff, setStaff] = useState<StaffDoctor[]>([]);
+  const [queue, setQueue] = useState<QueuePatient[]>([]);
+
+  const [departmentFilter, setDepartmentFilter] = useState("All");
+  const [doctorFilter, setDoctorFilter] = useState("All");
+
+  const [selectedPatient, setSelectedPatient] = useState<QueuePatient | null>(
+    null
+  );
+
+  /* -------------------------------------------------------
+     Load JSON data
+  ------------------------------------------------------- */
+  useEffect(() => {
+    async function loadData() {
+      const deptRes = await fetch("/data/department-mapper.json");
+      const deptJson = await deptRes.json();
+
+      const staffRes = await fetch("/data/staff.json");
+      const staffJson = await staffRes.json();
+
+      const queueRes = await fetch("/data/queue.json");
+      const queueJson = await queueRes.json();
+
+      setDepartmentsMap(deptJson);
+      setStaff(staffJson);
+
+      const parsed = buildQueueList(queueJson, staffJson, deptJson, selectedBranch);
+      setQueue(parsed);
+    }
+
+    if (selectedBranch) loadData();
+  }, [selectedBranch]);
+
+  /* -------------------------------------------------------
+     Build Queue from queue.json + staff.json
+  ------------------------------------------------------- */
+  function buildQueueList(
+    queueJson: QueueData,
+    staffList: StaffDoctor[],
+    deptMap: DepartmentMap,
+    branch: string
+  ): QueuePatient[] {
+    const sessions = queueJson.sessions || [];
+
+    const activeSessions = sessions.filter(
+      (s) => s.branchId === branch && s.activeQ === true
+    );
+
+    const rows: QueuePatient[] = [];
+
+    activeSessions.forEach((session) => {
+      const doctorInfo = staffList.find((d) => d.id === session.doctorId);
+      if (!doctorInfo) return;
+
+      const primaryDept = doctorInfo.departments?.[0] || "gen";
+      const departmentFull = deptMap[primaryDept] || "General Medicine";
+
+      session.slots.forEach((slot, idx) => {
+        if (!slot.patient) return;
+        if (!["waiting", "inconsult"].includes(slot.status)) return;
+
+        // token fallback
+        const token =
+          slot.tokenNum && slot.tokenNum.trim() !== ""
+            ? slot.tokenNum
+            : String(idx + 1).padStart(3, "0");
+
+        rows.push({
+          id: `${session.doctorId}-${idx}`,
+          token,
+          name: slot.patient.name,
+          gender: slot.patient.gender,
+          doctorId: session.doctorId,
+          doctorName: session.doctor,
+          departmentCode: primaryDept,
+          departmentFullName: departmentFull,
+          status: slot.status,
+        });
+      });
+    });
+
+    return rows;
+  }
+
+  /* -------------------------------------------------------
+     Doctor Dropdown (unique by active sessions)
+  ------------------------------------------------------- */
+  const doctorList = useMemo(() => {
+    const docs = new Map<string, string>();
+    queue.forEach((p) => {
+      if (!docs.has(p.doctorId)) docs.set(p.doctorId, p.doctorName);
+    });
+    return Array.from(docs.entries()).map(([id, name]) => ({ id, name }));
+  }, [queue]);
+
+  /* -------------------------------------------------------
+     Filter queue
+  ------------------------------------------------------- */
+  const filteredQueue = useMemo(() => {
+    return queue.filter((p) => {
+      const byDept =
+        departmentFilter === "All" || p.departmentCode === departmentFilter;
+      const byDoc = doctorFilter === "All" || p.doctorId === doctorFilter;
+      return byDept && byDoc;
+    });
+  }, [queue, departmentFilter, doctorFilter]);
+
+  /* -------------------------------------------------------
+     Vitals Submit Handler
+  ------------------------------------------------------- */
+  function handleVitalsSubmit(vitals: any) {
+    console.log("Vitals Submitted →", {
+      branchId: selectedBranch,
+      patient: selectedPatient,
+      vitals,
+    });
+
+    if (selectedPatient) {
+      const updated = queue.map((q) =>
+        q.id === selectedPatient.id ? { ...q, status: "done" } : q
+      );
+      setQueue(updated);
+      setSelectedPatient(null);
+    }
+  }
+
+  /* -------------------------------------------------------
+     UI
+  ------------------------------------------------------- */
   return (
-    <div className="space-y-3">
-      {/* ------------------------------- Header Panel ------------------------------- */}
-      {/* <div className="ui-card px-5 py-1 mt-2 mx-4">
-        <div className="flex items-center gap-2">
-          <TopMenuButton
-            active={activeTop === "Vitals"}
-            onClick={() => setActiveTop("Vitals")}
-          >
-            Record Vitals
-          </TopMenuButton>
-          <TopMenuButton
-            active={activeTop === "consent"}
-            onClick={() => setActiveTop("consent")}
-          >
-            Consent
-          </TopMenuButton>
-          <TopMenuButton
-            active={activeTop === "queue"}
-            onClick={() => setActiveTop("queue")}
-          >
-            OPD Queue
-          </TopMenuButton>
-
-          <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
-            <span>Staff Console</span>
+    <div className="space-y-4">
+      {/* ---------------- TOP FILTERS ---------------- */}
+      <div className="ui-card p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Department Dropdown */}
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">
+              Department
+            </label>
+            <select
+              className="ui-input w-48"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="All">All</option>
+              {Object.entries(departmentsMap).map(([code, fullLabel]) => (
+                <option key={code} value={code}>
+                  {fullLabel}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      </div> */}
 
-      {/* ------------------------------- Main Layout ------------------------------- */}
-      <div className="mt-2 px-1 md:px-6 lg:px-8">
-        <div className="grid gap-2 items-start grid-cols-1 md:grid-cols-[minmax(0,1fr)_72px]">
-          {/* LEFT — Patient Preview Paper (with vitals inside) */}
-          <PreviewPaper patient={patient}>
-            <StaffVitalsForm value={vitals} onChange={setVitals} />
-          </PreviewPaper>
+          {/* Doctor Dropdown */}
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">Doctor</label>
+            <select
+              className="ui-input w-48"
+              value={doctorFilter}
+              onChange={(e) => setDoctorFilter(e.target.value)}
+            >
+              <option value="All">All</option>
+              {doctorList.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* RIGHT — Sticky Toolbar */}
-          <aside className="hidden md:block sticky top-20 self-start w-[72px]">
-            <div className="flex flex-col items-center gap-4">
-              <div className="ui-card p-1.5 w-[58px] flex flex-col items-center gap-2">
-                <RoundPill
-                  img="/icons/digitalrx.png"
-                  label="Digital Rx"
-                  variant="green"
-                />
-                <RoundPill img="/icons/save.png" label="Save" variant="gray" />
-                <RoundPill
-                  img="/icons/print.png"
-                  label="Print"
-                  variant="gray"
-                />
-              </div>
-            </div>
-          </aside>
+          <div className="ml-auto text-xs text-gray-500">
+            Branch: <span className="font-semibold">{selectedBranch}</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-/* --------------------------- Patient Preview Paper --------------------------- */
-function PreviewPaper({
-  patient,
-  children,
-}: {
-  patient: typeof mockPatient;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0 md:sticky md:top-20 self-start">
-      <div
-        className="relative mx-auto bg-white border border-gray-300 rounded-xl shadow-sm overflow-visible"
-        style={{
-          minHeight: 680,
-          background: "linear-gradient(180deg,#ffffff 0%,#fcfcfc 100%)",
-        }}
-      >
-        <div className="relative z-0 p-4 md:p-6">
-          {/* Patient Header */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start">
-            <div className="min-w-0 pr-3">
-              <div className="text-xs text-gray-500 mb-1">Patient</div>
-              <div className="text-sm font-semibold">{patient.name}</div>
-              <div className="text-xs text-gray-700 mt-0.5">
-                {patient.gender} • {patient.age}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                ABHA No: {patient.abhaNumber}
-              </div>
-              <div className="text-xs text-gray-600">
-                ABHA Address: {patient.abhaAddress}
-              </div>
-            </div>
+      {/* ---------------- QUEUE + VITALS PANEL ---------------- */}
+      <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-4">
+        {/* QUEUE PANEL */}
+        <div className="ui-card p-3 h-[calc(100vh-180px)] overflow-auto">
+          <h3 className="text-sm font-semibold mb-2">Today's Queue</h3>
 
-            <Image
-              src="/icons/logo.png"
-              alt="Clinic Logo"
-              width={40}
-              height={40}
-            />
+          <div className="space-y-2">
+            {filteredQueue.map((p) => {
+              const isSelected = selectedPatient?.id === p.id;
 
-            <div className="flex items-start justify-end pl-3">
-              
-            </div>
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedPatient(p)}
+                  className={`p-3 rounded-lg border cursor-pointer transition ${
+                    isSelected
+                      ? "bg-[#450693] text-white border-gray-900"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">
+                      #{p.token} — {p.name}
+                    </div>
+                    <StatusBadge status={p.status} />
+                  </div>
+
+                  <div className="text-xs text-white mt-1">
+                    {p.gender} • {p.doctorName} • {p.departmentFullName}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="my-3 border-t border-gray-200" />
-
-          {/* Vitals or other form content */}
-          {children ? (
-            <div className="space-y-4">{children}</div>
-          ) : (
-            <div className="ui-card p-4 text-sm text-gray-500 min-h-[320px]">
-              (Digital Rx – Vitals section will appear here.)
+        {/* VITALS PANEL */}
+        <div className="ui-card p-4 min-h-[600px]">
+          {!selectedPatient ? (
+            <div className="text-gray-400 text-center mt-20">
+              Select a patient from the queue →
             </div>
+          ) : (
+            <VitalsFormContainer
+              patient={selectedPatient}
+              onSubmit={handleVitalsSubmit}
+            />
           )}
         </div>
       </div>
@@ -149,82 +298,56 @@ function PreviewPaper({
   );
 }
 
-/* ------------------------------- UI Utilities ------------------------------- */
-function TopMenuButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+/* -------------------------------------------------------
+   Small Badge Component
+------------------------------------------------------- */
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    waiting: "bg-yellow-400",
+    inconsult: "bg-blue-500",
+    done: "bg-green-600",
+  };
+
   return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={[
-        "px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition",
-        active ? "bg-gray-900 text-white" : "hover:bg-gray-100",
-      ].join(" ")}
-      type="button"
-    >
-      {children}
-    </button>
+    <span
+      className={`inline-block w-3 h-3 rounded-full ${
+        colors[status] || "bg-gray-300"
+      }`}
+    ></span>
   );
 }
 
-type PillVariant = "green" | "gray";
-
-const VARIANT = {
-  green:
-    "border-green-500 text-green-700 hover:bg-green-50 focus-visible:ring-green-400",
-  gray: "border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400",
-} as const;
-
-function RoundPill({
-  img,
-  label,
-  variant = "gray",
+/* -------------------------------------------------------
+   Department-Aware Vitals Form
+------------------------------------------------------- */
+function VitalsFormContainer({
+  patient,
+  onSubmit,
 }: {
-  img: string;
-  label: string;
-  variant?: PillVariant;
+  patient: QueuePatient;
+  onSubmit: (v: any) => void;
 }) {
+  const code = patient.departmentCode;
+
   return (
-    <button
-      title={label}
-      aria-label={label}
-      type="button"
-      className={[
-        "group relative grid place-items-center overflow-visible",
-        "w-9 h-9 rounded-xl border-1 bg-white shadow-sm transition",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        VARIANT[variant],
-      ].join(" ")}
-    >
-      <Image
-        src={img}
-        alt={label}
-        width={18}
-        height={18}
-        className="pointer-events-none"
-      />
-      <span
-        className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[11px] text-black font-medium 
-                   opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-20"
-      >
-        {label}
-      </span>
-    </button>
+    <div>
+      <div className="mb-4 border-b pb-3">
+        <div className="text-sm font-semibold">{patient.name}</div>
+        <div className="text-xs text-gray-600">
+          Token #{patient.token} • {patient.gender} •{" "}
+          {patient.departmentFullName}
+        </div>
+      </div>
+
+      {code === "gen" && <GeneralVitalsForm onSubmit={onSubmit} />}
+      {code === "gyn" && <GynVitalsForm onSubmit={onSubmit} />}
+      {code === "oph" && <EyeVitalsForm onSubmit={onSubmit} />}
+
+      {!["gen", "gyn", "oph"].includes(code) && (
+        <div className="text-red-500 text-sm">
+          No vitals form configured for department: {patient.departmentFullName}
+        </div>
+      )}
+    </div>
   );
 }
-
-/* Mock patient for demo */
-const mockPatient = {
-  name: "Ms Shampa Goswami",
-  age: "52 yrs",
-  gender: "Female",
-  abhaNumber: "91-5510-2061-4469",
-  abhaAddress: "shampa.go@sbx",
-};

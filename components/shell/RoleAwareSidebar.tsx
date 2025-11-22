@@ -118,6 +118,12 @@ const MENU: Record<Role, Item[]> = {
   ],
   staff: [
     {
+      href: "/staff/",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      color: "text-blue-600",
+    },
+    {
       href: "/staff/console",
       label: "Rx",
       icon: MonitorCog,

@@ -315,7 +315,31 @@
         "branchId": "B001",
         "weeklySchedule": [
           {
-            "day": "Mon",
+            "day": "Thu",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "09:00",
+                "end": "13:00",
+                "slotDuration": 20
+              }
+            ]
+          },
+          {
+            "day": "Fri",
+            "sessions": [
+              {
+                "sessionId": "s1",
+                "label": "Morning",
+                "start": "09:00",
+                "end": "13:00",
+                "slotDuration": 20
+              }
+            ]
+          },
+          {
+            "day": "Sat",
             "sessions": [
               {
                 "sessionId": "s1",
@@ -327,10 +351,7 @@
             ]
           },
           { "day": "Tue", "sessions": [] },
-          { "day": "Wed", "sessions": [] },
-          { "day": "Thu", "sessions": [] },
-          { "day": "Fri", "sessions": [] },
-          { "day": "Sat", "sessions": [] },
+          { "day": "Wed", "sessions": [] },          
           { "day": "Sun", "sessions": [] }
         ],
         "exceptions": {
@@ -355,7 +376,7 @@
         "branchId": "B001",
         "weeklySchedule": [
           {
-            "day": "Mon",
+            "day": "Fri",
             "sessions": [
               {
                 "sessionId": "s1",

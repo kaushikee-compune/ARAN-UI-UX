@@ -6,7 +6,6 @@ import { useAranSession } from "@/lib/auth/use-aran-session";
 import { toast } from "react-hot-toast";
 import { useBranch } from "@/context/BranchContext";
 
-
 /* =============================================================================
    Types
 ============================================================================= */
@@ -243,8 +242,6 @@ export default function AppointmentsPage() {
   // Always work with an array to simplify rendering
   const weeklySchedule = activeBranchSchedule?.weeklySchedule ?? [];
 
-  
-
   /* =============================================================================
      Auto-select doctor AFTER doctors[] loads
   ============================================================================= */
@@ -293,7 +290,7 @@ export default function AppointmentsPage() {
   // CREATE THE API-READY COMMIT BOOKING
   // ---------------------------------------------
 
-  function commitBooking() {
+  function commitBooking(doc: Doctor) {
     if (!draft || !selectedDoctor) return;
     if (!draft.patientName.trim() || !draft.mobile.trim()) return;
 
@@ -357,13 +354,24 @@ export default function AppointmentsPage() {
     // ---------------------------------------------
     // 4️⃣ UPDATE UI
     // ---------------------------------------------
-    setDoctors((prev) =>
-      prev.map((d) =>
-        d.id === selectedDoctor.id
-          ? { ...d, booked: [...d.booked, draft.time] }
-          : d
-      )
-    );
+    // setDoctors((prev) =>
+    //   prev.map((d) =>
+    //     d.id === selectedDoctor.id
+    //       ? { ...d, booked: [...d.booked, draft.time] }
+    //       : d
+    //   )
+    // );
+    // ---------------------------------------------
+// 4️⃣ UPDATE UI — FIXED FOR STAFF
+// ---------------------------------------------
+setDoctors((prev) =>
+  prev.map((d) =>
+    d.id === selectedDoctor.id || d.id === doctorId
+      ? { ...d, booked: [...d.booked, draft.time] }
+      : d
+  )
+);
+
     toast.success("Booking confirmed");
     clearSlot();
   }
@@ -425,81 +433,80 @@ export default function AppointmentsPage() {
   }
 
   function buildBranchSessionGroups(
-  branchSchedule: any | null,
-  doc: Doctor,
-  selectedDate: string
-): { label: string; slots: Slot[] }[] {
-  if (!branchSchedule) return [];
+    branchSchedule: any | null,
+    doc: Doctor,
+    selectedDate: string
+  ): { label: string; slots: Slot[] }[] {
+    if (!branchSchedule) return [];
 
-  const weekly = branchSchedule.weeklySchedule || [];
+    const weekly = branchSchedule.weeklySchedule || [];
 
-  // Derive date & weekday
-  const baseDate = selectedDate ? new Date(selectedDate) : new Date();
-  if (Number.isNaN(baseDate.getTime())) return [];
+    // Derive date & weekday
+    const baseDate = selectedDate ? new Date(selectedDate) : new Date();
+    if (Number.isNaN(baseDate.getTime())) return [];
 
-  const dateISO = selectedDate || baseDate.toISOString().slice(0, 10);
+    const dateISO = selectedDate || baseDate.toISOString().slice(0, 10);
 
-  const dowShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][
-    baseDate.getDay()
-  ];
-
-  // Handle exceptions/leave
-  const unavailable = branchSchedule.exceptions?.unavailable || [];
-  const onLeave = unavailable.some(
-    (v: any) => dateISO >= v.from && dateISO <= v.to
-  );
-
-  if (onLeave) {
-    return [
-      {
-        label: "Unavailable",
-        slots: [
-          {
-            time: "Doctor On Leave",
-            available: false,
-            withinWorking: false,
-          },
-        ],
-      },
+    const dowShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+      baseDate.getDay()
     ];
-  }
 
-  // Find the selected weekday's schedule
-  const dayBlock = weekly.find((d: any) => d.day === dowShort);
-  if (!dayBlock || !Array.isArray(dayBlock.sessions)) return [];
+    // Handle exceptions/leave
+    const unavailable = branchSchedule.exceptions?.unavailable || [];
+    const onLeave = unavailable.some(
+      (v: any) => dateISO >= v.from && dateISO <= v.to
+    );
 
-  const groups: { label: string; slots: Slot[] }[] = [];
+    if (onLeave) {
+      return [
+        {
+          label: "Unavailable",
+          slots: [
+            {
+              time: "Doctor On Leave",
+              available: false,
+              withinWorking: false,
+            },
+          ],
+        },
+      ];
+    }
 
-  for (const sess of dayBlock.sessions as any[]) {
-    if (!sess.start || !sess.end) continue;
+    // Find the selected weekday's schedule
+    const dayBlock = weekly.find((d: any) => d.day === dowShort);
+    if (!dayBlock || !Array.isArray(dayBlock.sessions)) return [];
 
-    const startMin = toMinutes(sess.start);
-    const endMin = toMinutes(sess.end);
-    const step = sess.slotDuration || 15;
+    const groups: { label: string; slots: Slot[] }[] = [];
 
-    const sessionSlots: Slot[] = [];
+    for (const sess of dayBlock.sessions as any[]) {
+      if (!sess.start || !sess.end) continue;
 
-    for (let t = startMin; t < endMin; t += step) {
-      const label = fromMinutes(t);
+      const startMin = toMinutes(sess.start);
+      const endMin = toMinutes(sess.end);
+      const step = sess.slotDuration || 15;
 
-      const isBooked = doc.booked.includes(label);
+      const sessionSlots: Slot[] = [];
 
-      sessionSlots.push({
-        time: label,
-        available: !isBooked, // 🔴 booked = red
-        withinWorking: true,
+      for (let t = startMin; t < endMin; t += step) {
+        const label = fromMinutes(t);
+
+        const isBooked = doc.booked.includes(label);
+
+        sessionSlots.push({
+          time: label,
+          available: !isBooked, // 🔴 booked = red
+          withinWorking: true,
+        });
+      }
+
+      groups.push({
+        label: sess.label || `${dowShort} Session`,
+        slots: sessionSlots,
       });
     }
 
-    groups.push({
-      label: sess.label || `${dowShort} Session`,
-      slots: sessionSlots,
-    });
+    return groups;
   }
-
-  return groups;
-}
-
 
   /* =============================================================================
      Render
@@ -569,14 +576,29 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Doctor calendars */}
+        {/* Doctor calendars */}
         {(selectedDoctor ? [selectedDoctor] : doctors)
-          .filter((d) => (isDoctor ? d.id === session.id : true))
+          .filter((d) => {
+            // Doctor login → ONLY their own record
+            if (isDoctor) return d.id === session.id;
+
+            // Staff login → ONLY doctors who work in this branch
+            return d.branches?.includes(selectedBranch);
+          })
           .map((doc) => {
+            // 🔥 FIX: Use per-doctor branch schedule, not selectedDoctor’s schedule
+            const branchScheduleForDoctor =
+              doc.schedule?.branches?.find(
+                (b: any) => b.branchId === selectedBranch
+              ) || null;
+
+            // Build session groups using this doctor's branch-specific schedule
             const sessionGroups = buildBranchSessionGroups(
-              activeBranchSchedule,
+              branchScheduleForDoctor,
               doc,
               selectedDate
             );
+
             const noSlots = sessionGroups.length === 0;
 
             return (
@@ -705,7 +727,8 @@ export default function AppointmentsPage() {
                   searchResult={searchResult}
                   clearSlot={clearSlot}
                   setDraft={setDraft}
-                  onConfirm={commitBooking}
+                  // onConfirm={commitBooking}
+                  onConfirm={() => commitBooking(doc)}
                 />
               </div>
             );
