@@ -192,6 +192,7 @@ export default function StaffConsolePage() {
       setQueue(updated);
       setSelectedPatient(null);
     }
+    
   }
 
   /* -------------------------------------------------------

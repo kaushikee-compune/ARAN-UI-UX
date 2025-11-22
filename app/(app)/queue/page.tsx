@@ -32,6 +32,7 @@ type Slot = {
   paymentStatus?: "paid" | "unpaid";
   patient: Patient | null;
   doctor: string;
+  vitalsDone?: boolean;
 };
 
 type Session = {
@@ -43,6 +44,7 @@ type Session = {
   endTime: string;
   slotDuration: number;
   activeQ: boolean;
+
   slots: Slot[];
 };
 
@@ -103,6 +105,8 @@ export default function QueuePage() {
   const [activeTab, setActiveTab] = useState<"opd" | "completed" | "noshow">(
     "opd"
   );
+  const [staffDoctors, setStaffDoctors] = useState<any[]>([]);
+  const [deptMap, setDeptMap] = useState<Record<string, string>>({});
 
   // ------------------------------------------------------------------------------------------//
   // This piece of code extracts - Role, UserId, Name, Branch from cookie and session id
@@ -176,6 +180,31 @@ export default function QueuePage() {
         setPatients([]);
       });
   }, []);
+
+  // Load staff.json & department mapper
+  useEffect(() => {
+    async function load() {
+      try {
+        const staffRes = await fetch("/data/staff.json");
+        const staff = await staffRes.json();
+
+        const doctors = staff.filter(
+          (s: any) =>
+            s.roles.includes("doctor") && s.branches.includes(selectedBranch)
+        );
+
+        setStaffDoctors(doctors);
+
+        const deptRes = await fetch("/data/department-mapper.json");
+        const deptJson = await deptRes.json();
+        setDeptMap(deptJson);
+      } catch (e) {
+        console.error("Failed loading staff/departments", e);
+      }
+    }
+
+    load();
+  }, [selectedBranch]);
 
   useEffect(() => {
     if (!patients || patients.length === 0) {
@@ -357,41 +386,39 @@ export default function QueuePage() {
 
           {/* Filter Bar */}
           {userRole === "staff" && (
-            <div className="flex-1 ml-4">
+            <div className="ml-auto flex items-center">
               <FilterBar
                 fields={[
+                  /* ---------------------- Doctor Filter ---------------------- */
                   {
                     type: "select",
                     key: "doctor",
                     label: "Doctor",
                     options: [
                       { label: "All Doctors", value: "All" },
-                      ...Array.from(
-                        new Set(data.sessions.map((s) => s.doctor))
-                      ).map((d) => ({ label: d, value: d })),
+                      ...staffDoctors.map((doc) => ({
+                        label: doc.name,
+                        value: doc.name,
+                      })),
                     ],
                     value: selectedDoctor,
                     onChange: setSelectedDoctor,
                   },
+
+                  /* ---------------------- Department Filter ---------------------- */
                   {
                     type: "select",
                     key: "department",
                     label: "Department",
                     options: [
                       { label: "All Departments", value: "All" },
-                      { label: "Gynecology", value: "Gynecology" },
-                      { label: "General Medicine", value: "General" },
-                      { label: "Orthopedics", value: "Orthopedics" },
+                      ...Object.entries(deptMap).map(([key, label]) => ({
+                        label,
+                        value: key,
+                      })),
                     ],
                     value: selectedDept,
                     onChange: setSelectedDept,
-                  },
-                  {
-                    type: "search",
-                    key: "search",
-                    placeholder: "Search patient (name / phone / ABHA)…",
-                    value: search,
-                    onChange: setSearch,
                   },
                 ]}
               />
@@ -410,8 +437,8 @@ export default function QueuePage() {
                 onClick={() => setActiveTab("opd")}
                 className={`text-sm font-semibold ${
                   activeTab === "opd"
-                    ? "text-blue-300 border-b-2 border-blue-300"
-                    : "text-gray-300"
+                    ? "text-[#F87B1B] border-b-2 border-[#F87B1B]"
+                    : "text-gray-600"
                 }`}
               >
                 OPD Queue
@@ -421,7 +448,7 @@ export default function QueuePage() {
                 onClick={() => setActiveTab("completed")}
                 className={`text-sm font-semibold ${
                   activeTab === "completed"
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-[#F87B1B] border-b-2 border-[#F87B1B]"
                     : "text-gray-600"
                 }`}
               >
@@ -432,7 +459,7 @@ export default function QueuePage() {
                 onClick={() => setActiveTab("noshow")}
                 className={`text-sm font-semibold ${
                   activeTab === "noshow"
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-[#F87B1B] border-b-2 border-[#F87B1B]"
                     : "text-gray-600"
                 }`}
               >
@@ -459,11 +486,11 @@ export default function QueuePage() {
                           <tr>
                             <th className="p-2 text-left w-[110px]">Slot</th>
                             <th className="p-2 text-left">Patient</th>
-                            <th className="p-2 text-center w-[80px]">
+                            <th className="p-2 text-center w-[130px]">
                               No-Show
                             </th>
-                            <th className="p-2 text-center w-[80px]">Vitals</th>
-                            <th className="p-2 text-left w-[140px]">
+                            <th className="p-2 text-center w-[160px]">Vitals</th>
+                            <th className="p-2 text-left w-[150px]">
                               Start / Pause
                             </th>
                             <th className="p-2 text-left w-[90px]">Type</th>
@@ -477,173 +504,246 @@ export default function QueuePage() {
                                 sl.status !== "completed" &&
                                 sl.status !== "noshow"
                             )
-                            .map((slot, idx) => (
-                              <tr
-                                key={idx}
-                                className={`border-t border-gray-200 hover:bg-gray-50 ${
-                                  slot.status === "inconsult"
-                                    ? "bg-white"
-                                    : slot.status === "waiting"
-                                    ? "bg-white"
-                                    : "bg-green-50"
-                                }`}
-                              >
-                                {/* SLOT */}
-                                <td className="p-2 text-gray-700">
-                                  <div>
-                                    {slot.slotStart} – {slot.slotEnd}
-                                  </div>
-                                  {slot.tokenNum && (
-                                    <div className="text-xs text-gray-500 mt-0.5">
-                                      Token #{slot.tokenNum}
+                            .map((slot, idx) => {
+                              const originalIdx = session.slots.indexOf(slot);
+
+                              return (
+                                <tr
+                                  key={originalIdx}
+                                  className={`border-t border-gray-200 hover:bg-gray-50 ${
+                                    slot.status === "inconsult"
+                                      ? "bg-white"
+                                      : slot.status === "waiting"
+                                      ? "bg-white"
+                                      : "bg-green-50"
+                                  }`}
+                                >
+                                  {/* SLOT */}
+                                  <td className="p-2 text-gray-700">
+                                    <div>
+                                      {slot.slotStart} – {slot.slotEnd}
                                     </div>
-                                  )}
-                                </td>
-                                {/* PATIENT */}
-                                <td className="p-2">
-                                  {slot.patient ? (
-                                    <>
-                                      <div className="font-semibold text-sm text-[--text-highlight]">
-                                        {slot.patient.name}
+                                    {slot.tokenNum && (
+                                      <div className="text-xs text-gray-500 mt-0.5">
+                                        Token #{slot.tokenNum}
                                       </div>
-                                      <div className="text-xs text-gray-500">
-                                        {slot.patient.phone} |{" "}
-                                        {slot.patient.abha} |{" "}
-                                        {slot.patient.gender}
+                                    )}
+                                  </td>
+
+                                  {/* PATIENT */}
+                                  <td className="p-2">
+                                    {slot.patient ? (
+                                      <>
+                                        <div className="font-semibold text-sm text-[--text-highlight]">
+                                          {slot.patient?.name}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {slot.patient?.phone} |{" "}
+                                          {slot.patient?.abha} |{" "}
+                                          {slot.patient?.gender}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="text-xs text-gray-400 italic">
+                                        (empty slot)
                                       </div>
-                                    </>
-                                  ) : (
-                                    <div className="text-xs text-gray-400 italic">
-                                      (empty slot)
-                                    </div>
-                                  )}
-                                </td>
-                                {/* NO SHOW COLUMN */}
-                                <td className="p-2 text-center">
-                                  {slot.patient && (
-                                    <button
-                                      className="inline-flex items-center justify-center w-4 h-4 rounded-md bg-red-300 hover:bg-red-400"
-                                      title="Mark No-Show"
-                                      onClick={() =>
-                                        updateSlotStatus(sIdx, idx, "noshow")
-                                      }
-                                    >
-                                      <img
-                                        src="/icons/noshow.png"
-                                        className="w-4 h-4"
-                                      />
-                                    </button>
-                                  )}
-                                </td>
+                                    )}
+                                  </td>
 
-                                {/* VITALS COLUMN */}
-                                <td className="p-2 text-center">
-                                  {slot.patient && (
-                                    <button
-                                      className="inline-flex items-center justify-center w-4 h-4 rounded-md bg-emerald-100 hover:bg-emerald-200"
-                                      title="Vitals"
-                                      onClick={() =>
-                                        alert(
-                                          `Open vitals for ${slot.patient?.name}`
-                                        )
-                                      }
-                                    >
-                                      <img
-                                        src="/icons/vitals.png"
-                                        className="w-4 h-4"
-                                      />
-                                    </button>
-                                  )}
-                                </td>
+                                  {/* NO SHOW COLUMN */}
+                                  <td className="p-2 text-center">
+                                    {slot.patient && (
+                                      <button
+                                        className="inline-flex items-center justify-center w-4 h-4 rounded-md bg-red-300 hover:bg-red-400"
+                                        title="Mark No-Show"
+                                        onClick={() =>
+                                          updateSlotStatus(
+                                            sIdx,
+                                            originalIdx,
+                                            "noshow"
+                                          )
+                                        }
+                                      >
+                                        <img
+                                          src="/icons/noshow.png"
+                                          className="w-4 h-4"
+                                        />
+                                      </button>
+                                    )}
+                                  </td>
 
-                                {/* START / PAUSE */}
-                                <td className="p-2">
-                                  {slot.patient && (
-                                    <>
-                                      {slot.status === "waiting" && (
-                                        <div
-                                          className="inline-flex items-center gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
-                                          onClick={() =>
-                                            updateSlotStatus(
-                                              sIdx,
-                                              idx,
-                                              "inconsult"
-                                            )
-                                          }
-                                        >
-                                          <span>Start</span>
-                                          <img
-                                            src="/icons/Start.png"
-                                            alt=""
-                                            className="w-4 h-4"
-                                          />
-                                        </div>
-                                      )}
-                                      {slot.status === "inconsult" && (
-                                        <div
-                                          className="inline-flex items-center gap-2 cursor-pointer text-amber-600 font-semibold hover:opacity-90"
-                                          onClick={() =>
-                                            updateSlotStatus(
-                                              sIdx,
-                                              idx,
-                                              "waiting"
-                                            )
-                                          }
-                                        >
-                                          <span>Pause</span>
-                                          <img
-                                            src="/icons/pause.png"
-                                            alt=""
-                                            className="w-4 h-4"
-                                          />
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                </td>
+                                  {/* VITALS COLUMN */}
+                                  <td className="p-2 text-center">
+                                    {slot.patient && (
+                                      <>
+                                        {userRole === "staff" ? (
+                                          <div className="flex items-center gap-2 justify-center">
+                                            {/* ✔ Status Chip */}
+                                            <span
+                                              className={[
+                                                "px-2 py-1 text-xs font-medium rounded-md",
+                                                slot.vitalsDone
+                                                  ? "bg-emerald-200 text-emerald-800"
+                                                  : "bg-gray-200 text-gray-600",
+                                              ].join(" ")}
+                                            >
+                                              {slot.vitalsDone
+                                                ? "Done"
+                                                : "Pending"}
+                                            </span>
 
-                                {/* TYPE */}
-                                <td className="p-2 text-gray-700">
-                                  {slot.type === "walkin"
-                                    ? "Walk-in"
-                                    : slot.type === "appointment"
-                                    ? "Appt."
-                                    : ""}
-                                </td>
-                                {/* ACTION MENU */}
-                                <td className="p-2">
-                                  {slot.patient && (
-                                    <div className="absolute inline-block text-left">
-                                      <ActionMenu
-                                        items={[
-                                          {
-                                            label: "Payment",
-                                            onClick: () => {
-                                              setSelectedPatient(slot.patient);
-                                              setShowInvoiceModal(true);
+                                            {/* ✔ Staff still can open Vitals */}
+                                            <button
+                                              className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 hover:bg-emerald-200"
+                                              title="Enter Vitals"
+                                              onClick={() => {
+                                                const selectedDoc =
+                                                  staffDoctors.find(
+                                                    (d) =>
+                                                      d.name === session.doctor
+                                                  );
+                                                const deptKey =
+                                                  selectedDoc
+                                                    ?.departments?.[0] || "";
+
+                                                const params =
+                                                  new URLSearchParams({
+                                                    branch:
+                                                      selectedBranch ?? "",
+                                                    doctor:
+                                                      session.doctor ?? "",
+                                                    dept: deptKey ?? "",
+                                                    patientName:
+                                                      slot.patient?.name ?? "",
+                                                    phone:
+                                                      slot.patient?.phone ?? "",
+                                                    token: slot.tokenNum ?? "",
+                                                    sessionIndex: String(sIdx),
+                                                    slotIndex:
+                                                      String(originalIdx),
+                                                  });
+
+                                                window.location.href = `/staff/console?${params.toString()}`;
+                                              }}
+                                            >
+                                              <img
+                                                src="/icons/vitals.png"
+                                                className="w-4 h-4"
+                                              />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          /* ✔ Doctor sees only the chip */
+                                          <span
+                                            className={[
+                                              "px-2 py-1 text-xs font-medium rounded-md",
+                                              slot.vitalsDone
+                                                ? "bg-emerald-200 text-emerald-800"
+                                                : "bg-gray-200 text-gray-600",
+                                            ].join(" ")}
+                                          >
+                                            {slot.vitalsDone
+                                              ? "Done"
+                                              : "Pending"}
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </td>
+
+                                  {/* START / PAUSE */}
+                                  <td className="p-2">
+                                    {slot.patient && (
+                                      <>
+                                        {slot.status === "waiting" && (
+                                          <div
+                                            className="inline-flex items-center gap-2 cursor-pointer text-[var(--text-highlight)] font-semibold hover:opacity-90"
+                                            onClick={() =>
+                                              updateSlotStatus(
+                                                sIdx,
+                                                originalIdx,
+                                                "inconsult"
+                                              )
+                                            }
+                                          >
+                                            <span>Start</span>
+                                            <img
+                                              src="/icons/Start.png"
+                                              alt=""
+                                              className="w-4 h-4"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {slot.status === "inconsult" && (
+                                          <div
+                                            className="inline-flex items-center gap-2 cursor-pointer text-amber-600 font-semibold hover:opacity-90"
+                                            onClick={() =>
+                                              updateSlotStatus(
+                                                sIdx,
+                                                originalIdx,
+                                                "waiting"
+                                              )
+                                            }
+                                          >
+                                            <span>Pause</span>
+                                            <img
+                                              src="/icons/pause.png"
+                                              alt=""
+                                              className="w-4 h-4"
+                                            />
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </td>
+
+                                  {/* TYPE */}
+                                  <td className="p-2 text-gray-700">
+                                    {slot.type === "walkin"
+                                      ? "Walk-in"
+                                      : slot.type === "appointment"
+                                      ? "Appt."
+                                      : ""}
+                                  </td>
+
+                                  {/* ACTION MENU */}
+                                  <td className="p-2">
+                                    {slot.patient && (
+                                      <div className="absolute inline-block text-left">
+                                        <ActionMenu
+                                          items={[
+                                            {
+                                              label: "Payment",
+                                              onClick: () => {
+                                                setSelectedPatient(
+                                                  slot.patient
+                                                );
+                                                setShowInvoiceModal(true);
+                                              },
                                             },
-                                          },
-                                          {
-                                            label: "Upload",
-                                            onClick: () =>
-                                              alert(
-                                                `Upload report for ${slot.patient?.name}`
-                                              ),
-                                          },
-                                          {
-                                            label: "Move Up",
-                                            onClick: () =>
-                                              alert(
-                                                `Move up ${slot.patient?.name}`
-                                              ),
-                                          },
-                                        ]}
-                                      />
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
+                                            {
+                                              label: "Upload",
+                                              onClick: () =>
+                                                alert(
+                                                  `Upload report for ${slot.patient?.name}`
+                                                ),
+                                            },
+                                            {
+                                              label: "Move Up",
+                                              onClick: () =>
+                                                alert(
+                                                  `Move up ${slot.patient?.name}`
+                                                ),
+                                            },
+                                          ]}
+                                        />
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
