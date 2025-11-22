@@ -449,5 +449,28 @@
         "lastVisitType": "Review"
       }
     ]
+  },
+  {
+    "patientId": "CH-B001-000034",
+    "demographics": {
+      "name": "Romila Das",
+      "phone": "9849867232",
+      "dob": "1987-02-02",
+      "age": 38,
+      "gender": "Female",
+      "uhid": "CROSS_0045",
+      "abhaNumber": null,
+      "abhaAddress": "ABHA"
+    },
+    "registrations": [
+      {
+        "branchId": "B002",
+        "doctorId": "u7",
+        "registrationDate": "2025-03-10",
+        "lastVisitDate": "2025-03-15",
+        "lastVisitType": "OPD"
+      }
+      
+    ]
   }
 ]

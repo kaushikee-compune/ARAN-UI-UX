@@ -8,6 +8,7 @@ import CompareStep from "@/components/abha/CompareStep";
 import ConfirmStep from "@/components/abha/ConfirmStep";
 import ProgressBar from "@/components/abha/ProgressBar";
 import { RotateCcw } from "lucide-react";
+import PatientTabRail from "@/components/patient/PatientTabRail";
 
 const STEPS = ["Aadhaar", "OTP", "Address", "Compare", "Confirm"];
 
@@ -48,6 +49,7 @@ export default function AbhaRegistrationPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+       <PatientTabRail />
       <h1 className="text-xl font-semibold">ABHA Registration Wizard</h1>
       <ProgressBar step={step} total={STEPS.length} />
 

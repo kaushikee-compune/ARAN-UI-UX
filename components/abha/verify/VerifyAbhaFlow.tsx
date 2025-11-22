@@ -11,6 +11,8 @@ import OtpVerifyStep from "./OTPVerifyStep";
 import VerifyCompareStep from "./VerifyCompareStep";
 import { RestartButton } from "@/components/abha/restart";
 import ConfirmStep from "@/components/abha/ConfirmStep";
+import PatientTabRail from "@/components/patient/PatientTabRail";
+
 
 
 /* Shared type for flow state */
@@ -87,7 +89,8 @@ export default function VerifyAbhaFlow() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-5xl mx-auto p-4 space-y-6">
+       <PatientTabRail />
       {step !== "mode" && (
         <div className="flex items-center mb-6">
           {steps.map((label, i) => (

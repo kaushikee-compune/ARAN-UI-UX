@@ -362,15 +362,15 @@ export default function AppointmentsPage() {
     //   )
     // );
     // ---------------------------------------------
-// 4️⃣ UPDATE UI — FIXED FOR STAFF
-// ---------------------------------------------
-setDoctors((prev) =>
-  prev.map((d) =>
-    d.id === selectedDoctor.id || d.id === doctorId
-      ? { ...d, booked: [...d.booked, draft.time] }
-      : d
-  )
-);
+    // 4️⃣ UPDATE UI — FIXED FOR STAFF
+    // ---------------------------------------------
+    setDoctors((prev) =>
+      prev.map((d) =>
+        d.id === selectedDoctor.id || d.id === doctorId
+          ? { ...d, booked: [...d.booked, draft.time] }
+          : d
+      )
+    );
 
     toast.success("Booking confirmed");
     clearSlot();
@@ -522,60 +522,59 @@ setDoctors((prev) =>
     >
       <div className="p-2 md:p-4 lg:p-6">
         {/* Search Bar */}
-        <div className="flex items-center justify-between gap-2 mb-4 relative">
-          {/* LEFT — Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              className="ui-input w-full"
-              placeholder="Search (name, UHID, phone, ABHA no/address)…"
-              value={searchQuery}
-              onChange={(e) => handlePatientSearch(e.target.value)}
-            />
+       <div className="flex items-center justify-between gap-2 mb-4 relative">
 
-            {/* DROPDOWN FIXED BELOW INPUT */}
-            {showDropdown && searchMatches.length > 1 && (
-              <div
-                className="
-        absolute left-0 right-0 
-        mt-1 bg-white border border-gray-200 rounded-md shadow-lg
-        max-h-60 overflow-auto z-50
-      "
-              >
-                {searchMatches.map((p) => (
-                  <button
-                    key={p.pid}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50  last:border-b-0"
-                    onClick={() => {
-                      setSearchResult(p);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-xs text-gray-600">
-                      {p.phone} • UHID: {p.uhid || "N/A"}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+  {/* LEFT — Search Input + Dropdown */}
+  <div className="relative flex-1 max-w-md">
+    <input
+      type="text"
+      className="ui-input w-full"
+      placeholder="Search (name, UHID, phone, ABHA no/address)…"
+      value={searchQuery}
+      onChange={(e) => handlePatientSearch(e.target.value)}
+    />
 
-          {/* RIGHT — Quick Booking - commented temporarily*/}
-          {/* <button
-            className="btn-primary whitespace-nowrap"
-            onClick={() =>
-              window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: "smooth",
-              })
-            }
+    {/* DROPDOWN */}
+    {showDropdown && searchMatches.length > 1 && (
+      <div
+        className="
+          absolute left-0 right-0 
+          mt-1 bg-white border border-gray-200 rounded-md shadow-lg
+          max-h-60 overflow-auto z-50
+        "
+      >
+        {searchMatches.map((p) => (
+          <button
+            key={p.pid}
+            className="w-full text-left px-3 py-2 hover:bg-gray-50 last:border-b-0"
+            onClick={() => {
+              setSearchResult(p);
+              setShowDropdown(false);
+            }}
           >
-            Quick Booking
-          </button> */}
-        </div>
+            <div className="font-medium">{p.name}</div>
+            <div className="text-xs text-gray-600">
+              {p.phone} • UHID: {p.uhid || "N/A"}
+            </div>
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
 
-        {/* Doctor calendars */}
+  {/* RIGHT — Register Button */}
+  <button
+    className="btn-accent px-4 py-2 text-sm font-semibold whitespace-nowrap shrink-0"
+    onClick={() => (window.location.href = "/patient/registration")}
+  >
+    Register New
+  </button>
+
+</div>
+
+       
+
+       
         {/* Doctor calendars */}
         {(selectedDoctor ? [selectedDoctor] : doctors)
           .filter((d) => {

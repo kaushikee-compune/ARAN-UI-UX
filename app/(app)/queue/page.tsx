@@ -370,7 +370,7 @@ export default function QueuePage() {
               className="btn-primary flex items-center text-sm font-semibold "
               onClick={() => setShowModal(true)}
             >
-              <img src="/icons/UserPlus.png" alt="" className="w-4 h-4" />
+             
               Add Walk-in
             </button>
 
@@ -379,7 +379,7 @@ export default function QueuePage() {
               className="btn-accent flex items-center text-sm font-semibold whitespace-nowrap"
               onClick={() => (window.location.href = "/appointments")}
             >
-              <img src="/icons/CalendarAdd.png" alt="" className="w-4 h-4" />
+              
               Book Appointment
             </button>
           </div>
